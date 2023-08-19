@@ -1,9 +1,12 @@
 <script lang="ts">
+    import { drawTileData, drawBackgroundMap } from "../../../build/release";
+
     import BenchmarkControl from "./BenchmarkControl.svelte";
     import BreakpointsControl from "./BreakpointsControl.svelte";
     import CpuDebugInfo from "./CpuDebugInfo.svelte";
     import DebugLcd from "./DebugLcd.svelte";
     import Disassembler from "./Disassembler.svelte";
+    import FpsCounter from "./FPSCounter.svelte";
     import HexDumpControl from "./HexDumpControl.svelte";
     import LogView from "./LogView.svelte";
 </script>
@@ -17,8 +20,21 @@
         <HexDumpControl />
         <BenchmarkControl />
     </div>
-    <DebugLcd />
-    <div class="debug-right-panel debug-panel" />
+    <div class="debug-right-panel debug-panel">
+        <FpsCounter />
+        <DebugLcd
+            title="Tile Data"
+            width={32 * 8}
+            height={8 * 8}
+            draw={(a) => drawTileData(a, 32 * 8)}
+        />
+        <DebugLcd
+            title="BG"
+            width={32 * 8}
+            height={32 * 8}
+            draw={drawBackgroundMap}
+        />
+    </div>
 </div>
 
 <style>
@@ -29,7 +45,7 @@
         margin: 0 1em;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: top;
         align-items: left;
     }
 

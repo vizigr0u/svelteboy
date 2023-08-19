@@ -62,7 +62,8 @@ export {
   getPokemonTileExampleData,
   getLetterTileExampleData,
   getTestExampleData,
-  drawVideoBuffercontent
+  drawTileData,
+  drawBackgroundMap
 } from "./io/video/tileUtils";
 
 export {
