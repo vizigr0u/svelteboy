@@ -118,7 +118,12 @@ export class Debug {
     static isPaused: boolean = false;
     static disableLcdForTests: boolean = false;
 
+    static Init(): void {
+        this.isPaused = false;
+    }
+
     static RunOneFrame(): void {
+        Debug.isPaused = false;
         const initialFrame = Ppu.currentFrame;
         do {
             Emulator.Tick();
@@ -149,8 +154,8 @@ export function debugStep(): void {
     Debug.Step();
 }
 
-export function debugPause(): void {
-    Debug.isPaused = true;
+export function debugPause(paused: boolean = true): void {
+    Debug.isPaused = paused;
 }
 
 export function debugGetStatus(): DebugInfo {
