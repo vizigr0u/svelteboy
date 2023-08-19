@@ -1,0 +1,41 @@
+{
+  "name": "svelteboy",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "npm run asbuild:debug && node tests",
+    "asbuild:debug": "asc assembly/index.ts --target debug",
+    "asbuild:release": "asc assembly/index.ts --target release",
+    "asbuild": "npm run asbuild:debug && npm run asbuild:release",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "start": "npx serve ."
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^2.4.2",
+    "@tsconfig/svelte": "^5.0.0",
+    "assemblyscript": "^0.27.8",
+    "svelte": "^4.0.5",
+    "svelte-check": "^3.4.6",
+    "tslib": "^2.6.0",
+    "typescript": "^5.1.6",
+    "vite": "^4.4.5",
+    "vite-plugin-node-polyfills": "^0.11.1"
+  },
+  "dependencies": {
+    "@csstools/convert-colors": "^2.0.0",
+    "buffer": "^6.0.3",
+    "gzip": "^0.1.0",
+    "pngjs": "^7.0.0",
+    "svelte-virtual-list-ce": "^3.1.0-beta.2"
+  },
+  "exports": {
+    ".": {
+      "import": "./build/release.js",
+      "types": "./build/release.d.ts"
+    }
+  }
+}

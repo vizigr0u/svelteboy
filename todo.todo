@@ -1,0 +1,9 @@
+☐ test struct deref assignment (getLcd().stat = value)
+☐ jump to PC
+☐ auto-jump to PC
+☐ disassemble dynamic parts (WRAM, HRAM)
+☐ pass CPU tests
+☐ OAM
+☐ ppu
+☐ ???
+☐ PROFIT
