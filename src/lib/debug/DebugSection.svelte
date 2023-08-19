@@ -25,7 +25,7 @@
         <DebugLcd
             title="Tile Data"
             width={32 * 8}
-            height={8 * 8}
+            height={16 * 8}
             draw={(a) => drawTileData(a, 32 * 8)}
         />
         <DebugLcd
