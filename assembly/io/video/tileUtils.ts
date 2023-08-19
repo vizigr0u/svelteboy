@@ -43,7 +43,7 @@ export function tileToRgba(tile: Uint8Array): Uint8ClampedArray {
 export function drawTileData(screenBuffer: Uint8ClampedArray, bufferWidth: u32): Uint8ClampedArray {
     const buffer = Uint8Array.wrap(screenBuffer.buffer);
     const numTilesX: u16 = <u16>(bufferWidth / 8);
-    const numTilesY: u16 = <u16>(256 / numTilesX);
+    const numTilesY: u16 = <u16>((3 * 128) / numTilesX);
     // let tileBuffer: Uint8Array = new Uint8Array(16);
     for (let y: u16 = 0; y < numTilesY; y++) {
         for (let x: u16 = 0; x < numTilesX; x++) {
@@ -68,7 +68,7 @@ export function drawBackgroundMap(screenBuffer: Uint8ClampedArray): Uint8Clamped
     // let tileBuffer: Uint8Array = new Uint8Array(16);
     for (let y: u16 = 0; y < numTilesY; y++) {
         for (let x: u16 = 0; x < numTilesX; x++) {
-            const tileMapIndex = x + y * numTilesX;
+            const tileMapIndex: u16 = x + y * numTilesX;
             const tileAddress = tileMapAddress + tileMapIndex;
             const tileIndex = load<u8>(tileAddress);
             const dataStart = tileDataAddress + <u16>(tileIndex * 16);
