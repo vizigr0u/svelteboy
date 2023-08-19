@@ -1,51 +1,32 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { drawVideoBuffercontent } from "../../../build/release";
   import { frameCount } from "../../stores/debugStores";
+
+  export let width: number = 42;
+  export let height: number = 42;
+  export let draw: (a: Uint8ClampedArray) => Uint8ClampedArray = (a) => a;
+  export let title: string = "LCD Title";
 
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;
   let screenData: ImageData;
-  const tileSize = 8;
-  const width = 32 * tileSize;
-  const height = 8 * tileSize;
   let pixelSize = 2;
   let autodraw: boolean = true;
 
-  let frameNumber: number = 0;
   let timeSpentDrawing: number = 0;
   let drawCounts: number = 0;
-  let lastDrawTime: number = 0;
-  let lastDraw10Time: number = 0;
-  let last10FPS: number = 0;
-  let fpsReport: string;
+  let timeReport: string;
 
   frameCount.subscribe((frame) => {
     if (frame != -1) {
-      drawTestScreen();
-      const drawEndTime = performance.now();
+      drawToCanvas();
       drawCounts++;
-      if (frame % 10 == 0 && frame > 0) {
-        if (lastDraw10Time > 0) {
-          last10FPS = 10000 / (drawEndTime - lastDraw10Time);
-        }
-        lastDraw10Time = drawEndTime;
+      if (timeSpentDrawing > 0) {
+        timeReport = (timeSpentDrawing / drawCounts).toFixed(1);
       }
-      if (lastDrawTime > 0) {
-        fpsReport = (1000 / (drawEndTime - lastDrawTime)).toFixed(1) + " FPS";
-        if (lastDraw10Time > 0)
-          fpsReport +=
-            " (" +
-            last10FPS.toFixed(1) +
-            " rolling) avg draw: " +
-            (timeSpentDrawing / drawCounts).toFixed(1) +
-            " ms";
-      }
-      lastDrawTime = drawEndTime;
     } else {
       drawCounts = 0;
     }
-    frameNumber = frame;
   });
 
   onMount(() => {
@@ -53,26 +34,26 @@
     screenData = context.createImageData(width, height);
   });
 
-  function drawTestScreen() {
+  function drawToCanvas() {
     if (screenData != undefined) {
       const data = screenData.data;
       const t0 = performance.now();
-      const other = drawVideoBuffercontent(data, width);
+      const other = draw(data);
       timeSpentDrawing += performance.now() - t0;
-      context.putImageData(new ImageData(other, width), 0, 0);
+      context.putImageData(new ImageData(other, width, height), 0, 0);
     }
   }
 
   function onClick() {
-    drawTestScreen();
+    drawToCanvas();
   }
 </script>
 
 <div class="tile-data-canvas">
   <div class="tile-data-title">
-    <h3>Tile Data</h3>
-    {#if fpsReport}
-      <span>{fpsReport}</span>
+    <h3>{title}</h3>
+    {#if timeReport}
+      <span>Draw time: {timeReport}ms</span>
     {/if}
   </div>
   <div class="canvas-controls">
