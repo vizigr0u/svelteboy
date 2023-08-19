@@ -1,6 +1,32 @@
 import { GB_OAM_START } from "../../cpu/memoryMap";
 import { Dma } from "./dma";
 
+enum OamAttribute {
+    /* 0-2: CGB pal number */
+    TileBank = 3,
+    PaletteNumber = 4,
+    XFlip = 5,
+    YFlip = 6,
+    BGandWindowOver = 7
+}
+
+@final
+class OamData {
+    yPos: u8;
+    xPos: u8;
+    tileIndex: u8;
+    flags: u8;
+
+    hasAttr(f: OamAttribute): boolean { return (this.flags & (1 << <u8>f)) != 0; }
+
+    setAttr(f: OamAttribute, enabled: bool = 1): void {
+        if (enabled)
+            this.flags = this.flags | (1 << f);
+        else
+            this.flags = this.flags & ~(1 << f);
+    }
+}
+
 @final
 export class Oam {
     @inline
