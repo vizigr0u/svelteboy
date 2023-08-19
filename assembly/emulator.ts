@@ -1,8 +1,10 @@
 import { Cpu } from "./cpu";
 import { Interrupt } from "./interrupts";
 import { IO } from "./io";
-import { Logger } from "./logger";
+import { Logger, log } from "./logger";
 import { MemoryMap } from "./memoryMap";
+import { Timer } from "./timer";
+import { Dma } from "./video/dma";
 import { Ppu } from "./video/ppu";
 
 const OFFICIAL_CYCLES_PER_SECOND: u32 = 4194304;
@@ -12,28 +14,44 @@ const FPS: u32 = 60;
 const CYCLES_PER_FRAME: u32 = CYCLES_PER_SECOND / FPS;
 
 @final export class Emulator {
+    static wasInit: boolean = false;
+
     static Init(useBootRom: boolean = true): void {
         Logger.Init();
-        Cpu.init(useBootRom);
-        Interrupt.Init();
-        MemoryMap.Init(useBootRom);
+        Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
+        MemoryMap.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
         IO.Init();
         Ppu.Init();
+        Emulator.wasInit = true;
+    }
+
+    static Tick(): void {
+        if (Logger.verbose >= 3)
+            log("Ticking emulator");
+
+        const t_cycles = Cpu.Tick();
+
+        if (Logger.verbose >= 4)
+            log("Cpu tick lasted " + t_cycles.toString() + ' cycles');
+
+        for (let i: u8 = 0; i < t_cycles; i++) {
+            Timer.Tick();
+            Ppu.Tick();
+            if (i % 4 == 0)
+                Dma.Tick();
+        }
     }
 
     static Loop(): void {
         while (!Cpu.isStopped) {
-            Cpu.Tick();
+            Emulator.Tick();
         }
     }
 
-    // static runOneFrame(maxCycles: u32 = CYCLES_PER_FRAME): void {
-    static RunOneFrame(maxCycles: u32 = CYCLES_PER_FRAME): void {
-        if (u32.MAX_VALUE - Cpu.CycleCount <= (maxCycles << 1))
-            Cpu.CycleCount = 0;
-        maxCycles += Cpu.CycleCount;
-        while (Cpu.CycleCount < maxCycles) {
-            Cpu.Tick();
-        }
+    static RunOneFrame(): void {
+        const initialFrame = Ppu.currentFrame;
+        do {
+            Emulator.Tick();
+        } while (Ppu.currentFrame == initialFrame && !Cpu.isStopped)
     }
 }

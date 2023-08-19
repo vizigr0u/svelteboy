@@ -16,7 +16,7 @@ function testDecomposition(): void {
 }
 
 function testComposition(): void {
-    Cpu.init();
+    Cpu.Init();
 
     Cpu.AF = 0;
     Cpu.SetA(0xAA);
@@ -57,7 +57,7 @@ function testComposition(): void {
 }
 
 function testSetFlag(initialFlags: u8, flag: Flag, enabled: boolean): u8 {
-    Cpu.init();
+    Cpu.Init();
     Cpu.SetF(initialFlags);
     Cpu.SetFlag(flag, enabled);
     return Cpu.F();

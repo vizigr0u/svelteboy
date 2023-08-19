@@ -59,7 +59,7 @@ export class Cpu {
         Cpu.SetF(enabled ? <u8>(Cpu.F() | <u8>f) : <u8>(Cpu.F() & <u8>(~f)));
     }
 
-    static init(useBootRom: boolean = true): void {
+    static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized CPU, using boot : ' + useBootRom.toString());
         Cpu.AF = 0x01B0;
@@ -74,15 +74,11 @@ export class Cpu {
         Cpu.failedLastCondition = false;
         Cpu.CycleCount = 0;
         Cpu.isEnablingIME = false;
+
+        Interrupt.Init();
     }
 
-    static Tick(): void {
-        if (Logger.verbose >= 4)
-            log("Ticking");
-
-        if (Cpu.isStopped)
-            return;
-
+    static Tick(): u8 {
         const wasHalted = Cpu.isHalted;
         const t_cycles: u8 = wasHalted ? 4 : Cpu.executeNextInstruction();
         Cpu.CycleCount += t_cycles;
@@ -102,11 +98,7 @@ export class Cpu {
             Interrupt.masterEnabled = true;
         }
 
-        for (let i: u8 = 0; i < t_cycles; i++) {
-            Timer.Tick();
-            if (i % 4 == 0)
-                Dma.Tick();
-        }
+        return t_cycles;
     }
 
     static GetTrace(): string {

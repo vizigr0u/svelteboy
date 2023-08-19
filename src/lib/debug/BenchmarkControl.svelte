@@ -7,11 +7,10 @@
 
     async function onButtonClick() {
         const frames = numFrames;
-        const maxCycles = maxCyclesPerFrame;
         status = "Benchmarking...";
-        const result = await measureCpuFrames(frames, maxCycles);
+        const result = await measureCpuFrames(frames);
         status =
-            `Ran ${frames} frames of <= ${maxCycles} in ${result}ms` +
+            `Ran ${frames} frames in ${result}ms` +
             ` = ${(frames * 1000) / result} FPS`;
     }
 </script>

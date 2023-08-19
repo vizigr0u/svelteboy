@@ -4,7 +4,7 @@ import { IO } from "../io";
 import { Logger, log } from "../logger";
 import { GB_IO_START } from "../memoryMap";
 import { uToHex } from "../stringUtils";
-import { Ppu } from "./ppu";
+import { Ppu, PpuMode } from "./ppu";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
@@ -12,15 +12,31 @@ const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
 export const LCD_WIDTH: u8 = 160;
 export const LCD_HEIGHT: u8 = 144;
 
+export enum LcdControlBit {
+    BGandWindowEnabled = 0,
+    ObjEnabled = 1,
+    ObjSize = 2,
+    BGTileMapArea = 3,
+    BGandWindowTileArea = 4,
+    WindowEnabled = 5,
+    WindowTileMapArea = 6,
+    LCDandPPUenabled = 7
+}
+
 @final
 class LcdGbData {
     control: u8;
     stat: u8;
-    scY: u8;
-    scX: u8;
+    scrollY: u8;
+    scrollX: u8;
     lY: u8;
     lYcompare: u8;
     dma: u8;
+    bgPalette: u8;
+    objPalette0: u8;
+    objPalette1: u8;
+    windowY: u8;
+    windowX: u8;
 
     @inline
     static getGlobalPointer(): usize {
@@ -46,11 +62,32 @@ class LcdGbData {
     static getLyCompareAddress(): u16 {
         return LCD_GB_START_ADDRESS + <u16>offsetof<LcdGbData>('lYcompare');
     }
+
+    @inline
+    getStatModes(): u8 {
+        return (this.stat >> 3) & 3;
+    }
+
+    @inline
+    hasStatMode(mode: PpuMode): boolean {
+        return mode == PpuMode.Transfer ? false : ((1 << mode) & (this.stat >> 3)) != 0;
+    }
+
+    hasControlBit(b: LcdControlBit): boolean { return (this.control & (1 << <u8>b)) != 0; }
+
+    setControlBit(b: LcdControlBit, enabled: bool = 1): void {
+        if (enabled)
+            this.control = this.control | (1 << b);
+        else
+            this.control = this.control & ~(1 << b);
+    }
+
 }
 
 @final
 export class Lcd {
     static Init(): void {
+        memory.fill(LcdGbData.getGlobalPointer(), 0, offsetof<LcdGbData>()); // TODO: what are initial values?
         if (Debug.disableLcdForTests) {
             if (Logger.verbose >= 1)
                 log('LCD disabld for tests');
@@ -70,7 +107,7 @@ export class Lcd {
     }
 
     @inline
-    static getPalette(): u8 {
+    static getBGPalette(): u8 {
         return IO.Load(0xFF47);
     }
 
@@ -114,6 +151,7 @@ export class Lcd {
             let stat = data.stat & 0b11111000;
             stat |= (data.lY == data.lYcompare) ? 0b100 : 0;
             stat |= <u8>Ppu.currentMode;
+            return stat;
         }
         return IO.MemLoad<u8>(gbAddress);
     }

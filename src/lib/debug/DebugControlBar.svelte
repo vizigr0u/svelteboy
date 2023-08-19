@@ -17,12 +17,13 @@
     import type { GbDebugInfo } from "../../types";
     import { fetchLogs } from "../../debug";
 
-    let verbose: number = 2;
+    let verbose: number = 1;
     let useBoot: boolean = false;
+    let frameDelay: number = 5;
 
-    function runDebugger(maxCycles: number): Promise<GbDebugInfo> {
+    function runDebugger(): Promise<GbDebugInfo> {
         return new Promise<GbDebugInfo>((resolve) => {
-            debugRunFrame(maxCycles);
+            debugRunFrame();
             resolve(debugGetStatus() as GbDebugInfo);
         });
     }
@@ -75,9 +76,9 @@
             }
             $ProgramRunning = true;
             do {
-                $GbDebugInfoStore = await runDebugger(50000);
+                $GbDebugInfoStore = await runDebugger();
                 await fetchLogs();
-                await new Promise((resolve) => setTimeout(resolve, 20));
+                await new Promise((resolve) => setTimeout(resolve, frameDelay));
             } while (
                 $ProgramRunning &&
                 ($GbDebugInfoStore == undefined ||
@@ -124,6 +125,16 @@
             type="checkbox"
             bind:checked={useBoot}
             disabled={$DebugSessionStarted}
+        />
+    </label>
+    <label
+        >Frame delay
+        <input
+            type="number"
+            class="verbose-input"
+            bind:value={frameDelay}
+            min="0"
+            max="100"
         />
     </label>
 </div>

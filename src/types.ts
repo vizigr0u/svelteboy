@@ -63,10 +63,17 @@ export type TimerInfo = {
     internalDiv: number;
 }
 
+class PpuInfo {
+    currentDot: number;
+    currentMode: number;
+}
+
 export type GbDebugInfo = {
     registers: GbRegisterInfo,
     lcd: LcdInfo,
     timer: TimerInfo,
+    ppu: PpuInfo,
+    currentFrame: number,
     useBootRom: boolean,
     isPaused: boolean,
     stoppedByBreakpoint: boolean,

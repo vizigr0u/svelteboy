@@ -1,6 +1,6 @@
 import { RomType, type ProgramLine, type RomReference, MemoryRegion } from "./types";
 
-import { appendLog, disassembledRomsStore, setDisassemlyForRom } from "./stores/debugStores";
+import { appendLog, disassembledRomsStore } from "./stores/debugStores";
 import { getBootLines, getCartLines, hexDump, runOneFrame, init, setVerbose, spliceLogs } from "../build/release";
 
 function getLines(
@@ -21,13 +21,13 @@ export function getHexDump(fromPC: number, toPC: number): Promise<Uint8Array> {
     return new Promise<Uint8Array>((resolve) => resolve(hexDump(fromPC, toPC)));
 }
 
-export function measureCpuFrames(numFrames: number, maxCyclesPerFrame: number): Promise<number> {
+export function measureCpuFrames(numFrames: number): Promise<number> {
     return new Promise<number>((resolve) => {
         init();
         setVerbose(0);
         const t0 = performance.now();
         for (let i = 0; i < numFrames; i++) {
-            runOneFrame(maxCyclesPerFrame);
+            runOneFrame();
         }
         const t1 = performance.now();
         return resolve(t1 - t0);
