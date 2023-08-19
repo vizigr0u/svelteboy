@@ -18,14 +18,16 @@
   let timeReport: string;
 
   frameCount.subscribe((frame) => {
-    if (frame != -1) {
-      drawToCanvas();
-      drawCounts++;
-      if (timeSpentDrawing > 0) {
-        timeReport = (timeSpentDrawing / drawCounts).toFixed(1);
+    if (autodraw) {
+      if (frame != -1) {
+        drawToCanvas();
+        drawCounts++;
+        if (timeSpentDrawing > 0) {
+          timeReport = (timeSpentDrawing / drawCounts).toFixed(1);
+        }
+      } else {
+        drawCounts = 0;
       }
-    } else {
-      drawCounts = 0;
     }
   });
 
