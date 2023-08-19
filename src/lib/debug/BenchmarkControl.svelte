@@ -1,14 +1,13 @@
 <script lang="ts">
-    import { measureCpuFrames } from "../../debug";
+    import { benchmarkFrames } from "../../debug";
 
-    let numFrames: number = 100;
-    let maxCyclesPerFrame: number = 69903;
+    let numFrames: number = 10;
     let status: string = "";
 
     async function onButtonClick() {
         const frames = numFrames;
         status = "Benchmarking...";
-        const result = await measureCpuFrames(frames);
+        const result = await benchmarkFrames(frames);
         status =
             `Ran ${frames} frames in ${result}ms` +
             ` = ${(frames * 1000) / result} FPS`;
@@ -20,15 +19,6 @@
         <label>
             Frames
             <input type="number" bind:value={numFrames} min="1" max="5000" />
-        </label>
-        <label>
-            Max Cycles per frame (Ref = 69903)
-            <input
-                type="number"
-                bind:value={maxCyclesPerFrame}
-                min="10000"
-                max="500000"
-            />
         </label>
         <button on:click={onButtonClick}>Benchmark</button>
     </div>

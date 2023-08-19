@@ -1,4 +1,5 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
+import { GB_VIDEO_SIZE, GB_VIDEO_START } from "../../cpu/memoryMap";
 import { Logger, log } from "../../debug/logger";
 import { LCD_HEIGHT, Lcd, LcdControlBit } from "./lcd";
 
@@ -27,12 +28,14 @@ export class Ppu {
         Ppu.currentDot = 0;
         Ppu.currentFrame = 0;
 
+        memory.fill(GB_VIDEO_START, 0, GB_VIDEO_START + GB_VIDEO_SIZE);
+
         Lcd.Init();
     }
 
     static Tick(): void {
-        if (!Lcd.gbData().hasControlBit(LcdControlBit.LCDandPPUenabled))
-            return;
+        // if (!Lcd.gbData().hasControlBit(LcdControlBit.LCDandPPUenabled))
+        //     return;
         if (Logger.verbose >= 3)
             log('PPU TICK');
         Ppu.currentDot++;

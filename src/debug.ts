@@ -21,7 +21,7 @@ export function getHexDump(fromPC: number, toPC: number): Promise<Uint8Array> {
     return new Promise<Uint8Array>((resolve) => resolve(hexDump(fromPC, toPC)));
 }
 
-export function measureCpuFrames(numFrames: number): Promise<number> {
+export function benchmarkFrames(numFrames: number): Promise<number> {
     return new Promise<number>((resolve) => {
         init();
         setVerbose(0);

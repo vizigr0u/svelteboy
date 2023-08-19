@@ -16,10 +16,11 @@ export class DebugInfo {
     lcd: LcdInfo;
     timer: TimerInfo;
     ppu: PpuInfo;
+    debug: DebugStatusInfo;
     currentFrame: u32;
     useBootRom: boolean;
-    isPaused: boolean;
-    stoppedByBreakpoint: boolean;
+    isHalted: boolean;
+    isStopped: boolean;
     cycleCount: u32;
     interruptsMaster: boolean;
     interruptFlags: u8;
@@ -60,6 +61,11 @@ class PpuInfo {
     currentMode: u8;
 }
 
+class DebugStatusInfo {
+    paused: boolean;
+    stoppedByBreakpoint: boolean;
+}
+
 export function makeDebugInfo(): DebugInfo {
     return {
         registers: {
@@ -90,10 +96,14 @@ export function makeDebugInfo(): DebugInfo {
             currentDot: Ppu.currentDot,
             currentMode: <u8>Ppu.currentMode
         },
+        debug: {
+            paused: Debug.isPaused,
+            stoppedByBreakpoint: !!breakpoints.has(Cpu.ProgramCounter)
+        },
         currentFrame: Ppu.currentFrame,
         useBootRom: MemoryMap.useBootRom,
-        isPaused: Debug.isPaused,
-        stoppedByBreakpoint: !!breakpoints.has(Cpu.ProgramCounter),
+        isHalted: Cpu.isHalted,
+        isStopped: Cpu.isStopped,
         cycleCount: Cpu.CycleCount,
         interruptsMaster: Interrupt.masterEnabled,
         interruptFlags: Interrupt.Requests(),
