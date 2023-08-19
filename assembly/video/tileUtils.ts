@@ -21,16 +21,16 @@ export function blitTile(tileData: Uint8Array, buffer: Uint8Array, bufferWidth: 
         const mask: u8 = 1 << (7 - tileX);
         const paletteId: u8 = (((lowByte & mask) == mask) ? 1 : 0) | (((highByte & mask) == mask) ? 2 : 0);
         assert(paletteId < 4, 'Unexpected palette id: ' + paletteId.toString());
-        const palette: u8 = Lcd.getPalette();
+        const palette: u8 = Lcd.getBGPalette();
         const colorId: u8 = (palette >> (paletteId << 1)) & 0b11;
         // console.log(`[${x}, ${y}] 0b${mask.toString(2)} - dark: 0b${darkByte.toString(2)}, light: 0b${lightByte.toString(2)} = ${color}`);
         const finalX = tileX + xOffset;
         const finalY = tileY + yOffset;
         const bufferIndex = (finalX + finalY * bufferWidth) << 2;
-        buffer[bufferIndex] = colors[paletteId][0]; // R
-        buffer[bufferIndex + 1] = colors[paletteId][1]; // G
-        buffer[bufferIndex + 2] = colors[paletteId][2]; // B
-        buffer[bufferIndex + 3] = colors[paletteId][3]; // A
+        buffer[bufferIndex] = colors[colorId][0]; // R
+        buffer[bufferIndex + 1] = colors[colorId][1]; // G
+        buffer[bufferIndex + 2] = colors[colorId][2]; // B
+        buffer[bufferIndex + 3] = colors[colorId][3]; // A
     }
 }
 

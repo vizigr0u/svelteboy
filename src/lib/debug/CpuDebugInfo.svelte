@@ -53,6 +53,10 @@
                 <span>lY: {$GbDebugInfoStore.lcd.lY}</span>
                 <span>lYcompare: {$GbDebugInfoStore.lcd.lYcompare}</span>
                 <span>dma: {$GbDebugInfoStore.lcd.dma}</span>
+                <div class="gap" />
+                <span>Frame: {$GbDebugInfoStore.currentFrame}</span>
+                <span>PPU mode: {$GbDebugInfoStore.ppu.currentMode}</span>
+                <span>PPU current dot: {$GbDebugInfoStore.ppu.currentDot}</span>
             </div>
             <div class="other-info">
                 <div class="info-field">

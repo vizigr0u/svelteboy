@@ -21,18 +21,14 @@ export { extractMetadata } from "./metadata";
 
 export { loadBootRom, loadCartridgeRom, TOTAL_MEMORY_SIZE } from './memoryMap';
 
-export function runCartridge(): void {
-  Emulator.Init(false);
+export function runCartridge(useBootRom: boolean = true): void {
+  Emulator.Init(useBootRom);
   Emulator.Loop();
 }
 
-export function init(useBootRom: boolean = true): void {
-  Emulator.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
-}
+export function init(useBootRom: boolean = true): void { Emulator.Init(useBootRom); }
 
-export function runOneFrame(maxCycles: u32): void {
-  Emulator.RunOneFrame(maxCycles);
-}
+export function runOneFrame(): void { Emulator.RunOneFrame(); }
 
 export function hexDump(from: u16, to: u16): Uint8Array {
   if (to <= from) {
