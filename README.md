@@ -3,7 +3,7 @@ A gameboy emulator in AssemblyScript with a Svelte front-end
 
 Frontend in [Vite](https://vitejs.dev/)+[Svelte](https://svelte.dev/) - backend in [AssemblyScript](https://www.assemblyscript.org)
 
-!(Screenshot as of 2023-08-19 - e1df429)[Screenshot 2023-08-19 005928.png]
+![Screenshot as of 2023-08-19 - e1df429](https://github.com/vizigr0u/svelteboy/blob/main/Screenshot%202023-08-19%20005928.png)
 
 ## Status and scope
 
