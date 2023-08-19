@@ -3,6 +3,8 @@ A gameboy emulator in AssemblyScript with a Svelte front-end
 
 Frontend in [Vite](https://vitejs.dev/)+[Svelte](https://svelte.dev/) - backend in [AssemblyScript](https://www.assemblyscript.org)
 
+!(Screenshot as of 2023-08-19 - e1df429)[Screenshot 2023-08-19 005928.png]
+
 ## Status and scope
 
 This is a gameboy emulator (DMG, the old bulky black and white one).
