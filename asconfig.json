@@ -19,6 +19,6 @@
   },
   "options": {
     "bindings": "esm",
-    "memoryBase": 8343456
+    "memoryBase": 8343460
   }
 }
