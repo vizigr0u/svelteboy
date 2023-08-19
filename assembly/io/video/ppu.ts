@@ -71,20 +71,35 @@ function incrementLy(): void {
     }
 }
 
-function tickHblank(): void {
-    if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of hblank
-        incrementLy();
-        if (Lcd.gbData().lY == LCD_HEIGHT) {    // end of display / start of Vblank
-            Ppu.currentMode = PpuMode.VBlank;
+function enterMode(mode: PpuMode): void {
+    Ppu.currentMode = mode;
+    switch (mode) {
+        case PpuMode.HBlank:
+            if (Lcd.gbData().hasStatMode(PpuMode.HBlank)) {
+                Interrupt.Request(IntType.LcdSTAT);
+            }
+            break;
+        case PpuMode.VBlank:
             Interrupt.Request(IntType.VBlank);
-
             if (Lcd.gbData().hasStatMode(PpuMode.VBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }
             Ppu.currentFrame++;
-        } else {
-            Ppu.currentMode = PpuMode.OAMScan;
-        }
+            break;
+        case PpuMode.OAMScan:
+            break;
+        case PpuMode.Transfer:
+            // TODO Setup transfer
+            break;
+        default:
+            break;
+    }
+}
+
+function tickHblank(): void {
+    if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of hblank
+        incrementLy();
+        enterMode(Lcd.gbData().lY >= LCD_HEIGHT ? PpuMode.VBlank : PpuMode.OAMScan);
         Ppu.currentDot = 0;
     }
 }
@@ -92,9 +107,8 @@ function tickHblank(): void {
 function tickVblank(): void {
     if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of line
         incrementLy();
-
-        if (Lcd.gbData().lY == NUM_SCANLINES) { // end of frame
-            Ppu.currentMode = PpuMode.OAMScan;
+        if (Lcd.gbData().lY >= NUM_SCANLINES) { // end of frame
+            enterMode(PpuMode.OAMScan);
             Lcd.gbData().lY = 0;
         }
         Ppu.currentDot = 0;
@@ -103,12 +117,13 @@ function tickVblank(): void {
 
 function tickOAMScan(): void {
     if (Ppu.currentDot >= OAM_SCAN_DOTS) {
-        Ppu.currentMode = PpuMode.Transfer;
+        enterMode(PpuMode.Transfer);
     }
 }
 
 function tickTransfer(): void {
-    if (Ppu.currentDot >= OAM_SCAN_DOTS + TRANSFER_MIN_DOTS) { // TODO : transfer can last up to TRANSFER_MAX_DOTS
-        Ppu.currentMode = PpuMode.HBlank;
+    // TODO : transfer can last up to TRANSFER_MAX_DOTS
+    if (Ppu.currentDot >= OAM_SCAN_DOTS + TRANSFER_MIN_DOTS) { // entering HBlank
+        enterMode(PpuMode.HBlank);
     }
 }
