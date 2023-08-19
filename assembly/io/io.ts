@@ -6,6 +6,8 @@ import { uToHex } from "../utils/stringUtils";
 import { Timer } from "./timer";
 import { Dma } from "./video/dma";
 import { Lcd } from "./video/lcd";
+import { AudioInput } from "./audioInputs";
+import { Joypad } from "./joypad";
 
 @final
 export class IO {
@@ -28,6 +30,10 @@ export class IO {
             Lcd.Store(gbAddress, value);
         } else if (Timer.Handles(gbAddress)) {
             Timer.Store(gbAddress, value);
+        } else if (Joypad.Handles(gbAddress)) {
+            Joypad.Store(value);
+        } else if (AudioInput.Handles(gbAddress)) {
+            AudioInput.Store(gbAddress, value);
         } else if (Dma.Handles(gbAddress)) {
             Dma.Start(value);
         } else {
@@ -51,9 +57,17 @@ export class IO {
         if (Lcd.Handles(gbAddress)) {
             return Lcd.Load(gbAddress);
         }
-        if (!Interrupt.Handles(gbAddress))
-            if (Logger.verbose >= 1)
-                log('Unhandled IO read: ' + uToHex<u16>(gbAddress));
+        if (Interrupt.Handles(gbAddress)) {
+            return IO.MemLoad<u8>(gbAddress);
+        }
+        if (Joypad.Handles(gbAddress)) {
+            return Joypad.Load();
+        }
+        if (AudioInput.Handles(gbAddress)) {
+            return IO.MemLoad<u8>(gbAddress);
+        }
+        if (Logger.verbose >= 1)
+            log('Unhandled IO read: ' + uToHex<u16>(gbAddress));
         return IO.MemLoad<u8>(gbAddress);
     }
 
