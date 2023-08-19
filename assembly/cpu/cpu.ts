@@ -4,7 +4,7 @@ import { disassembleInstruction, getMnemonicName, getOperandTargetName } from ".
 import { Interrupt } from "./interrupts";
 import { Logger, log } from "../debug/logger";
 import { MemoryMap } from "./memoryMap";
-import { Op, OpTarget, Operand, getTotalInstructionSize, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
+import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
 
 export enum Flag {
@@ -111,10 +111,11 @@ export class Cpu {
         let numCycles: u8 = 0;
 
         let opCode: u8 = MemoryMap.GBload<u8>(originalPc);
-        const totalInstructionSize: u8 = getTotalInstructionSize(opCode);
         let instr = unprefixedOpCodes[opCode];
+        let totalInstructionSize: u8 = instr.byteSize;
         if (instr.mnemonic == Op.PREFIX) {
             numCycles += instr.cycleCounts[0];
+            totalInstructionSize++;
             opCode = MemoryMap.GBload<u8>(originalPc + 1);
             instr = prefixedOpCodes[opCode];
         }

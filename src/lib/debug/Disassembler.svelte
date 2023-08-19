@@ -4,6 +4,7 @@
 
   import { RomType, type GbDebugInfo } from "../../types";
   import VirtualList from "svelte-virtual-list-ce";
+  import MyVirtualList from "../MyVirtualList.svelte";
   import {
     disassembledRomsStore,
     GbDebugInfoStore,
@@ -14,6 +15,8 @@
 
   let romToShow: RomType = RomType.Boot;
   let scrollToIndex;
+  let lastJumpTime: number = 0;
+  const minJumpDelay: number = 100;
 
   let lineMaps = [{}, {}];
 
@@ -49,12 +52,16 @@
 
   GbDebugInfoStore.subscribe((info: GbDebugInfo) => {
     if (!info) return;
+    const t = performance.now();
     const lineNumber = lineMaps[romToShow][info.registers.PC.toString()];
     if (
       lineNumber !== undefined &&
-      (lineNumber < firstLine || lineNumber > lastLine)
-    )
+      (lineNumber < firstLine || lineNumber > lastLine) &&
+      (lastJumpTime == 0 || t - lastJumpTime > minJumpDelay)
+    ) {
       scrollToIndex(Math.max(0, lineNumber - 5));
+      lastJumpTime = t;
+    }
   });
 
   let firstLine;
@@ -81,7 +88,7 @@
     <div class="filename">
       {$disassembledRomsStore[romToShow]?.filename ?? "No file loaded"}
     </div>
-    <VirtualList
+    <MyVirtualList
       items={$disassembledRomsStore[romToShow]?.programLines ?? []}
       bind:start={firstLine}
       bind:end={lastLine}
@@ -95,7 +102,7 @@
             ? $GbDebugInfoStore.registers.PC
             : 0)}
       />
-    </VirtualList>
+    </MyVirtualList>
   </div>
 </div>
 

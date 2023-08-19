@@ -63,9 +63,21 @@ export type TimerInfo = {
     internalDiv: number;
 }
 
+export enum PPUMode {
+    HBlank = 0,
+    VBlank = 1,
+    OAMScan = 2,
+    Transfer = 3
+}
+
 class PpuInfo {
     currentDot: number;
-    currentMode: number;
+    currentMode: PPUMode;
+}
+
+class DebugStatusInfo {
+    paused: boolean;
+    stoppedByBreakpoint: boolean;
 }
 
 export type GbDebugInfo = {
@@ -73,10 +85,11 @@ export type GbDebugInfo = {
     lcd: LcdInfo,
     timer: TimerInfo,
     ppu: PpuInfo,
+    debug: DebugStatusInfo,
     currentFrame: number,
     useBootRom: boolean,
-    isPaused: boolean,
-    stoppedByBreakpoint: boolean,
+    isHalted: boolean,
+    isStopped: boolean,
     cycleCount: number,
     interruptsMaster: boolean,
     interruptFlags: number,

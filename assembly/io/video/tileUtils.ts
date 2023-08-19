@@ -43,10 +43,12 @@ export function tileToRgba(tile: Uint8Array): Uint8ClampedArray {
 export function drawVideoBuffercontent(screenBuffer: Uint8ClampedArray, bufferWidth: u32): Uint8ClampedArray {
     memory.fill(screenBuffer.dataStart, 0x80, screenBuffer.byteLength);
     const buffer = Uint8Array.wrap(screenBuffer.buffer);
+    const numTilesX: u16 = <u16>(bufferWidth / 8);
+    const numTilesY: u16 = <u16>(256 / numTilesX);
     let tileBuffer: Uint8Array = new Uint8Array(16);
-    for (let y = 0; y < 18; y++) {
-        for (let x = 0; x < 20; x++) {
-            const tileIndex = x + y * 20;
+    for (let y: u16 = 0; y < numTilesY; y++) {
+        for (let x: u16 = 0; x < numTilesX; x++) {
+            const tileIndex = x + y * numTilesX;
             memory.copy(tileBuffer.dataStart, GB_VIDEO_START + <u16>(tileIndex * 16), 16);
             blitTile(tileBuffer, buffer, bufferWidth, x * 8, y * 8);
         }

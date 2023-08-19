@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { GbDebugInfoStore } from "../../stores/debugStores";
-
     export let flags: number;
 
     enum Flags {
@@ -15,12 +13,46 @@
     }
 </script>
 
-<div>
-    CPU flags: {hasFlag(Flags.Z) ? "Z" : "-"}
-    {hasFlag(Flags.N) ? "N" : "-"}
-    {hasFlag(Flags.H) ? "H" : "-"}
-    {hasFlag(Flags.C) ? "C" : "-"}
-</div>
+{#key flags}
+    <div class="flags-view">
+        <div class="flag-view">
+            <span>Z</span>
+            <input type="checkbox" checked={hasFlag(Flags.Z)} disabled={true} />
+        </div>
+        <div class="flag-view">
+            <span>N</span><input
+                type="checkbox"
+                checked={hasFlag(Flags.N)}
+                disabled={true}
+            />
+        </div>
+        <div class="flag-view">
+            <span>H</span><input
+                type="checkbox"
+                checked={hasFlag(Flags.H)}
+                disabled={true}
+            />
+        </div>
+        <div class="flag-view">
+            <span>C</span><input
+                type="checkbox"
+                checked={hasFlag(Flags.C)}
+                disabled={true}
+            />
+        </div>
+        <div class="flag-values" />
+    </div>
+{/key}
 
 <style>
+    .flags-view {
+        display: flex;
+        font-weight: 600;
+    }
+
+    .flag-view {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 </style>

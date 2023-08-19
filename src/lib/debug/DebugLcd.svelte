@@ -6,11 +6,14 @@
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;
   let screenData: ImageData;
-  let width = 160;
-  let height = 144;
+  const tileSize = 8;
+  const width = 32 * tileSize;
+  const height = 8 * tileSize;
   let pixelSize = 2;
+  let autodraw: boolean = true;
 
   let frameNumber: number = 0;
+  let timeSpentDrawing: number = 0;
   let drawCounts: number = 0;
   let lastDrawTime: number = 0;
   let lastDraw10Time: number = 0;
@@ -31,7 +34,12 @@
       if (lastDrawTime > 0) {
         fpsReport = (1000 / (drawEndTime - lastDrawTime)).toFixed(1) + " FPS";
         if (lastDraw10Time > 0)
-          fpsReport += " (" + last10FPS.toFixed(1) + " rolling)";
+          fpsReport +=
+            " (" +
+            last10FPS.toFixed(1) +
+            " rolling) avg draw: " +
+            (timeSpentDrawing / drawCounts).toFixed(1) +
+            " ms";
       }
       lastDrawTime = drawEndTime;
     } else {
@@ -48,7 +56,9 @@
   function drawTestScreen() {
     if (screenData != undefined) {
       const data = screenData.data;
-      const other = drawVideoBuffercontent(data, 160);
+      const t0 = performance.now();
+      const other = drawVideoBuffercontent(data, width);
+      timeSpentDrawing += performance.now() - t0;
       context.putImageData(new ImageData(other, width), 0, 0);
     }
   }
@@ -58,9 +68,22 @@
   }
 </script>
 
-<div class="debug-canvas">
-  <div class="debug-canvas-container">
+<div class="tile-data-canvas">
+  <div class="tile-data-title">
+    <h3>Tile Data</h3>
+    {#if fpsReport}
+      <span>{fpsReport}</span>
+    {/if}
+  </div>
+  <div class="canvas-controls">
+    <label>
+      auto-draw
+      <input type="checkbox" bind:checked={autodraw} />
+    </label>
+    <button on:click={onClick}>Draw now</button>
     <input type="range" bind:value={pixelSize} min="1" max="10" />
+  </div>
+  <div class="tile-data-canvas-container">
     <canvas
       bind:this={canvas}
       {width}
@@ -69,13 +92,18 @@
       style="width: {width * pixelSize}px; height: {height * pixelSize}px;"
     />
   </div>
-  <div class="canvas-controls">
-    <button on:click={onClick}>Draw now</button>
-    <span>{fpsReport ?? "-"}</span>
-  </div>
 </div>
 
 <style>
+  .tile-data-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
+  .tile-data-canvas {
+    display: flex;
+    flex-direction: column;
+  }
   .canvas {
     background-color: rgb(0, 0, 0);
     border: 1px solid black;
@@ -90,7 +118,9 @@
 
   .canvas-controls {
     display: flex;
-    justify-content: space-around;
+    justify-content: left;
     align-items: center;
+    gap: 1em;
+    /* width: 35em; */
   }
 </style>

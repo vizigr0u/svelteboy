@@ -1,5 +1,6 @@
 <script lang="ts">
     import { GbDebugInfoStore } from "../../stores/debugStores";
+    import { PPUMode } from "../../types";
     import { uToHex, uToHex16 } from "../../utils";
     import CpuFlagsView from "./CpuFlagsView.svelte";
     import DebuggerLine from "./DebuggerLine.svelte";
@@ -55,7 +56,11 @@
                 <span>dma: {$GbDebugInfoStore.lcd.dma}</span>
                 <div class="gap" />
                 <span>Frame: {$GbDebugInfoStore.currentFrame}</span>
-                <span>PPU mode: {$GbDebugInfoStore.ppu.currentMode}</span>
+                <span
+                    >PPU mode: {PPUMode[
+                        $GbDebugInfoStore.ppu.currentMode
+                    ]}</span
+                >
                 <span>PPU current dot: {$GbDebugInfoStore.ppu.currentDot}</span>
             </div>
             <div class="other-info">
@@ -70,10 +75,18 @@
                     />
                 </div>
                 <div class="info-field">
-                    Is Paused:
+                    Halted:
                     <input
                         type="checkbox"
-                        checked={$GbDebugInfoStore.isPaused}
+                        checked={$GbDebugInfoStore.isHalted}
+                        disabled={true}
+                    />
+                </div>
+                <div class="info-field">
+                    Stopped:
+                    <input
+                        type="checkbox"
+                        checked={$GbDebugInfoStore.isStopped}
                         disabled={true}
                     />
                 </div>

@@ -30,8 +30,10 @@
 
     function debuggerStep(): Promise<GbDebugInfo> {
         return new Promise<GbDebugInfo>((resolve) => {
+            $ProgramRunning = true;
             debugStep();
             fetchLogs();
+            $ProgramRunning = false;
             resolve(debugGetStatus() as GbDebugInfo);
         });
     }
@@ -46,9 +48,7 @@
         if (!$DebugSessionStarted) {
             initDebug();
         }
-        $ProgramRunning = true;
         $GbDebugInfoStore = await debuggerStep();
-        $ProgramRunning = false;
     }
 
     async function onStopClick() {
@@ -67,9 +67,9 @@
         setVerbose(verbose);
         if ($ProgramRunning) {
             debugPause();
-            $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
             fetchLogs();
             $ProgramRunning = false;
+            $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
         } else {
             if (!$DebugSessionStarted) {
                 initDebug();
@@ -82,7 +82,8 @@
             } while (
                 $ProgramRunning &&
                 ($GbDebugInfoStore == undefined ||
-                    !$GbDebugInfoStore.stoppedByBreakpoint)
+                    (!$GbDebugInfoStore.debug.stoppedByBreakpoint &&
+                        !$GbDebugInfoStore.isStopped))
             );
             $ProgramRunning = false;
         }
