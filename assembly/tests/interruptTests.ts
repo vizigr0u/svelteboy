@@ -1,7 +1,7 @@
-import { Cpu } from "../cpu"
+import { Cpu } from "../cpu/cpu";
+import { IntType, Interrupt } from "../cpu/interrupts";
+import { CARTRIDGE_ROM_START, MemoryMap } from "../cpu/memoryMap";
 import { Emulator } from "../emulator";
-import { IntType, Interrupt } from "../interrupts";
-import { CARTRIDGE_ROM_START, MemoryMap } from "../memoryMap";
 
 function setIntProgram(int: IntType, instructions: Array<u8>): void {
     const intGbAddress: u16 = Interrupt.GetHandlerAddress(int);

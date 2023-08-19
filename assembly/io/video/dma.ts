@@ -1,7 +1,6 @@
-import { Cpu } from "../cpu";
-import { Logger, log } from "../logger";
-import { MemoryMap } from "../memoryMap";
-import { uToHex } from "../stringUtils";
+import { MemoryMap } from "../../cpu/memoryMap";
+import { Logger, log } from "../../debug/logger";
+import { uToHex } from "../../utils/stringUtils";
 import { Oam } from "./oam";
 
 @final

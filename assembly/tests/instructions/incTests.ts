@@ -1,5 +1,5 @@
-import { Cpu, Flag } from "../../cpu"
-import { MemoryMap } from "../../memoryMap";
+import { Cpu, Flag } from "../../cpu/cpu";
+import { MemoryMap } from "../../cpu/memoryMap";
 import { BC, DE, HL, SP, SetBC, SetDE, SetHL, SetSP, setTestRom } from "../cpuTests";
 
 function RunInc(opCode: u8, a: u8, setA: (a: u8) => void, expectedCycles: u32 = 4): void {

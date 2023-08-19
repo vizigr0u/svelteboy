@@ -1,6 +1,5 @@
-import { Cpu } from "./cpu";
-import { IntType, Interrupt } from "./interrupts";
-import { MemoryMap } from "./memoryMap";
+import { Interrupt, IntType } from "../cpu/interrupts";
+import { MemoryMap } from "../cpu/memoryMap";
 
 const DIV_ADDRESS: u16 = 0xFF04;
 const TIMA_ADDRESS: u16 = 0xFF05;

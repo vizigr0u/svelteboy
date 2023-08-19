@@ -1,6 +1,6 @@
 import { ClearHLDerefTest, HLDeref, SetHLDeref } from ".";
-import { Cpu, Flag } from "../../cpu"
-import { HL, setTestRom } from "../cpuTests";
+import { Cpu, Flag } from "../../cpu/cpu";
+import { setTestRom } from "../cpuTests";
 
 function RunRr(opCode: u8, carry: bool, b: u8, setB: (a: u8) => void, expectedCycles: u32 = 8): void {
     setTestRom([0xCB, opCode]);

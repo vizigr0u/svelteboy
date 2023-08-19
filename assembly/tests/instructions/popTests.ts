@@ -1,5 +1,5 @@
-import { Cpu } from "../../cpu"
-import { MemoryMap } from "../../memoryMap";
+import { Cpu } from "../../cpu/cpu";
+import { MemoryMap } from "../../cpu/memoryMap";
 import { AF, BC, DE, HL, SP, setTestRom } from "../cpuTests";
 
 function RunPop(opCode: u8, sp: u16, source: u16): void {

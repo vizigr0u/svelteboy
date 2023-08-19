@@ -1,8 +1,8 @@
 import { Cpu, Flag } from "./cpu";
-import { getOperandTargetName, getConditionName } from "./disassemble";
+import { getOperandTargetName, getConditionName } from "../debug/disassemble";
 import { MemoryMap } from "./memoryMap";
 import { Operand, Instruction, OpTarget, OpCondition } from "./opcodes";
-import { uToHex } from "./stringUtils";
+import { uToHex } from "../utils/stringUtils";
 
 function checkAndStoreCondition(cond: OpCondition): boolean {
     Cpu.failedLastCondition = !isConditionFullfilled(cond);

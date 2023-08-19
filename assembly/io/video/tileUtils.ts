@@ -1,4 +1,4 @@
-import { GB_VIDEO_START } from '../memoryMap';
+import { GB_VIDEO_START } from '../../cpu/memoryMap';
 import { LCD_HEIGHT, LCD_WIDTH, Lcd } from './lcd';
 
 const colors: u8[][] = [

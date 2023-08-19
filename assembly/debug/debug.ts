@@ -1,12 +1,12 @@
-import { Cpu } from "./cpu";
-import { ProgramLine, getDisassemble } from "./disassemble";
-import { Emulator } from "./emulator";
-import { Interrupt } from "./interrupts";
-import { MemoryMap } from "./memoryMap";
-import { Serial } from "./serial";
-import { Timer } from "./timer";
-import { Lcd } from "./video/lcd";
-import { Ppu } from "./video/ppu";
+import { Cpu } from "../cpu/cpu";
+import { ProgramLine, getDisassemble } from "../debug/disassemble";
+import { Emulator } from "../emulator";
+import { Interrupt } from "../cpu/interrupts";
+import { MemoryMap } from "../cpu/memoryMap";
+import { Serial } from "../io/serial";
+import { Timer } from "../io/timer";
+import { Lcd } from "../io/video/lcd";
+import { Ppu } from "../io/video/ppu";
 
 
 export const breakpoints: Set<u16> = new Set<u16>();

@@ -1,11 +1,10 @@
-import { Cpu } from "./cpu";
-import { Interrupt } from "./interrupts";
-import { IO } from "./io";
-import { Logger, log } from "./logger";
-import { MemoryMap } from "./memoryMap";
-import { Timer } from "./timer";
-import { Dma } from "./video/dma";
-import { Ppu } from "./video/ppu";
+import { Cpu } from "./cpu/cpu";
+import { IO } from "./io/io";
+import { Logger, log } from "./debug/logger";
+import { MemoryMap } from "./cpu/memoryMap";
+import { Timer } from "./io/timer";
+import { Dma } from "./io/video/dma";
+import { Ppu } from "./io/video/ppu";
 
 const OFFICIAL_CYCLES_PER_SECOND: u32 = 4194304;
 const CYCLES_PER_SECOND: u32 = 4194162; // measured on real GBs in a small survey

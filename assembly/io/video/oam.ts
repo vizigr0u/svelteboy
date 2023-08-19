@@ -1,4 +1,4 @@
-import { GB_OAM_START, MemoryMap } from "../memoryMap";
+import { GB_OAM_START } from "../../cpu/memoryMap";
 import { Dma } from "./dma";
 
 @final

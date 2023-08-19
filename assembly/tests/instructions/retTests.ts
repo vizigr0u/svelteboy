@@ -1,5 +1,5 @@
-import { Cpu, Flag } from "../../cpu"
-import { MemoryMap } from "../../memoryMap";
+import { Cpu, Flag } from "../../cpu/cpu";
+import { MemoryMap } from "../../cpu/memoryMap";
 import { PC, SP, setTestRom } from "../cpuTests";
 
 function RunRet(opCode: u8, sp: u16, flags: u8, dest: u16, expectedCycles: u32): void {

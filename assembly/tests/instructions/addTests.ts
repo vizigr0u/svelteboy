@@ -1,5 +1,5 @@
-import { Cpu, Flag } from "../../cpu"
-import { MemoryMap } from "../../memoryMap";
+import { Cpu, Flag } from "../../cpu/cpu";
+import { MemoryMap } from "../../cpu/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function RunAdd8(addInstruction: u8, a: u8, b: u8, setA: (a: u8) => void, setB: (a: u8) => void): void {
