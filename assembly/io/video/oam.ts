@@ -3,7 +3,7 @@ import { Dma } from "./dma";
 
 enum OamAttribute {
     /* 0-2: CGB pal number */
-    TileBank = 3,
+    /* CGB only TileBank = 3, */
     PaletteNumber = 4,
     XFlip = 5,
     YFlip = 6,
