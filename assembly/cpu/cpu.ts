@@ -1,13 +1,11 @@
 import { Alu } from "./alu";
 import { CpuOps } from "./cpuOps";
-import { disassembleInstruction, getMnemonicName, getOperandTargetName } from "./disassemble";
+import { disassembleInstruction, getMnemonicName, getOperandTargetName } from "../debug/disassemble";
 import { Interrupt } from "./interrupts";
-import { Logger, log } from "./logger";
+import { Logger, log } from "../debug/logger";
 import { MemoryMap } from "./memoryMap";
 import { Op, OpTarget, Operand, getTotalInstructionSize, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
-import { uToHex } from "./stringUtils";
-import { Timer } from "./timer";
-import { Dma } from "./video/dma";
+import { uToHex } from "../utils/stringUtils";
 
 export enum Flag {
     Z_Zero = 0b10000000,
@@ -178,8 +176,8 @@ export class Cpu {
                 break;
             case Op.HALT:
                 Cpu.isHalted = true;
-                if (Logger.verbose >= 1)
-                    log("CPU HALTED");
+                if (Logger.verbose >= 2)
+                    log("CPU Halt");
                 break;
             case Op.STOP:
                 Cpu.isStopped = true;

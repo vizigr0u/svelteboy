@@ -1,9 +1,9 @@
-import { Cpu } from "../cpu"
-import { getMnemonicName } from "../disassemble";
+import { Cpu } from "../cpu/cpu";
+import { Interrupt } from "../cpu/interrupts";
+import { BOOT_ROM_START, MemoryMap } from "../cpu/memoryMap";
+import { Op, Instruction, unprefixedOpCodes, prefixedOpCodes } from "../cpu/opcodes";
+import { getMnemonicName } from "../debug/disassemble";
 import { Emulator } from "../emulator";
-import { Interrupt } from "../interrupts";
-import { BOOT_ROM_START, MemoryMap } from "../memoryMap";
-import { Instruction, Op, prefixedOpCodes, unprefixedOpCodes } from "../opcodes";
 
 const testedOpcodes: Set<u8> = new Set<u8>();
 const testedPrefixedOpcodes: Set<u8> = new Set<u8>();

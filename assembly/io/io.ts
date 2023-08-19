@@ -1,8 +1,8 @@
-import { Interrupt } from "./interrupts";
-import { Logger, log } from "./logger";
-import { GB_IO_START, MemoryMap } from "./memoryMap";
+import { Interrupt } from "../cpu/interrupts";
+import { Logger, log } from "../debug/logger";
+import { GB_IO_START, MemoryMap } from "../cpu/memoryMap";
 import { Serial } from "./serial";
-import { uToHex } from "./stringUtils";
+import { uToHex } from "../utils/stringUtils";
 import { Timer } from "./timer";
 import { Dma } from "./video/dma";
 import { Lcd } from "./video/lcd";

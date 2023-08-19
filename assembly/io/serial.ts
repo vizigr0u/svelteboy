@@ -1,7 +1,7 @@
-import { Debug } from "./debug";
+import { MemoryMap } from "../cpu/memoryMap";
+import { Debug } from "../debug/debug";
+import { Logger, log } from "../debug/logger";
 import { IO } from "./io";
-import { Logger, log } from "./logger";
-import { MemoryMap } from "./memoryMap";
 
 const SB_ADDRESS: u16 = 0xFF01;
 const SC_ADDRESS: u16 = 0xFF02;

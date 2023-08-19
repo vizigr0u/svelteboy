@@ -1,6 +1,6 @@
-import { Cpu, Flag } from "../../cpu"
-import { BOOT_ROM_START, MemoryMap } from "../../memoryMap";
-import { PC, SP, setTestRom } from "../cpuTests";
+import { Cpu, Flag } from "../../cpu/cpu";
+import { BOOT_ROM_START, MemoryMap } from "../../cpu/memoryMap";
+import { PC, setTestRom } from "../cpuTests";
 
 function RunJr(opCode: u8, offset: u8, flags: u8, expectedCycles: u32 = 12): void {
     setTestRom([opCode, offset]);

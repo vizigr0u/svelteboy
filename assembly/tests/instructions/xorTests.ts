@@ -1,5 +1,5 @@
-import { Cpu, Flag } from "../../cpu"
-import { MemoryMap } from "../../memoryMap";
+import { Cpu, Flag } from "../../cpu/cpu";
+import { MemoryMap } from "../../cpu/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function RunXor(opCode: u8, a: u8, b: u8, setB: (a: u8) => void, expectedCycles: u32 = 4): void {

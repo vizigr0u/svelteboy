@@ -1,4 +1,4 @@
-import { Op, OpCondition, OpTarget } from "./opcodes";
+import { Op, OpCondition, OpTarget } from "../cpu/opcodes";
 
 export const conditionNames: Map<OpCondition, string> = new Map<OpCondition, string>();
 conditionNames.set(OpCondition.NonZero, "NZ");

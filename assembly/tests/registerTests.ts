@@ -1,4 +1,4 @@
-import { Cpu, Flag } from "../cpu"
+import { Cpu, Flag } from "../cpu/cpu";
 
 function testDecomposition(): void {
     Cpu.AF = 0xAAFF;

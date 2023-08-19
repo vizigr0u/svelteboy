@@ -1,8 +1,8 @@
+import { Logger, log } from "../debug/logger";
+import { IO } from "../io/io";
+import { Oam } from "../io/video/oam";
+import { uToHex } from "../utils/stringUtils";
 import { Cpu } from "./cpu";
-import { IO } from "./io";
-import { Logger, log } from "./logger";
-import { uToHex } from "./stringUtils";
-import { Oam } from "./video/oam";
 
 export const MEMORY_START: u32 = 0x00;
 

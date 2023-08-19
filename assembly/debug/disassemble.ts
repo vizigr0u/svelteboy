@@ -1,7 +1,6 @@
-import { Cpu } from "./cpu";
-import { BOOT_ROM_START, CARTRIDGE_ROM_START, MemoryMap } from "./memoryMap";
-import { Instruction, Op, OpCondition, OpTarget, Operand, getTotalInstructionSize, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
-import { conditionNames, opNames, targetNames } from "./symbols";
+import { MemoryMap, BOOT_ROM_START, CARTRIDGE_ROM_START } from "../cpu/memoryMap";
+import { Op, OpTarget, OpCondition, Operand, Instruction, unprefixedOpCodes, prefixedOpCodes, getTotalInstructionSize } from "../cpu/opcodes";
+import { opNames, targetNames, conditionNames } from "../debug/symbols";
 
 @final
 export class ProgramLine {

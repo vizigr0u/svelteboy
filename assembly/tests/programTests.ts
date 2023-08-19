@@ -1,5 +1,5 @@
-import { Cpu } from "../cpu"
-import { GB_VIDEO_SIZE, GB_VIDEO_START } from "../memoryMap";
+import { Cpu } from "../cpu/cpu";
+import { GB_VIDEO_START, GB_VIDEO_SIZE } from "../cpu/memoryMap";
 import { SP, setTestRom } from "./cpuTests";
 
 function testFirstProgram(): void {

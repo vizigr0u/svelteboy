@@ -1,5 +1,4 @@
-import { TEST_SPACE_START } from "../memoryMap";
-import { uToHex } from "../stringUtils";
+import { TEST_SPACE_START } from "../cpu/memoryMap";
 
 class TestStructA {
     a: u8;

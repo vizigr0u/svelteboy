@@ -1,6 +1,6 @@
+import { IO } from "../io/io";
+import { uToHex } from "../utils/stringUtils";
 import { Cpu } from "./cpu";
-import { IO } from "./io";
-import { uToHex } from "./stringUtils";
 
 export enum IntType {
     VBlank = 0x1,

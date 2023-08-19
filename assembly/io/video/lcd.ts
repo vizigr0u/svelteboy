@@ -1,9 +1,9 @@
-import { Debug } from "../debug";
-import { IntType, Interrupt } from "../interrupts";
+import { Debug } from "../../debug/debug";
+import { IntType, Interrupt } from "../../cpu/interrupts";
 import { IO } from "../io";
-import { Logger, log } from "../logger";
-import { GB_IO_START } from "../memoryMap";
-import { uToHex } from "../stringUtils";
+import { Logger, log } from "../../debug/logger";
+import { GB_IO_START } from "../../cpu/memoryMap";
+import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;

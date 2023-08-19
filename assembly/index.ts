@@ -1,9 +1,9 @@
 memory.grow(1);
 
 import { Emulator } from "./emulator";
-import { MemoryMap } from "./memoryMap";
+import { MemoryMap } from "./cpu/memoryMap";
 
-export { setVerbose, spliceLogs, dumpLogToConsole } from "./logger";
+export { setVerbose, spliceLogs, dumpLogToConsole } from "./debug/logger";
 
 export {
   debugRunFrame,
@@ -13,13 +13,13 @@ export {
   debugSetBreakpoint,
   debugHasBreakpoint,
   getActiveBreakpoints
-} from "./debug";
+} from "./debug/debug";
 
-export { serialEnableLog } from "./serial";
+export { serialEnableLog } from "./io/serial";
 
 export { extractMetadata } from "./metadata";
 
-export { loadBootRom, loadCartridgeRom, TOTAL_MEMORY_SIZE } from './memoryMap';
+export { loadBootRom, loadCartridgeRom, TOTAL_MEMORY_SIZE } from './cpu/memoryMap';
 
 export function runCartridge(useBootRom: boolean = true): void {
   Emulator.Init(useBootRom);
@@ -63,11 +63,11 @@ export {
   getLetterTileExampleData,
   getTestExampleData,
   drawVideoBuffercontent
-} from "./video/tileUtils";
+} from "./io/video/tileUtils";
 
 export {
   disassembleBoot,
   disassembleCartridge,
   getBootLines,
   getCartLines
-} from "./disassemble";
+} from "./debug/disassemble";

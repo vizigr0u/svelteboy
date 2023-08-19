@@ -1,5 +1,5 @@
-import { IntType, Interrupt } from "../interrupts";
-import { Logger, log } from "../logger";
+import { Interrupt, IntType } from "../../cpu/interrupts";
+import { Logger, log } from "../../debug/logger";
 import { LCD_HEIGHT, Lcd, LcdControlBit } from "./lcd";
 
 export enum PpuMode {
