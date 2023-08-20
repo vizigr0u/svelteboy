@@ -13,8 +13,7 @@ import { FIFO_MAX_ELEMENTS, FIFO_START } from "../../cpu/memoryMap";
     @inline set(index: u8, value: u8): void { store<u8>(FIFO_START + offsetof<Fifo>('_dataStart') + index, value); }
 
     static Init(): void {
-        Fifo.Get().head = -1;
-        Fifo.Get().tail = -1;
+        Fifo.Get().Reset();
     }
 
     IsFull(): boolean {
@@ -24,6 +23,11 @@ import { FIFO_MAX_ELEMENTS, FIFO_START } from "../../cpu/memoryMap";
 
     IsEmpty(): boolean {
         return this.head == -1;
+    }
+
+    Reset(): void {
+        this.head = -1;
+        this.tail = -1;
     }
 
     Enqueue(value: u8): void {
