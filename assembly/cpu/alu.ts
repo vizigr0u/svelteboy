@@ -55,32 +55,26 @@ function rlc(value: u8): u8 {
 export class Alu {
     static DaaOp(): void {
         const a = Cpu.A();
+        const hasNFlag = Cpu.HasFlag(Flag.N_Sub);
         let add: u8 = 0;
+        let carry: boolean = false;
 
-        if (Cpu.HasFlag(Flag.C_Carry)) {
+        if (Cpu.HasFlag(Flag.H_HalfC) || (!hasNFlag && (a & 0xF) > 9)) {
             add = 6;
         }
-        if (Cpu.HasFlag(Flag.H_HalfC)) {
+
+        if (Cpu.HasFlag(Flag.C_Carry) || (!hasNFlag && a > 0x99)) {
             add = add | 0x60;
+            carry = true;
         }
 
-        if (Cpu.HasFlag(Flag.N_Sub)) {
-            Cpu.SetA(a - add);
-        } else {
-            if ((a & 0xF) > 9) {
-                add = add | 6;
-            }
-            if (a > 0x99) {
-                add = add | 0x60;
-            }
-            Cpu.SetA(a + add);
-        }
+        Cpu.SetA(a + (hasNFlag ? -add : add));
 
         //  Then the four most significant bits are checked. If this more significant digit also happens to be greater than 9 or the C flag is set, then $60 is added.
         // Flags Z - 0 C
         Cpu.SetFlag(Flag.Z_Zero, Cpu.A() == 0);
         Cpu.SetFlag(Flag.H_HalfC, 0);
-        Cpu.SetFlag(Flag.C_Carry, (add & 0x60) != 0);
+        Cpu.SetFlag(Flag.C_Carry, carry);
     }
 
     static SwapOp(target: Operand): void {
