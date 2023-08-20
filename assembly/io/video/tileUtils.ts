@@ -1,4 +1,6 @@
 import { GB_VIDEO_START } from '../../cpu/memoryMap';
+import { log } from '../../debug/logger';
+import { uToHex } from '../../utils/stringUtils';
 import { LCD_HEIGHT, LCD_WIDTH, PaletteColors } from './constants';
 import { Lcd, LcdControlBit } from './lcd';
 
@@ -52,19 +54,19 @@ export function drawBackgroundMap(screenBuffer: Uint8ClampedArray): Uint8Clamped
     const bufferSize: u16 = 32;
     const numTilesX: u16 = bufferSize;
     const numTilesY: u16 = bufferSize;
-    const tilesOnLowAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGandWindowTileArea); // TODO inverted
-    const tileDataLoAddress: u32 = GB_VIDEO_START + (tilesOnLowAddress ? 0 : 0x1000);
-    const tileDataHiAddress: u32 = GB_VIDEO_START + 0x800;
-    const mapOnHighAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGTileMapArea); // TODO inverted
+    const tilesOnLowAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGandWindowTileArea);
+    const tileDataBaseAddress: u32 = GB_VIDEO_START + (tilesOnLowAddress ? 0 : 0x1000);
+    const mapOnHighAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGTileMapArea);
     const tileMapAddress: u32 = GB_VIDEO_START + (mapOnHighAddress ? 0x1C00 : 0x1800);
     // let tileBuffer: Uint8Array = new Uint8Array(16);
     for (let y: u16 = 0; y < numTilesY; y++) {
         for (let x: u16 = 0; x < numTilesX; x++) {
             const tileMapIndex: u16 = x + y * numTilesX;
-            const tileAddress = tileMapAddress + tileMapIndex;
-            const tileIndex = load<u8>(tileAddress);
-            const tileDataAddress = (tileAddress & 0x80) == 0 ? tileDataLoAddress : tileDataHiAddress;
-            const dataStart = tileDataAddress + <u16>(tileIndex * 16);
+            const tileIndexAddress: u32 = tileMapAddress + tileMapIndex;
+            const tileIndex = load<u8>(tileIndexAddress);
+            const tileOffset: i16 = tilesOnLowAddress ? <i16><u8>tileIndex : <i16><i8>tileIndex;
+            const dataStart: u32 = tileDataBaseAddress + tileOffset * 16;
+            // log(`mapIndex: ${tileMapIndex}, indexAddress ${uToHex<u32>(tileIndexAddress)} (${uToHex<u16>(<u16>(tileIndexAddress - GB_VIDEO_START + 0x8000))}), index: ${tileIndex}, tileAddress: ${uToHex<u32>(dataStart)} (${uToHex<u16>(<u16>(0x8000 + <u16>(tileIndex * 16)))})`)
             blitTile(buffer, dataStart, numTilesX * 8, x * 8, y * 8);
         }
     }
