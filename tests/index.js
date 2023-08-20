@@ -1,6 +1,6 @@
 import {
     testRegisters, testMemory, TOTAL_MEMORY_SIZE, testCpu, testInstructions, testNop, testPrograms,
-    resetCpuTestSession, getCpuTestSessionSummary, testVideo, testMisc
+    resetCpuTestSession, getCpuTestSessionSummary, testVideo, testMisc, testFifo
 } from "../build/debug.js";
 
 
@@ -41,5 +41,7 @@ test(testInstructions);
 test(testPrograms);
 
 test(testMisc);
+
+test(testFifo);
 
 console.log(getCpuTestSessionSummary());

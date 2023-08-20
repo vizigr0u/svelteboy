@@ -56,6 +56,7 @@ export { testInstructions } from './tests/instructions';
 export { testVideo } from './tests/video';
 export { testMisc } from './tests/miscTests';
 export { testInterrupts } from './tests/interruptTests';
+export { testFifo } from './tests/fifoTests';
 
 export {
   getGameboyTileExampleData,
