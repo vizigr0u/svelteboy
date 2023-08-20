@@ -50,7 +50,7 @@
                 <span>control: {$GbDebugInfoStore.lcd.control}</span>
                 <span>stat: {$GbDebugInfoStore.lcd.stat}</span>
                 <span>scY: {$GbDebugInfoStore.lcd.scY}</span>
-                <span>scC: {$GbDebugInfoStore.lcd.scX}</span>
+                <span>scX: {$GbDebugInfoStore.lcd.scX}</span>
                 <span>lY: {$GbDebugInfoStore.lcd.lY}</span>
                 <span>lYcompare: {$GbDebugInfoStore.lcd.lYcompare}</span>
                 <span>dma: {$GbDebugInfoStore.lcd.dma}</span>
