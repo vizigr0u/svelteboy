@@ -1,5 +1,6 @@
 import { GB_OAM_START } from "../../cpu/memoryMap";
 import { Dma } from "./dma";
+import { Ppu, PpuMode } from "./ppu";
 
 enum OamAttribute {
     /* 0-2: CGB pal number */
@@ -41,7 +42,7 @@ export class Oam {
 
     @inline
     static Store<T>(gbAddress: u16, value: T): void {
-        if (!Dma.active)
+        if (!Dma.active && (Ppu.currentMode == PpuMode.HBlank || Ppu.currentMode == PpuMode.VBlank))
             store<T>(GB_OAM_START + gbAddress - 0xFE00, value);
     }
 }
