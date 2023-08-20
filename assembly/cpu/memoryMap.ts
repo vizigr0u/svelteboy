@@ -67,7 +67,7 @@ if (dif > 0) {
 export class MemoryMap {
     static useBootRom: boolean = false;
     static currentRomBankIndex: u8 = 0;
-    static currentVideoBankIndex: u8 = 0;
+    static currentVideoBankIndex: u8 = 0; // CGB
     static currentRamBankIndex: u8 = 0;
     static loadedBootRomSize: u32 = 0;
     static loadedCartridgeRomSize: u32 = 0;
@@ -77,8 +77,8 @@ export class MemoryMap {
             log('Initialized MemoryMap, using boot : ' + useBootRom.toString());
         MemoryMap.useBootRom = useBootRom;
         MemoryMap.currentRomBankIndex = 0;
-        MemoryMap.currentVideoBankIndex = 0;
         MemoryMap.currentRamBankIndex = 0;
+        MemoryMap.currentVideoBankIndex = 0; // CGB
     }
 
     static GBToMemory(gbAddress: u16): u32 {

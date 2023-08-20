@@ -40,7 +40,6 @@ export class Ppu {
         memory.fill(GB_VIDEO_START, 0, GB_VIDEO_START + GB_VIDEO_SIZE);
 
         Lcd.Init();
-        Fifo.Init();
     }
 
     static Tick(): void {
