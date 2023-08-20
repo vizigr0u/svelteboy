@@ -11,7 +11,7 @@ export enum IntType {
 }
 
 function CheckAndRunInterrupt(int: IntType): boolean {
-    if (Interrupt.HasRequest(int)) {
+    if (Interrupt.HasRequest(int) && Interrupt.IsEnabled(int)) {
         const intAddress: u16 = Interrupt.GetHandlerAddress(int);
         Cpu.PushToSP(Cpu.ProgramCounter);
         Cpu.ProgramCounter = intAddress;
