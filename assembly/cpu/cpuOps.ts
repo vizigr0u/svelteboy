@@ -3,6 +3,7 @@ import { getOperandTargetName, getConditionName } from "../debug/disassemble";
 import { MemoryMap } from "./memoryMap";
 import { Operand, Instruction, OpTarget, OpCondition } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
+import { Logger, log } from "../debug/logger";
 
 function checkAndStoreCondition(cond: OpCondition): boolean {
     Cpu.failedLastCondition = !isConditionFullfilled(cond);
@@ -54,7 +55,11 @@ export class CpuOps {
         }
         if (!Cpu.failedLastCondition) {
             const change: i8 = <i8>Cpu.get8bitSourceValue(originalPc + 1, sourceOp);
-            assert(change != -2, "JR -2, infinite loop detected at " + uToHex(originalPc) + ", aborting.");
+            if (change == -2) {
+                if (Logger.verbose >= 1)
+                    log("JR -2, infinite loop detected at " + uToHex(originalPc) + ", Halting.");
+                Cpu.isHalted = true;
+            }
             Cpu.ProgramCounter += change;
         }
     }
