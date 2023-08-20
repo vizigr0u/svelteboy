@@ -1,6 +1,7 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
 import { GB_VIDEO_SIZE, GB_VIDEO_START } from "../../cpu/memoryMap";
 import { Logger, log } from "../../debug/logger";
+import { Fifo } from "./fifo";
 import { LCD_HEIGHT, Lcd, LcdControlBit } from "./lcd";
 
 export enum PpuMode {
@@ -8,6 +9,14 @@ export enum PpuMode {
     VBlank = 1,
     OAMScan = 2,
     Transfer = 3
+}
+
+export enum PpuState {
+    GetTile,
+    GetDataLo,
+    GetDataHi,
+    Sleep,
+    Push
 }
 
 const NUM_SCANLINES: u16 = 154;
@@ -31,6 +40,7 @@ export class Ppu {
         memory.fill(GB_VIDEO_START, 0, GB_VIDEO_START + GB_VIDEO_SIZE);
 
         Lcd.Init();
+        Fifo.Init();
     }
 
     static Tick(): void {

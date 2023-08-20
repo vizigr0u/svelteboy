@@ -5,9 +5,13 @@ import { uToHex } from "../utils/stringUtils";
 
 export const MEMORY_START: u32 = 0x00;
 
+export const FIFO_START: u32 = MEMORY_START;
+export const FIFO_MAX_ELEMENTS: u8 = 10;
+export const FIFOS_SIZE: u32 = <u32>FIFO_MAX_ELEMENTS + 2; // head and tail indices
+
 // space for all in-console memory - https://gbdev.io/pandocs/Memory_Map.html
 
-export const GB_VIDEO_START: u32 = MEMORY_START;
+export const GB_VIDEO_START: u32 = FIFO_START + FIFOS_SIZE;
 export const GB_VIDEO_BANK_SIZE: u32 = 0x2000;
 export const GB_VIDEO_SIZE: u32 = 2 * GB_VIDEO_BANK_SIZE; // 1 + 1 bank (CGB)
 
