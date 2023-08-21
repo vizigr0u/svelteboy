@@ -48,6 +48,7 @@
     .flags-view {
         display: flex;
         font-weight: 600;
+        gap: 0.4em;
     }
 
     .flag-view {
