@@ -1,4 +1,4 @@
-export default {
+{
     "1293D68BF9643BC4F36954C1E80E38F39864528D": "[BIOS] Nintendo Game Boy Color Boot ROM (World)",
     "DD6E952B730C4BD85F8734156D43A2616B68C053": "007 - The World Is Not Enough (USA, Europe)",
     "EB0A65DC3069AE5261B04437FFAC5EFC12697C2A": "10-Pin Bowling (USA) (Rumble Version)",
@@ -1424,5 +1424,5 @@ export default {
     "4DDB1D66D909D453374BD195A4A7DBE328ED41BE": "Zoids - Jashin Fukkatsu! Genobreaker Hen (Japan) (SGB Enhanced) (GB Compatible)",
     "BFE8CDB8A8DA37D5C8D9DB57E8A5EEEDEE24D4CC": "Zoids - Jashin Fukkatsu! Genobreaker Hen (Japan) (Rev A) (SGB Enhanced) (GB Compatible)",
     "A5623AB4E026AA546B345F2BD5638CFDFED68C04": "Zoids - Shirogane no Juukishin Liger Zero (Japan)",
-    "91AB908FDDEBD926E7DB8D61295A40955B2ADC39": "Zok Zok Heroes (Japan)",
-};
+    "91AB908FDDEBD926E7DB8D61295A40955B2ADC39": "Zok Zok Heroes (Japan)"
+}
