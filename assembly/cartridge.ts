@@ -4,7 +4,7 @@ import { CGBModeNames, CartridgeTypeNames } from "./debug/symbols";
 import { CGBMode, CartridgeType, Metadata } from "./metadata";
 import { uToHex } from "./utils/stringUtils";
 
-const supportedTypes: CartridgeType[] = [CartridgeType.ROM_ONLY, CartridgeType.MBC1];
+const supportedTypes: CartridgeType[] = [CartridgeType.ROM_ONLY, CartridgeType.MBC1, CartridgeType.MBC1_RAM, CartridgeType.MBC1_RAM_BATTERY];
 
 @final
 export class Cartridge {

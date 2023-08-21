@@ -201,16 +201,4 @@ export function loadBootRom(bootRom: ArrayBuffer): boolean {
     return result;
 }
 
-export function loadCartridgeRom(cartridgeRom: ArrayBuffer): boolean {
-    if (Logger.verbose >= 2)
-        log('Loading Cartridge rom');
-    const result = loadRom(Uint8Array.wrap(cartridgeRom), CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE);
-    if (result) {
-        if (Logger.verbose >= 3)
-            log('Cart Rom loaded');
-        MemoryMap.loadedCartridgeRomSize = cartridgeRom.byteLength;
-    } else
-        if (Logger.verbose >= 1)
-            log('Unable to load cart rom - size: ' + uToHex(cartridgeRom.byteLength));
-    return result;
-}
+

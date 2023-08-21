@@ -2,7 +2,7 @@
   import DebuggerLine from "./DebuggerLine.svelte";
   import DebugControlBar from "./DebugControlBar.svelte";
 
-  import { RomType, type GbDebugInfo } from "../../types";
+  import { RomType, type GbDebugInfo, type RomReference } from "../../types";
   import VirtualList from "svelte-virtual-list-ce";
   import MyVirtualList from "../MyVirtualList.svelte";
   import {
@@ -10,7 +10,11 @@
     GbDebugInfoStore,
     DebugSessionStarted,
   } from "../../stores/debugStores";
-  import { loadedRomsStore } from "../../stores/romStores";
+  import {
+    bootRomStore,
+    loadedBootRom,
+    loadedCartridge,
+  } from "../../stores/romStores";
   import { fetchDisassembly } from "../../debug";
 
   let romToShow: RomType = RomType.Boot;
@@ -20,15 +24,20 @@
 
   let lineMaps = [{}, {}];
 
-  loadedRomsStore.subscribe((roms) => {
-    roms.forEach((rom) => {
-      if (rom && $disassembledRomsStore[rom.romType]?.uuid != rom.uuid) {
-        console.log("detected new rom to disassemble: " + rom.filename);
-        fetchDisassembly(rom);
-        romToShow = rom.romType;
-      }
-    });
-  });
+  loadedCartridge.subscribe((rom) => disassembleRom(rom, RomType.Cartridge));
+  loadedBootRom.subscribe((rom) => disassembleRom(rom, RomType.Boot));
+
+  function disassembleRom(rom: RomReference, romType: RomType): void {
+    if (rom && $disassembledRomsStore[romType]?.sha1 != rom.sha1) {
+      console.log("detected new rom to disassemble: " + rom.filename);
+      fetchDisassembly(rom);
+      romToShow = romType;
+    } else if (!rom) {
+      $disassembledRomsStore = $disassembledRomsStore.filter(
+        (d) => d.romType != romType
+      );
+    }
+  }
 
   DebugSessionStarted.subscribe((debugStarted) => {
     if (

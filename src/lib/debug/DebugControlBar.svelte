@@ -4,7 +4,7 @@
         ProgramRunning,
         DebugSessionStarted,
     } from "../../stores/debugStores";
-    import { loadedRomsStore } from "../../stores/romStores";
+    import { loadedCartridge, loadedBootRom } from "../../stores/romStores";
 
     import {
         debugStep,
@@ -103,12 +103,13 @@
 <div class="debug-control-buttons">
     <button
         on:click={onRunPauseClick}
-        disabled={$loadedRomsStore.every((s) => s == undefined)}
+        disabled={$loadedBootRom == undefined && $loadedCartridge == undefined}
         >{$ProgramRunning ? "Pause" : "Run"}</button
     >
     <button
         on:click={onStepClick}
-        disabled={$loadedRomsStore.every((s) => s == undefined)}>Step</button
+        disabled={$loadedBootRom == undefined && $loadedCartridge == undefined}
+        >Step</button
     >
     <button on:click={onResetClick} disabled={$DebugSessionStarted}
         >{$DebugSessionStarted ? "Reset" : "Init"}</button

@@ -1,7 +1,7 @@
 <script lang="ts">
   import DebugSection from "./lib/debug/DebugSection.svelte";
   import Player from "./lib/Player.svelte";
-  import RomLoader from "./lib/RomLoader.svelte";
+  import RomList from "./lib/RomList.svelte";
   import { RomType } from "./types";
 </script>
 
@@ -9,8 +9,8 @@
   <main>
     <Player />
     <div class="rom-loaders">
-      <RomLoader romType={RomType.Boot} title="Boot roms" />
-      <RomLoader romType={RomType.Cartridge} title="Cartridge roms" />
+      <RomList romType={RomType.Boot} title="Boot roms" />
+      <RomList romType={RomType.Cartridge} title="Cartridge roms" />
     </div>
   </main>
   <aside>
@@ -19,13 +19,21 @@
 </div>
 
 <style>
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 2em;
+  }
   .page-container {
     width: 100%;
     display: flex;
     justify-content: space-around;
+    gap: 2em;
   }
 
   .rom-loaders {
     display: flex;
+    gap: 2em;
+    flex-direction: column;
   }
 </style>

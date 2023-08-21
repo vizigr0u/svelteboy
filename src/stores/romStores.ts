@@ -1,8 +1,9 @@
 import { writable, type Writable } from "svelte/store";
-import { RomType, type RomReference, type StoredRom } from "../types";
+import { type RomReference, type StoredRom } from "../types";
 
 const bootromKey = "bootroms";
 const storedBootRoms = JSON.parse(localStorage.getItem(bootromKey)) as StoredRom[] ?? [];
+
 export const bootRomStore: Writable<StoredRom[]> = writable<StoredRom[]>(storedBootRoms);
 bootRomStore.subscribe(value => {
     localStorage.setItem(bootromKey, JSON.stringify(value?.length > 0 ? value : []));
@@ -16,11 +17,5 @@ cartRomStore.subscribe(value => {
     localStorage.setItem(cartRomKey, JSON.stringify(!!value ? value : []));
 });
 
-export const loadedRomsStore = writable<RomReference[]>([undefined, undefined]);
-
-export function setLoadedRom(romType: RomType, rom: RomReference) {
-    loadedRomsStore.update(store => {
-        store[romType] = rom;
-        return store;
-    });
-}
+export const loadedBootRom = writable<RomReference>(undefined);
+export const loadedCartridge = writable<RomReference>(undefined);

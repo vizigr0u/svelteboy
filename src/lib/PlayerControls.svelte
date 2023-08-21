@@ -1,6 +1,6 @@
 <script lang="ts">
     import { DebugSessionStarted } from "../stores/debugStores";
-    import { loadedRomsStore } from "../stores/romStores";
+    import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 
     import { init, runOneFrame } from "../../build/release";
     import { GameFrames, GamePlaying } from "../stores/playStores";
@@ -24,11 +24,11 @@
     }
 </script>
 
-<div class="debug-control-buttons">
+<div class="player-control-buttons">
     <button
         on:click={onRunStopClick}
         disabled={$DebugSessionStarted ||
-            $loadedRomsStore.every((s) => s == undefined)}
+            ($loadedBootRom == undefined && $loadedCartridge == undefined)}
         >{$GamePlaying ? "Stop" : "Play"}</button
     >
     <label
@@ -52,9 +52,10 @@
 </div>
 
 <style>
-    .debug-control-buttons {
+    .player-control-buttons {
         display: flex;
         align-items: center;
+        justify-content: space-around;
     }
 
     .verbose-input {

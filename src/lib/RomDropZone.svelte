@@ -15,7 +15,7 @@
   const validFileExtensions: string[] =
     romType == RomType.Boot ? ["bin"] : ["gb", "gbc"];
 
-  const romStore = romType == RomType.Boot ? bootRomStore : cartRomStore;
+  let romStore = romType == RomType.Boot ? bootRomStore : cartRomStore;
 
   let dragState: DragState = DragState.Idle;
   let dragZone: HTMLDivElement;
@@ -27,7 +27,7 @@
     return e.dataTransfer.items[0];
   }
 
-  function processDroppedFile(file: File) {
+  async function processDroppedFile(file: File) {
     const ext = file.name.split(".").pop();
     dragZoneText = `dropped file:
         ${file.name}
@@ -36,18 +36,26 @@
       dragZoneText += ": Unknown file type";
       return;
     }
-    file.arrayBuffer().then((content) => {
-      const newRom: StoredRom = {
-        filename: file.name,
-        contentBase64: Buffer.from(content).toString("base64"),
-        uuid: crypto.randomUUID(),
-        romType: romType,
-        fileSize: file.size,
-      };
-      romStore.update((store) => [newRom, ...store]);
-      dragState = DragState.Idle;
-      dragZoneText = "";
-    });
+    const buffer = await file.arrayBuffer();
+    const sha1Buffer = await crypto.subtle.digest("SHA-1", buffer);
+    const hashArray = Array.from(new Uint8Array(sha1Buffer));
+    const sha1 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    console.log("SHA-1: " + sha1);
+    const newRom: StoredRom = {
+      filename: file.name,
+      contentBase64: Buffer.from(buffer).toString("base64"),
+      sha1: sha1,
+      romType,
+      fileSize: file.size,
+    };
+    console.log(
+      `adding ${JSON.stringify(newRom.filename)}(${JSON.stringify(
+        newRom.sha1
+      )} to store (size ${$romStore.length}))`
+    );
+    romStore.update((store) => [newRom, ...store]);
+    dragState = DragState.Idle;
+    dragZoneText = "";
   }
 
   function onDrop(e: DragEvent) {
@@ -94,7 +102,8 @@
   .dragZone {
     margin: 0.5em;
     padding: 0.5em;
-    border: 2px solid blue;
+    background-color: #1f1f1f;
+    border: 2px solid #111;
     display: flex;
     flex-direction: column;
   }
@@ -110,7 +119,6 @@
   .text {
     font-family: "Courier New", Courier, monospace;
     color: white;
-    background-color: black;
     text-align: left;
     white-space: pre;
     margin: 1em 0 0 0;
