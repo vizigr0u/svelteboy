@@ -7,6 +7,8 @@ import { Logger, log } from "../debug/logger";
 
 function checkAndStoreCondition(cond: OpCondition): boolean {
     Cpu.failedLastCondition = !isConditionFullfilled(cond);
+    if (Logger.verbose >= 3)
+        log('Last condition check: ' + (!Cpu.failedLastCondition).toString());
     return Cpu.failedLastCondition;
 }
 
