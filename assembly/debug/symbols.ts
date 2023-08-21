@@ -1,10 +1,47 @@
 import { Op, OpCondition, OpTarget } from "../cpu/opcodes";
+import { CGBMode } from "../metadata";
 
 export const conditionNames: Map<OpCondition, string> = new Map<OpCondition, string>();
 conditionNames.set(OpCondition.NonZero, "NZ");
 conditionNames.set(OpCondition.Zero, "Z");
 conditionNames.set(OpCondition.NonCarry, "NC");
 conditionNames.set(OpCondition.Carry, "C");
+
+export const CartridgeTypeNames = [
+    'ROM_ONLY',
+    'MBC1',
+    'MBC1_RAM',
+    'MBC1_RAM_BATTERY',
+    'MBC2',
+    'MBC2_BATTERY',
+    'ROM_RAM_1',
+    'ROM_RAM_BATTERY_1',
+    'MMM01',
+    'MMM01_RAM',
+    'MMM01_RAM_BATTERY',
+    'MBC3_TIMER_BATTERY',
+    'MBC3_TIMER_RAM_BATTERY_2',
+    'MBC3',
+    'MBC3_RAM_2',
+    'MBC3_RAM_BATTERY_2',
+    'MBC5',
+    'MBC5_RAM',
+    'MBC5_RAM_BATTERY',
+    'MBC5_RUMBLE',
+    'MBC5_RUMBLE_RAM',
+    'MBC5_RUMBLE_RAM_BATTERY',
+    'MBC6',
+    'MBC7_SENSOR_RUMBLE_RAM_BATTERY',
+    'POCKET_CAMERA',
+    'BANDAI_TAMA5',
+    'HuC3',
+    'HuC1_RAM_BATTERY',
+];
+
+export const CGBModeNames = new Map<CGBMode, string>();
+CGBModeNames.set(CGBMode.NonCGB, "NonCGB");
+CGBModeNames.set(CGBMode.PartialCGB, "PartialCGB");
+CGBModeNames.set(CGBMode.CGBOnly, "CGBOnly");
 
 export const opNames: Map<Op, string> = new Map<Op, string>();
 opNames.set(Op.ADC, "ADC");
