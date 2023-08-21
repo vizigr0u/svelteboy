@@ -1,7 +1,7 @@
 <script lang="ts">
     import VirtualList from "svelte-virtual-list-ce";
     import { DebugLines, ProgramRunning } from "../../stores/debugStores";
-    import { loadedRomsStore } from "../../stores/romStores";
+    import { loadedCartridge } from "../../stores/romStores";
 
     let maxLines = 2000;
 
@@ -25,7 +25,7 @@
     }
 
     function getLogFilename(): string {
-        return `${getCurrentDateTime()}_${$loadedRomsStore[1]?.filename}.txt`;
+        return `${getCurrentDateTime()}_${$loadedCartridge?.filename}.txt`;
     }
 
     function onDownloadClick() {

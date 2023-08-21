@@ -15,7 +15,7 @@ export enum RomType {
 
 export interface RomReference {
     filename: string,
-    uuid: string,
+    sha1: string,
     romType: RomType
 };
 

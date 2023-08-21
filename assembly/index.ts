@@ -20,7 +20,9 @@ export { serialEnableLog } from "./io/serial";
 
 export { extractMetadata } from "./metadata";
 
-export { loadBootRom, loadCartridgeRom, TOTAL_MEMORY_SIZE } from './cpu/memoryMap';
+export { loadBootRom, TOTAL_MEMORY_SIZE } from './cpu/memoryMap';
+
+export { loadCartridgeRom } from './cartridge';
 
 export function runCartridge(useBootRom: boolean = true): void {
   Emulator.Init(useBootRom);

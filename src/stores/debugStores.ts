@@ -1,5 +1,6 @@
 import { derived, writable } from "svelte/store";
 import type { DisassembledCode, GbDebugInfo, ProgramLine, RomReference } from "../types";
+import { loadedCartridge } from "./romStores";
 
 export const disassembledRomsStore = writable<DisassembledCode[]>([]);
 
