@@ -26,7 +26,7 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
 
     constructor(capacity: u32 = DEFAULT_FIFO_SIZE) {
         this.data = new StaticArray<T>(capacity);
-        this.Reset();
+        this.Clear();
     }
 
     IsFull(): boolean {
@@ -38,7 +38,7 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
         return this.headIndex == -1;
     }
 
-    Reset(): void {
+    Clear(): void {
         this.headIndex = -1;
         this.tailIndex = -1;
         this.length = 0;

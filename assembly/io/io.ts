@@ -9,9 +9,12 @@ import { Lcd } from "./video/lcd";
 import { AudioInput } from "./audioInputs";
 import { Joypad } from "./joypad";
 
+const UNHANDLED_CGB_START: u32 = 0xFF4D;
+
 @final
 export class IO {
     static Init(): void {
+        Joypad.Init();
         Timer.Init();
         Serial.Init();
         Dma.Init();
@@ -36,6 +39,10 @@ export class IO {
             AudioInput.Store(gbAddress, value);
         } else if (Dma.Handles(gbAddress)) {
             Dma.Start(value);
+        } else if (gbAddress >= UNHANDLED_CGB_START) {
+            if (Logger.verbose >= 3) {
+                log('Unhandled write to CGB Flag ' + uToHex<u16>(gbAddress));
+            }
         } else {
             IO.MemStore<u8>(gbAddress, value);
             if (!Interrupt.Handles(gbAddress))
@@ -65,6 +72,12 @@ export class IO {
         }
         if (AudioInput.Handles(gbAddress)) {
             return IO.MemLoad<u8>(gbAddress);
+        }
+        if (gbAddress >= UNHANDLED_CGB_START) {
+            if (Logger.verbose >= 3) {
+                log('Unhandled read of CGB Flag ' + uToHex<u16>(gbAddress));
+            }
+            return 0xFF;
         }
         if (Logger.verbose >= 1)
             log('Unhandled IO read: ' + uToHex<u16>(gbAddress));

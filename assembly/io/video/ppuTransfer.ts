@@ -29,7 +29,7 @@ export class PpuTransfer {
 
 
     static Init(): void {
-        PpuTransfer.fifo.Reset();
+        PpuTransfer.fifo.Clear();
         PpuTransfer.state = PpuFetchState.GetTile;
         PpuTransfer.lineX = 0;
         PpuTransfer.Xfetching = 0;
@@ -49,9 +49,9 @@ export class PpuTransfer {
         tickPushPixel();
     }
 
-    static Terminate(): void {
-        PpuTransfer.fifo.Reset();
-    }
+    // static Terminate(): void {
+    //     PpuTransfer.fifo.Reset();
+    // }
 }
 
 function getBGMapAddress(): u32 {
@@ -87,7 +87,7 @@ function tickFetcher(): void {
             break;
         case PpuFetchState.Push:
             if (PpuTransfer.fifo.length > 8) {
-                pushPixel();
+                fetcherEnqueuePixel();
                 PpuTransfer.state = PpuFetchState.Push;
             }
             break;
@@ -96,12 +96,16 @@ function tickFetcher(): void {
     }
 }
 
-function pushPixel(): void {
+function fetcherEnqueuePixel(): void {
     const x = PpuTransfer.Xfetching - (8 - (Lcd.gbData().scrollX % 8));
     for (let i = 0; i < 8; i++) {
         const mask: u8 = (1 << <u8>(7 - i));
-        const paletteId: u8 = (((PpuTransfer.fetchDataLo & mask) == mask) ? 1 : 0) | (((PpuTransfer.fetchDataHi & mask) == mask) ? 2 : 0);
-        PpuTransfer.fifo.Enqueue(PaletteColors[paletteId]);
+        const colorId: u8 = (((PpuTransfer.fetchDataLo & mask) == mask) ? 1 : 0) | (((PpuTransfer.fetchDataHi & mask) == mask) ? 2 : 0);
+        const color: u32 = PaletteColors[colorId];
+        if (x >= 0) {
+            PpuTransfer.fifo.Enqueue(color);
+            PpuTransfer.fifoX++;
+        }
     }
 }
 
@@ -109,7 +113,7 @@ function tickPushPixel(): void {
     if (PpuTransfer.fifo.length > 8) {
         const pixel = PpuTransfer.fifo.Dequeue();
         if (PpuTransfer.lineX >= (Lcd.gbData().scrollX & 3)) {
-            Ppu.WorkingBuffer()[PpuTransfer.pushedX + Lcd.gbData().lY * LCD_WIDTH] = pixel;
+            // Ppu.WorkingBuffer()[PpuTransfer.pushedX + Lcd.gbData().lY * LCD_WIDTH] = pixel;
             PpuTransfer.pushedX++;
         }
         PpuTransfer.lineX++;

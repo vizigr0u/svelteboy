@@ -58,7 +58,7 @@ function runBenchmark() {
     const t0 = performance.now();
     const frames = 800;
     for (let i = 0; i < frames; i++)
-        runOneFrame(69903);
+        runOneFrame();
     const t1 = performance.now();
     console.log(`time: ${frames} frames in ${t1 - t0}ms = ${(frames * 1000) / (t1 - t0)} FPS`);
 }

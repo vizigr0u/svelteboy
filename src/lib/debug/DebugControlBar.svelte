@@ -16,6 +16,7 @@
     } from "../../../build/release";
     import type { GbDebugInfo } from "../../types";
     import { fetchLogs } from "../../debug";
+    import { GameFrames } from "../../stores/playStores";
 
     let verbose: number = 1;
     let useBoot: boolean = false;
@@ -49,6 +50,7 @@
             initDebug();
         }
         $GbDebugInfoStore = await debuggerStep();
+        $GameFrames = $GbDebugInfoStore.currentFrame;
     }
 
     async function onStopClick() {
@@ -61,6 +63,7 @@
         $ProgramRunning = false;
         initDebug();
         $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
+        $GameFrames = $GbDebugInfoStore.currentFrame;
     }
 
     async function onRunPauseClick() {
@@ -70,14 +73,17 @@
             fetchLogs();
             $ProgramRunning = false;
             $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
+            $GameFrames = $GbDebugInfoStore.currentFrame;
         } else {
             if (!$DebugSessionStarted) {
                 initDebug();
             }
+            $GameFrames = 0;
             $ProgramRunning = true;
             do {
                 $GbDebugInfoStore = await runDebugger();
                 await fetchLogs();
+                $GameFrames = $GbDebugInfoStore.currentFrame;
                 await new Promise((resolve) => setTimeout(resolve, frameDelay));
             } while (
                 $ProgramRunning &&

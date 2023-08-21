@@ -1,6 +1,4 @@
-☐ test struct deref assignment (getLcd().stat = value)
-☐ jump to PC
-☐ auto-jump to PC
+☐ Debug zelda DMA - starts after 0x0174: CALL FFC0
 ☐ disassemble dynamic parts (WRAM, HRAM)
 ☐ pass CPU tests
 ☐ OAM

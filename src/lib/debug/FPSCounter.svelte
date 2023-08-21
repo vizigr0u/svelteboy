@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { frameCount } from "../../stores/debugStores";
+    import { GameFrames } from "../../stores/playStores";
 
     let lastDrawTime: number = 0;
     let updateFreq: number = 20;
     let fps: number = -1;
 
-    frameCount.subscribe((frame) => {
+    GameFrames.subscribe((frame) => {
         if (frame != -1) {
             const frameEndTime = performance.now();
             if (lastDrawTime > 0 && frame % 10 == 0 && frame > 0) {

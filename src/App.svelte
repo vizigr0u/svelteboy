@@ -1,13 +1,13 @@
 <script lang="ts">
   import DebugSection from "./lib/debug/DebugSection.svelte";
-  import GbScreenCanvas from "./lib/GbScreenCanvas.svelte";
+  import Player from "./lib/Player.svelte";
   import RomLoader from "./lib/RomLoader.svelte";
   import { RomType } from "./types";
 </script>
 
 <div class="page-container">
   <main>
-    <GbScreenCanvas />
+    <Player />
     <div class="rom-loaders">
       <RomLoader romType={RomType.Boot} title="Boot roms" />
       <RomLoader romType={RomType.Cartridge} title="Cartridge roms" />

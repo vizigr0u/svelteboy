@@ -25,5 +25,3 @@ export function appendLog(newLines: string[]): void {
         return lines;
     });
 }
-
-export const frameCount = derived([GbDebugInfoStore], ([$GbDebugInfoStore]) => $GbDebugInfoStore === undefined ? -1 : $GbDebugInfoStore.currentFrame);
