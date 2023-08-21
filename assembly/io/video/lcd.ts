@@ -135,15 +135,6 @@ export class Lcd {
         const data = Lcd.gbData();
         if (Logger.verbose >= 4)
             log(`LCD read at ${uToHex(gbAddress)} - data = ${data.lY}`);
-        // TODO temporary hack for Ly to bypass vblank loops
-        if (gbAddress == LcdGbData.getLyAddress()) {
-            data.lY = (data.lY + 1) % 154;
-            if (Debug.disableLcdForTests) {
-                if (Logger.verbose >= 1)
-                    log('LCD disabld for tests');
-                return 0xFF;
-            }
-        }
         if (gbAddress == LcdGbData.getStatAddress()) {
             let stat = data.stat & 0b11111000;
             stat |= (data.lY == data.lYcompare) ? 0b100 : 0;
