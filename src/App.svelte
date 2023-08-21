@@ -27,7 +27,7 @@
   .page-container {
     width: 100%;
     display: flex;
-    justify-content: space-around;
+    justify-content: left;
     gap: 2em;
   }
 

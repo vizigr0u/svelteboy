@@ -40,7 +40,6 @@
     const sha1Buffer = await crypto.subtle.digest("SHA-1", buffer);
     const hashArray = Array.from(new Uint8Array(sha1Buffer));
     const sha1 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-    console.log("SHA-1: " + sha1);
     const newRom: StoredRom = {
       filename: file.name,
       contentBase64: Buffer.from(buffer).toString("base64"),
@@ -48,11 +47,6 @@
       romType,
       fileSize: file.size,
     };
-    console.log(
-      `adding ${JSON.stringify(newRom.filename)}(${JSON.stringify(
-        newRom.sha1
-      )} to store (size ${$romStore.length}))`
-    );
     romStore.update((store) => [newRom, ...store]);
     dragState = DragState.Idle;
     dragZoneText = "";

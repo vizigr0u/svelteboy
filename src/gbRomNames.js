@@ -1,4 +1,4 @@
-export const gbRomNames = {
+export default {
     "4ED31EC6B0B175BB109C0EB5FD3D193DA823339F": "[BIOS] Nintendo Game Boy Boot ROM (World)",
     "0982BCC82DEB9C4DB08E602A22A2BB4F31E7E6AE": "3 Choume no Tama - Tama and Friends - 3 Choume Obake Panic!! (Japan)",
     "76643F3F3481F7E515A24482779870862DD8B373": "3-pun Yosou - Umaban Club (Japan)",

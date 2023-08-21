@@ -8,8 +8,8 @@
         loadedBootRom,
     } from "../stores/romStores";
     import { humanReadableSize } from "../utils";
-    import { gbRomNames } from "../gbRomNames";
-    import { gbcRomNames } from "../gbcRomNames";
+    import gbRomNames from "../gbRomNames";
+    import gbcRomNames from "../gbcRomNames";
     import { fetchLogs } from "../debug";
 
     const defaultThumbnailUri = "/UnknownGame.png";
@@ -42,11 +42,6 @@
 
     function deleteRom() {
         cartRomStore.update((store) => {
-            console.log(
-                `deleting roms with sha1 ${rom.sha1} in ${JSON.stringify(
-                    store.map((r) => ({ filename: r.filename, sha1: r.sha1 }))
-                )}`
-            );
             return store.filter((r) => r.sha1 !== rom.sha1);
         });
         if ($loadedRom?.sha1 == rom.sha1) $loadedRom = undefined;

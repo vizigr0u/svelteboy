@@ -5,7 +5,7 @@
   export let width: number = 42;
   export let height: number = 42;
   export let draw: (a: Uint8ClampedArray) => Uint8ClampedArray = (a) => a;
-  export let title: string = "LCD Title";
+  export let title: string = "";
 
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;
@@ -90,6 +90,7 @@
   .tile-data-canvas {
     display: flex;
     flex-direction: column;
+    align-items: center;
   }
   .canvas {
     background-color: rgb(0, 0, 0);
