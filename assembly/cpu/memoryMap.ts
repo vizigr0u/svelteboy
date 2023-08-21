@@ -167,7 +167,7 @@ export class MemoryMap {
     }
 }
 
-function loadRom(rom: Uint8Array, start: usize, maxSize: usize): boolean {
+export function loadRom(rom: Uint8Array, start: usize, maxSize: usize): boolean {
     if (Logger.verbose >= 1)
         log(`trying to load rom of size ${rom.byteLength}B at 0x${start.toString(16)}`);
     if (<usize>rom.byteLength > maxSize) {
