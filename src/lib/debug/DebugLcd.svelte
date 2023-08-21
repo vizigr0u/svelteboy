@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { frameCount } from "../../stores/debugStores";
+  import { GameFrames } from "../../stores/playStores";
 
   export let width: number = 42;
   export let height: number = 42;
@@ -17,7 +17,7 @@
   let drawCounts: number = 0;
   let timeReport: string;
 
-  frameCount.subscribe((frame) => {
+  GameFrames.subscribe((frame) => {
     if (autodraw) {
       if (frame != -1) {
         drawToCanvas();
@@ -42,7 +42,9 @@
       const t0 = performance.now();
       const other = draw(data);
       timeSpentDrawing += performance.now() - t0;
-      context.putImageData(new ImageData(other, width, height), 0, 0);
+      if (other) {
+        context.putImageData(new ImageData(other, width, height), 0, 0);
+      }
     }
   }
 
@@ -53,7 +55,9 @@
 
 <div class="tile-data-canvas">
   <div class="tile-data-title">
-    <h3>{title}</h3>
+    {#if title}
+      <h3>{title}</h3>
+    {/if}
     {#if timeReport}
       <span>Draw time: {timeReport}ms</span>
     {/if}

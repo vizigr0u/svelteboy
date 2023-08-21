@@ -9,9 +9,6 @@ import { Ppu, PpuMode } from "./ppu";
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
 
-export const LCD_WIDTH: u8 = 160;
-export const LCD_HEIGHT: u8 = 144;
-
 export enum LcdControlBit {
     BGandWindowEnabled = 0,
     ObjEnabled = 1,

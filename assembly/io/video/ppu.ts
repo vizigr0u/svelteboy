@@ -1,22 +1,14 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
-import { GB_VIDEO_SIZE, GB_VIDEO_START } from "../../cpu/memoryMap";
 import { Logger, log } from "../../debug/logger";
-import { Fifo } from "./fifo";
-import { LCD_HEIGHT, Lcd, LcdControlBit } from "./lcd";
+import { LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
+import { Lcd } from "./lcd";
+import { PpuTransfer } from "./ppuTransfer";
 
 export enum PpuMode {
     HBlank = 0,
     VBlank = 1,
     OAMScan = 2,
     Transfer = 3
-}
-
-export enum PpuState {
-    GetTile,
-    GetDataLo,
-    GetDataHi,
-    Sleep,
-    Push
 }
 
 const NUM_SCANLINES: u16 = 154;
@@ -26,18 +18,36 @@ const OAM_SCAN_DOTS: u16 = 80;
 const TRANSFER_MIN_DOTS: u16 = 172;
 const TRANSFER_MAX_DOTS: u16 = 289;
 
+const FRAME_BUFFER_SIZE: u32 = LCD_RES * 4; // 4 bpp
+
 @final
 export class Ppu {
     static currentMode: PpuMode = PpuMode.OAMScan;
     static currentDot: u16 = 0;
     static currentFrame: u32 = 0;
+    static buffersInitialized: boolean = false;
+    static frameBuffers: StaticArray<Uint8ClampedArray> = new StaticArray<Uint8ClampedArray>(2);
+    // static workingBufferIndex: u8 = 0;
+
+    // @inline static WorkingBuffer(): Uint32Array { return Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer); }
+    // @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
+    @inline static WorkingBuffer(): Uint32Array { return Uint32Array.wrap(Ppu.frameBuffers[0].buffer); }
+    @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[0]; }
 
     static Init(): void {
         Ppu.currentMode = PpuMode.OAMScan;
         Ppu.currentDot = 0;
         Ppu.currentFrame = 0;
 
-        memory.fill(GB_VIDEO_START, 0, GB_VIDEO_START + GB_VIDEO_SIZE);
+        // Ppu.workingBufferIndex = 0;
+        if (!Ppu.buffersInitialized) {
+            Ppu.frameBuffers[0] = new Uint8ClampedArray(FRAME_BUFFER_SIZE);
+            Ppu.frameBuffers[1] = new Uint8ClampedArray(FRAME_BUFFER_SIZE);
+            Ppu.buffersInitialized = true;
+        } else {
+            memory.fill(Ppu.frameBuffers[0].dataStart, 0, FRAME_BUFFER_SIZE);
+            memory.fill(Ppu.frameBuffers[1].dataStart, 0, FRAME_BUFFER_SIZE);
+        }
 
         Lcd.Init();
     }
@@ -84,6 +94,7 @@ function enterMode(mode: PpuMode): void {
     Ppu.currentMode = mode;
     switch (mode) {
         case PpuMode.HBlank:
+            PpuTransfer.fifo.Clear();
             if (Lcd.gbData().hasStatMode(PpuMode.HBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }
@@ -94,11 +105,21 @@ function enterMode(mode: PpuMode): void {
                 Interrupt.Request(IntType.LcdSTAT);
             }
             Ppu.currentFrame++;
+            { // TODO remove
+                const color = [0xff, <u8>(Math.random() * 256), <u8>(Math.random() * 256), <u8>(Math.random() * 256)];
+                for (let i = 0; i < Ppu.DrawnBuffer().byteLength; i += 4) {
+                    Ppu.DrawnBuffer()[i] = color[i % 4];
+                    Ppu.DrawnBuffer()[i + 1] = color[(i % 4) + 1];
+                    Ppu.DrawnBuffer()[i + 2] = color[(i % 4) + 2];
+                    Ppu.DrawnBuffer()[i + 3] = color[(i % 4) + 3];
+                }
+            }
+            // Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
             break;
         case PpuMode.OAMScan:
             break;
         case PpuMode.Transfer:
-            // TODO Setup transfer
+            PpuTransfer.Init();
             break;
         default:
             break;
@@ -131,7 +152,8 @@ function tickOAMScan(): void {
 }
 
 function tickTransfer(): void {
-    // TODO : transfer can last up to TRANSFER_MAX_DOTS
+    PpuTransfer.Tick();
+    // if (PpuTransfer.pushedX >= LCD_WIDTH) { // TODO: replace below
     if (Ppu.currentDot >= OAM_SCAN_DOTS + TRANSFER_MIN_DOTS) { // entering HBlank
         enterMode(PpuMode.HBlank);
     }

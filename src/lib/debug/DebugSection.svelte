@@ -6,7 +6,6 @@
     import CpuDebugInfo from "./CpuDebugInfo.svelte";
     import DebugLcd from "./DebugLcd.svelte";
     import Disassembler from "./Disassembler.svelte";
-    import FpsCounter from "./FPSCounter.svelte";
     import HexDumpControl from "./HexDumpControl.svelte";
     import LogView from "./LogView.svelte";
 </script>
@@ -21,7 +20,6 @@
         <BenchmarkControl />
     </div>
     <div class="debug-right-panel debug-panel">
-        <FpsCounter />
         <DebugLcd
             title="Tile Data"
             width={32 * 8}
