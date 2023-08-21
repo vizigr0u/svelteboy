@@ -1,3 +1,5 @@
+import { log } from "../debug/logger";
+import { uToHex } from "../utils/stringUtils";
 import { Cpu, Flag } from "./cpu";
 import { Instruction, OpTarget, Operand } from "./opcodes";
 
@@ -106,13 +108,14 @@ export class Alu {
     static CpOp(sourceOp: Operand, originalPc: u16): void {
         const a = Cpu.A();
         const b: u8 = Cpu.get8bitSourceValue(originalPc + 1, sourceOp);
-        if (sourceOp.target == OpTarget.A)
+        if (sourceOp.target == OpTarget.A) {
             Cpu.SetF(<u8>(Flag.Z_Zero | Flag.N_Sub));
+        }
         else {
             Cpu.SetFlag(Flag.Z_Zero, a == b);
             Cpu.SetFlag(Flag.N_Sub, 1);
-            Cpu.SetFlag(Flag.H_HalfC, isAddHalfCarry8bit(a, b));
-            Cpu.SetFlag(Flag.C_Carry, isAddCarry8bit(a, b));
+            Cpu.SetFlag(Flag.H_HalfC, isAddHalfCarry8bit(~a, b));
+            Cpu.SetFlag(Flag.C_Carry, isAddCarry8bit(~a, b));
         }
         // TODO check H and C logic
     }
