@@ -3,7 +3,6 @@
   import DebugControlBar from "./DebugControlBar.svelte";
 
   import { RomType, type GbDebugInfo, type RomReference } from "../../types";
-  import VirtualList from "svelte-virtual-list-ce";
   import MyVirtualList from "../MyVirtualList.svelte";
   import {
     disassembledRomsStore,

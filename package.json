@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@csstools/convert-colors": "^2.0.0",
+    "@types/node": "^20.5.1",
     "buffer": "^6.0.3",
     "gzip": "^0.1.0",
     "pngjs": "^7.0.0",

@@ -1,4 +1,4 @@
-export default {
+{
     "4ED31EC6B0B175BB109C0EB5FD3D193DA823339F": "[BIOS] Nintendo Game Boy Boot ROM (World)",
     "0982BCC82DEB9C4DB08E602A22A2BB4F31E7E6AE": "3 Choume no Tama - Tama and Friends - 3 Choume Obake Panic!! (Japan)",
     "76643F3F3481F7E515A24482779870862DD8B373": "3-pun Yosou - Umaban Club (Japan)",
@@ -1596,4 +1596,4 @@ export default {
     "5C1B1AF8E70CD23F5F72848D03FCC56869D18BE7": "Zool - Ninja of the 'Nth' Dimension (USA)",
     "89A74970761700D591C2AFFC47C9306F49D22BA8": "Zoop (Japan)",
     "1E0390D456066B9FBE1FAFF5F7404D4593A2B839": "Zoop (USA, Europe)"
-};
+}

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { loadBootRom, loadCartridgeRom } from "../../build/release";
-    import type { RomReference, StoredRom } from "../types";
+    import type { StoredRom } from "../types";
     import { RomType } from "../types";
     import {
         cartRomStore,
@@ -8,16 +8,42 @@
         loadedBootRom,
     } from "../stores/romStores";
     import { humanReadableSize } from "../utils";
-    import gbRomNames from "../gbRomNames";
-    import gbcRomNames from "../gbcRomNames";
     import { fetchLogs } from "../debug";
+    import { getGbNames, getGbcNames } from "../cartridgeNames";
 
     const defaultThumbnailUri = "/UnknownGame.png";
+    const defaultAltText = "Unknown game art";
 
     export let rom: StoredRom;
 
+    type RomImgData = {
+        src: string;
+        alt: string;
+    };
+
     let loadedRom =
         rom.romType == RomType.Boot ? loadedBootRom : loadedCartridge;
+
+    let imagePromise = Promise.resolve({
+        src: defaultThumbnailUri,
+        alt: defaultAltText,
+    });
+
+    $: imagePromise = fetchImageAndAlt(rom);
+
+    async function fetchImageAndAlt(rom: StoredRom): Promise<RomImgData> {
+        const isGbc = rom.filename.endsWith(".gbc");
+        const names = isGbc ? await getGbcNames() : await getGbNames();
+        let src = defaultThumbnailUri;
+        let alt = defaultAltText;
+        if (rom.sha1.toUpperCase() in names) {
+            alt = names[rom.sha1.toUpperCase()];
+            src = `https://thumbnails.libretro.com//Nintendo%20-%20Game%20Boy${
+                isGbc ? "%20Color" : ""
+            }/Named_Boxarts/${alt}.png`;
+        }
+        return { src, alt };
+    }
 
     let isLoading: boolean = false;
 
@@ -52,37 +78,31 @@
         ev.onerror = null;
         ev.preventDefault();
     }
-
-    function getThumbnailUri(rom: RomReference): string {
-        const isGbc = rom.filename.endsWith(".gbc");
-        const names = isGbc ? gbcRomNames : gbRomNames;
-        if (!rom?.sha1 || !(rom.sha1.toUpperCase() in names))
-            return defaultThumbnailUri;
-        return `https://thumbnails.libretro.com//Nintendo%20-%20Game%20Boy${
-            isGbc ? "%20Color" : ""
-        }/Named_Boxarts/${names[rom.sha1.toUpperCase()]}.png`;
-    }
-
-    function getThumbnailAlt(rom: RomReference): string {
-        const isGbc = rom.filename.endsWith(".gbc");
-        const names = isGbc ? gbcRomNames : gbRomNames;
-        if (!rom?.sha1 || !(rom.sha1.toUpperCase() in names))
-            return "Unknown game art";
-        return names[rom.sha1.toUpperCase()];
-    }
 </script>
 
 <div class="rom-container" class:rom-loaded={$loadedRom?.sha1 == rom.sha1}>
-    {#if rom != undefined && rom.sha1}
+    {#await imagePromise}
         <img
             class="rom-thumbnail"
-            on:error={onThumbnailError}
-            src={getThumbnailUri(rom)}
-            alt={getThumbnailAlt(rom)}
+            src={defaultThumbnailUri}
+            alt={defaultAltText}
         />
-    {:else}
-        {JSON.stringify(rom)}
-    {/if}
+    {:then imgData}
+        {#key rom.sha1}
+            <img
+                class="rom-thumbnail"
+                on:error={onThumbnailError}
+                src={imgData.src}
+                alt={imgData.alt}
+            />
+        {/key}
+    {:catch}
+        <img
+            class="rom-thumbnail"
+            src={defaultThumbnailUri}
+            alt={defaultAltText}
+        />
+    {/await}
     <div class="rom-info-container">
         <div class="filename">
             {rom.filename}<br />({humanReadableSize(rom.fileSize)})
