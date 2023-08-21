@@ -5,11 +5,6 @@
     import FpsCounter from "./debug/FPSCounter.svelte";
 </script>
 
-<DebugLcd
-    draw={(buffer) => getGameFrame(buffer)}
-    width={160}
-    height={144}
-    title={"Player"}
-/>
+<DebugLcd draw={(buffer) => getGameFrame(buffer)} width={160} height={144} />
 <PlayerControls />
 <FpsCounter />

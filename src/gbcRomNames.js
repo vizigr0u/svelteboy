@@ -1,4 +1,4 @@
-export const gbcRomNames = {
+export default {
     "1293D68BF9643BC4F36954C1E80E38F39864528D": "[BIOS] Nintendo Game Boy Color Boot ROM (World)",
     "DD6E952B730C4BD85F8734156D43A2616B68C053": "007 - The World Is Not Enough (USA, Europe)",
     "EB0A65DC3069AE5261B04437FFAC5EFC12697C2A": "10-Pin Bowling (USA) (Rumble Version)",
