@@ -1,5 +1,5 @@
-export const LCD_WIDTH: u8 = 160;
-export const LCD_HEIGHT: u8 = 144;
+export const LCD_WIDTH: u32 = 160;
+export const LCD_HEIGHT: u32 = 144;
 export const LCD_RES: u32 = LCD_WIDTH * LCD_HEIGHT;
 
 export const PaletteColors: u32[] = [
