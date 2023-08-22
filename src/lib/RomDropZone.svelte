@@ -2,6 +2,7 @@
   import { bootRomStore, cartRomStore } from "../stores/romStores";
   import { RomType, type StoredRom } from "../types";
   import { humanReadableSize } from "../utils";
+  import { Buffer } from "buffer";
 
   export let romType: RomType;
 

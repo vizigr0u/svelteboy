@@ -1,6 +1,7 @@
 import { MemoryMap } from "../../cpu/memoryMap";
 import { Logger, log } from "../../debug/logger";
 import { uToHex } from "../../utils/stringUtils";
+import { IO } from "../io";
 import { Oam } from "./oam";
 
 @final
@@ -44,7 +45,7 @@ export class Dma {
         const value = MemoryMap.GBload<u8>(srcAddress);
         if (Logger.verbose >= 2)
             log(`DMA transferring: ${uToHex<u8>(value)} ${uToHex<u16>(srcAddress)}->${uToHex(0xFE00 + Dma.offset)}`);
-        Oam.Store<u8>(0xFE00 + Dma.offset, value);
+        IO.Store(0xFE00 + Dma.offset, value);
 
         Dma.offset++;
         Dma.active = Dma.offset <= 0x9F;
