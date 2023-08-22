@@ -84,6 +84,9 @@ class LcdGbData {
 @final
 export class Lcd {
     static Init(): void {
+        if (Logger.verbose >= 3) {
+            log('Initializing Lcd');
+        }
         memory.fill(LcdGbData.getGlobalPointer(), 0, offsetof<LcdGbData>()); // TODO: what are initial values?
         if (Debug.disableLcdForTests) {
             if (Logger.verbose >= 1)
