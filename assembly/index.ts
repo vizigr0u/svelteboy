@@ -3,6 +3,8 @@ memory.grow(1);
 import { Emulator } from "./emulator";
 import { MemoryMap } from "./cpu/memoryMap";
 import { Ppu } from "./io/video/ppu";
+import { log } from "./debug/logger";
+import { uToHex } from "./utils/stringUtils";
 
 export { setVerbose, spliceLogs, dumpLogToConsole } from "./debug/logger";
 
@@ -36,8 +38,7 @@ export function runOneFrame(): void { Emulator.RunOneFrame(); }
 export function getGameFrame(buffer: Uint8ClampedArray): Uint8ClampedArray {
   const ppuBuffer = Ppu.DrawnBuffer();
   assert(ppuBuffer.byteLength <= buffer.byteLength, "Not enough space to copy frame buffer");
-  memory.copy(buffer.dataStart, ppuBuffer.dataStart, ppuBuffer.byteLength);
-  return buffer;
+  return ppuBuffer;
 }
 
 export function hexDump(from: u16, to: u16): Uint8Array {

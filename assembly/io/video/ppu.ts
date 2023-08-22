@@ -27,26 +27,34 @@ export class Ppu {
     static currentFrame: u32 = 0;
     static buffersInitialized: boolean = false;
     static frameBuffers: StaticArray<Uint8ClampedArray> = new StaticArray<Uint8ClampedArray>(2);
-    // static workingBufferIndex: u8 = 0;
+    static workingBufferIndex: u8 = 0;
 
-    // @inline static WorkingBuffer(): Uint32Array { return Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer); }
-    // @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
-    @inline static WorkingBuffer(): Uint32Array { return Uint32Array.wrap(Ppu.frameBuffers[0].buffer); }
-    @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[0]; }
+    @inline static WorkingBuffer(): Uint32Array { return Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer); }
+    @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
 
     static Init(): void {
         Ppu.currentMode = PpuMode.OAMScan;
         Ppu.currentDot = 0;
         Ppu.currentFrame = 0;
 
-        // Ppu.workingBufferIndex = 0;
+        if (Logger.verbose >= 3) {
+            log('Initializing PPU');
+        }
+        Ppu.workingBufferIndex = 0;
         if (!Ppu.buffersInitialized) {
             Ppu.frameBuffers[0] = new Uint8ClampedArray(FRAME_BUFFER_SIZE);
             Ppu.frameBuffers[1] = new Uint8ClampedArray(FRAME_BUFFER_SIZE);
             Ppu.buffersInitialized = true;
+
+            if (Logger.verbose >= 2) {
+                log(`PPU buffers initialized to sizes ${Ppu.frameBuffers[0].byteLength} and ${Ppu.frameBuffers[1].byteLength}`);
+            }
         } else {
             memory.fill(Ppu.frameBuffers[0].dataStart, 0, FRAME_BUFFER_SIZE);
             memory.fill(Ppu.frameBuffers[1].dataStart, 0, FRAME_BUFFER_SIZE);
+            if (Logger.verbose >= 2) {
+                log(`PPU buffers content Reset, sizes: ${Ppu.frameBuffers[0].byteLength} and ${Ppu.frameBuffers[1].byteLength}`);
+            }
         }
 
         Lcd.Init();
@@ -55,7 +63,7 @@ export class Ppu {
     static Tick(): void {
         // if (!Lcd.gbData().hasControlBit(LcdControlBit.LCDandPPUenabled))
         //     return;
-        if (Logger.verbose >= 3)
+        if (Logger.verbose >= 4)
             log('PPU TICK');
         Ppu.currentDot++;
 
@@ -91,6 +99,8 @@ function incrementLy(): void {
 }
 
 function enterMode(mode: PpuMode): void {
+    if (Logger.verbose >= 3)
+        log('PPU going from mode ' + Ppu.currentMode.toString() + ' to ' + mode.toString());
     Ppu.currentMode = mode;
     switch (mode) {
         case PpuMode.HBlank:
@@ -105,16 +115,8 @@ function enterMode(mode: PpuMode): void {
                 Interrupt.Request(IntType.LcdSTAT);
             }
             Ppu.currentFrame++;
-            { // TODO remove
-                const color = [0xff, <u8>(Math.random() * 256), <u8>(Math.random() * 256), <u8>(Math.random() * 256)];
-                for (let i = 0; i < Ppu.DrawnBuffer().byteLength; i += 4) {
-                    Ppu.DrawnBuffer()[i] = color[i % 4];
-                    Ppu.DrawnBuffer()[i + 1] = color[(i % 4) + 1];
-                    Ppu.DrawnBuffer()[i + 2] = color[(i % 4) + 2];
-                    Ppu.DrawnBuffer()[i + 3] = color[(i % 4) + 3];
-                }
-            }
-            // Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
+            Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
+
             break;
         case PpuMode.OAMScan:
             break;
