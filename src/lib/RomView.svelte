@@ -10,6 +10,7 @@
     import { humanReadableSize } from "../utils";
     import { fetchLogs } from "../debug";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
+    import { Buffer } from "buffer";
 
     const defaultThumbnailUri = "/UnknownGame.png";
     const defaultAltText = "Unknown game art";
