@@ -1,7 +1,8 @@
-☐ Debug zelda DMA - starts after 0x0174: CALL FFC0
-☐ disassemble dynamic parts (WRAM, HRAM)
-☐ pass CPU tests
-☐ OAM
-☐ ppu
+☐ ☐ disassemble dynamic parts (WRAM, HRAM)
+☐ pass CPU tests: 3 4 5 9 11
+☐ main screen display BG
+☐ add window(?) + OAM
+☐ support for ROM+RAM banks in MBC1
+☐ battery MBC?
 ☐ ???
 ☐ PROFIT

@@ -49,8 +49,8 @@
             <div class="lcd-info">
                 <span>control: {$GbDebugInfoStore.lcd.control}</span>
                 <span>stat: {$GbDebugInfoStore.lcd.stat}</span>
-                <span>scY: {$GbDebugInfoStore.lcd.scY}</span>
-                <span>scX: {$GbDebugInfoStore.lcd.scX}</span>
+                <span>scroll X: {$GbDebugInfoStore.lcd.scX}</span>
+                <span>scroll Y: {$GbDebugInfoStore.lcd.scY}</span>
                 <span>lY: {$GbDebugInfoStore.lcd.lY}</span>
                 <span>lYcompare: {$GbDebugInfoStore.lcd.lYcompare}</span>
                 <span>dma: {$GbDebugInfoStore.lcd.dma}</span>
@@ -165,6 +165,7 @@
         background-color: #282828;
         border: 1px solid #444;
         min-width: 20em;
+        max-width: 33em;
         min-height: 4em;
         max-height: 8em;
         overflow-y: auto;
