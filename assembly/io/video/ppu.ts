@@ -104,7 +104,7 @@ function enterMode(mode: PpuMode): void {
     Ppu.currentMode = mode;
     switch (mode) {
         case PpuMode.HBlank:
-            PpuTransfer.fifo.Clear();
+            PpuTransfer.bgFifo.Clear();
             if (Lcd.gbData().hasStatMode(PpuMode.HBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }
@@ -116,7 +116,6 @@ function enterMode(mode: PpuMode): void {
             }
             Ppu.currentFrame++;
             Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
-
             break;
         case PpuMode.OAMScan:
             break;

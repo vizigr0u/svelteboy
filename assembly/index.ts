@@ -22,7 +22,8 @@ export { serialEnableLog } from "./io/serial";
 
 export { extractMetadata } from "./metadata";
 
-export { loadBootRom, TOTAL_MEMORY_SIZE } from './cpu/memoryMap';
+export { loadBootRom } from './cpu/memoryMap';
+export { TOTAL_MEMORY_SIZE } from './cpu/memoryConstants';
 
 export { loadCartridgeRom } from './cartridge';
 

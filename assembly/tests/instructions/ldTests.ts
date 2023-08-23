@@ -314,16 +314,16 @@ function testLDHToA(source: u8, value: u8): void {
 }
 
 function testLDH(): void {
-    testLDHFromA(0x42, 42);
-    assert(MemoryMap.GBload<u8>(0xFF42) == 42, `[0xFF42] = ${MemoryMap.GBload<u8>(0xFF42)}. Expected 42`);
-    MemoryMap.GBstore<u8>(0xFF42, 0);
-    testLDHFromA(0x0, 42);
-    assert(MemoryMap.GBload<u8>(0xFF00) == 42, `[0xFF00] = ${MemoryMap.GBload<u8>(0xFF00)}. Expected 42`);
-    MemoryMap.GBstore<u8>(0xFF00, 0);
+    testLDHFromA(0x82, 42);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82)}. Expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
+    testLDHFromA(0x80, 42);
+    assert(MemoryMap.GBload<u8>(0xFF80) == 42, `[0xFF80] = ${MemoryMap.GBload<u8>(0xFF80)}. Expected 42`);
+    MemoryMap.GBstore<u8>(0xFF80, 0);
 
-    testLDHToA(0x42, 42);
+    testLDHToA(0x82, 42);
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected 42`);
-    testLDHToA(0x00, 42);
+    testLDHToA(0x80, 42);
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected 42`);
 }
 
