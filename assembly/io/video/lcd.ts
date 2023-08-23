@@ -2,7 +2,7 @@ import { Debug } from "../../debug/debug";
 import { IntType, Interrupt } from "../../cpu/interrupts";
 import { IO } from "../io";
 import { Logger, log } from "../../debug/logger";
-import { GB_IO_START } from "../../cpu/memoryMap";
+import { GB_IO_START } from "../../cpu/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 

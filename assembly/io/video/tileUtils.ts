@@ -1,4 +1,4 @@
-import { GB_VIDEO_START } from '../../cpu/memoryMap';
+import { GB_VIDEO_START } from '../../cpu/memoryConstants';
 import { log } from '../../debug/logger';
 import { uToHex } from '../../utils/stringUtils';
 import { LCD_HEIGHT, LCD_WIDTH, PaletteColors } from './constants';

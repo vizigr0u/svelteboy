@@ -1,4 +1,4 @@
-import { GB_OAM_START } from "../../cpu/memoryMap";
+import { GB_OAM_START } from "../../cpu/memoryConstants";
 import { Dma } from "./dma";
 import { Ppu, PpuMode } from "./ppu";
 

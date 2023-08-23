@@ -1,6 +1,7 @@
 import { Cpu } from "../cpu/cpu";
 import { IntType, Interrupt } from "../cpu/interrupts";
-import { CARTRIDGE_ROM_START, MemoryMap } from "../cpu/memoryMap";
+import { CARTRIDGE_ROM_START } from "../cpu/memoryConstants";
+import { MemoryMap } from "../cpu/memoryMap";
 import { Emulator } from "../emulator";
 
 function setIntProgram(int: IntType, instructions: Array<u8>): void {
