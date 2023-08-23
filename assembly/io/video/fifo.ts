@@ -3,9 +3,9 @@
 const DEFAULT_FIFO_SIZE: u32 = 16;
 
 @final export class Fifo<T> {
-    headIndex: i8 = -1;
-    tailIndex: i8 = -1;
-    length: u8;
+    headIndex: u32 = -1;
+    tailIndex: u32 = -1;
+    length: u32;
     // _dataStart: usize = 0;
     data: StaticArray<T>;
 
@@ -30,8 +30,7 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
     }
 
     IsFull(): boolean {
-        return (this.headIndex == 0 && this.tailIndex == this.capacity() - 1) ||
-            ((this.tailIndex + 1) % this.capacity() == this.headIndex);
+        return ((this.tailIndex + 1) % this.capacity()) == this.headIndex;
     }
 
     IsEmpty(): boolean {
@@ -47,6 +46,7 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
     Enqueue(value: T): void {
         assert(!this.IsFull(), 'FIFO IS FULL');
 
+        this.length++;
         if (this.headIndex == -1) /* Insert First Element */ {
             this.headIndex = this.tailIndex = 0;
             this.data[this.tailIndex] = value;
@@ -59,7 +59,6 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
         }
 
         this.tailIndex++;
-        this.length++;
         this.data[this.tailIndex] = value;
     }
 
@@ -71,10 +70,9 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
             this.headIndex = -1;
             this.tailIndex = -1;
         }
-        else if (this.headIndex == this.capacity() - 1)
-            this.headIndex = 0;
-        else
-            this.headIndex++;
+        else {
+            this.headIndex = (this.headIndex + 1) % this.capacity();
+        }
 
         this.length--;
         return result;

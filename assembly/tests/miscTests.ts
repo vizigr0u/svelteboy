@@ -1,4 +1,4 @@
-import { TEST_SPACE_START } from "../cpu/memoryMap";
+import { TEST_SPACE_START } from "../cpu/memoryConstants";
 
 class TestStructA {
     a: u8;

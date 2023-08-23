@@ -1,4 +1,4 @@
-import { GB_IO_START } from "../cpu/memoryMap";
+import { GB_IO_START } from "../cpu/memoryConstants";
 import { Logger, log } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 
