@@ -83,6 +83,8 @@ class LcdGbData {
 
 @final
 export class Lcd {
+    static currentPalette: u8;
+
     static Init(): void {
         if (Logger.verbose >= 3) {
             log('Initializing Lcd');
@@ -108,7 +110,7 @@ export class Lcd {
 
     @inline
     static getBGPalette(): u8 {
-        return IO.Load(0xFF47);
+        return load<u8>(GB_IO_START + 0x47);
     }
 
     @inline
