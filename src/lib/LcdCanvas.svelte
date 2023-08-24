@@ -7,6 +7,7 @@
   export let updateBuffer: (a: Uint8ClampedArray) => Uint8ClampedArray = (a) =>
     a;
   export let postProcess: (ctx: CanvasRenderingContext2D) => void = undefined;
+  export let mouseMove: (ev: MouseEvent) => void = undefined;
   export let pixelSize = 2;
   export let autodraw: boolean = true;
   export const draw = () => drawToCanvas();
@@ -59,6 +60,10 @@
       }
     }
   }
+
+  function onMouseMove(ev: MouseEvent) {
+    if (mouseMove) mouseMove(ev);
+  }
 </script>
 
 <div class="tile-data-canvas">
@@ -68,7 +73,9 @@
     {/if}
   </div>
   <div class="tile-data-canvas-container">
+    <!-- svelte-ignore a11y-mouse-events-have-key-events -->
     <canvas
+      on:mousemove={onMouseMove}
       bind:this={canvas}
       {width}
       {height}
