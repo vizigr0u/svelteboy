@@ -76,7 +76,8 @@ export {
   getLetterTileExampleData,
   getTestExampleData,
   drawTileData,
-  drawBackgroundMap
+  drawBackgroundMap,
+  getBGTileMap
 } from "./io/video/tileUtils";
 
 export {
