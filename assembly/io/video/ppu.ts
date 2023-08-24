@@ -154,8 +154,7 @@ function tickOAMScan(): void {
 
 function tickTransfer(): void {
     PpuTransfer.Tick();
-    // if (PpuTransfer.pushedX >= LCD_WIDTH) { // TODO: replace below
-    if (Ppu.currentDot >= OAM_SCAN_DOTS + TRANSFER_MIN_DOTS) { // entering HBlank
+    if (PpuTransfer.pushedX == LCD_WIDTH) {
         enterMode(PpuMode.HBlank);
     }
 }
