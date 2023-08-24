@@ -128,7 +128,7 @@ function tickPushPixel(): void {
     if (PpuTransfer.bgFifo.length >= 8) {
         if (PpuTransfer.lineX >= (Lcd.gbData().scrollX & 3)) {
             const bufferIndex = PpuTransfer.pushedX + Lcd.gbData().lY * LCD_WIDTH;
-            if (bufferIndex >= <u32>(Ppu.WorkingBuffer().length)) {
+            if (bufferIndex >= <u32>(Ppu.workingBuffer.length)) {
                 if (Logger.verbose >= 1)
                     log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.gbData().lY}`);
             } else {
@@ -137,7 +137,7 @@ function tickPushPixel(): void {
                 const colorId: u8 = (palette >> (paletteId << 1)) & 0b11;
                 const color = PaletteColors[colorId];
                 // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.gbData().lY) * 255 / 144)) << 8;
-                Ppu.WorkingBuffer()[PpuTransfer.pushedX + Lcd.gbData().lY * LCD_WIDTH] = color;
+                Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.gbData().lY * LCD_WIDTH] = color;
             }
             PpuTransfer.pushedX++;
         }

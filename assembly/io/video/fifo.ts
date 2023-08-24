@@ -29,10 +29,12 @@ const DEFAULT_FIFO_SIZE: u32 = 16;
         this.Clear();
     }
 
+    @inline
     IsFull(): boolean {
-        return ((this.tailIndex + 1) % this.capacity()) == this.headIndex;
+        return this.length == this.capacity();
     }
 
+    @inline
     IsEmpty(): boolean {
         return this.headIndex == -1;
     }

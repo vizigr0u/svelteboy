@@ -10,9 +10,8 @@ export enum IntType {
     Joypad = 0x10
 }
 
-function CheckAndRunInterrupt(int: IntType): boolean {
-    if (Interrupt.HasRequest(int) && Interrupt.IsEnabled(int)) {
-        const intAddress: u16 = Interrupt.GetHandlerAddress(int);
+function CheckAndRunInterrupt(flags: u8, int: IntType, intAddress: u16): boolean {
+    if ((flags & <u8>int) != 0) {
         Cpu.PushToSP(Cpu.ProgramCounter);
         Cpu.ProgramCounter = intAddress;
         Interrupt.Request(int, 0);
@@ -55,16 +54,19 @@ export class Interrupt {
     }
 
     static HandleInterrupts(): void {
-        if (CheckAndRunInterrupt(IntType.VBlank)) {
+        const flags = Interrupt.Requests() & Interrupt.GetEnabled() & 0x1F;
+        if (flags != 0) {
+            if (CheckAndRunInterrupt(flags, IntType.VBlank, 0x40)) {
 
-        } else if (CheckAndRunInterrupt(IntType.LcdSTAT)) {
+            } else if (CheckAndRunInterrupt(flags, IntType.LcdSTAT, 0x48)) {
 
-        } else if (CheckAndRunInterrupt(IntType.Timer)) {
+            } else if (CheckAndRunInterrupt(flags, IntType.Timer, 0x50)) {
 
-        } else if (CheckAndRunInterrupt(IntType.Serial)) {
+            } else if (CheckAndRunInterrupt(flags, IntType.Serial, 0x58)) {
 
-        } else if (CheckAndRunInterrupt(IntType.Joypad)) {
+            } else if (CheckAndRunInterrupt(flags, IntType.Joypad, 0x60)) {
 
+            }
         }
     }
 

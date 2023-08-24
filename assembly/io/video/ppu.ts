@@ -29,7 +29,8 @@ export class Ppu {
     static frameBuffers: StaticArray<Uint8ClampedArray> = new StaticArray<Uint8ClampedArray>(2);
     static workingBufferIndex: u8 = 0;
 
-    @inline static WorkingBuffer(): Uint32Array { return Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer); }
+    static workingBuffer: Uint32Array = new Uint32Array(0);
+
     @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
 
     static Init(): void {
@@ -56,6 +57,7 @@ export class Ppu {
                 log(`PPU buffers content Reset, sizes: ${Ppu.frameBuffers[0].byteLength} and ${Ppu.frameBuffers[1].byteLength}`);
             }
         }
+        Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
 
         Lcd.Init();
     }
@@ -116,6 +118,7 @@ function enterMode(mode: PpuMode): void {
             }
             Ppu.currentFrame++;
             Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
+            Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
             break;
         case PpuMode.OAMScan:
             break;
