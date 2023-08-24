@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { drawTileData, drawBackgroundMap } from "../../../build/release";
+    import { drawTileData } from "../../../build/release";
 
     import BenchmarkControl from "./BenchmarkControl.svelte";
     import BreakpointsControl from "./BreakpointsControl.svelte";
@@ -7,57 +7,41 @@
     import Disassembler from "./Disassembler.svelte";
     import HexDumpControl from "./HexDumpControl.svelte";
     import LogView from "./LogView.svelte";
-    import { GbDebugInfoStore } from "../../stores/debugStores";
     import LcdCanvas from "../LcdCanvas.svelte";
+    import BgCanvas from "./BGCanvas.svelte";
+    import { GbDebugInfoStore } from "../../stores/debugStores";
 
     let drawTiles;
     let drawBG;
     let pixelSize = 2;
     let autodraw: boolean = true;
 
+    let tileDebug: string = "";
+
     function onRefreshClick() {
         drawTiles();
         drawBG();
     }
 
-    function drawBGLines(ctx: CanvasRenderingContext2D): void {
-        const minX = $GbDebugInfoStore.lcd.scX;
-        const minY = $GbDebugInfoStore.lcd.scY;
-        const maxX = (160 + minX) % ctx.canvas.width;
-        const maxY = (144 + minY) % ctx.canvas.height;
-        ctx.strokeStyle = "red";
-        ctx.beginPath();
-        if (minX < maxX) {
-            ctx.moveTo(minX, minY);
-            ctx.lineTo(maxX, minY);
-            ctx.moveTo(minX, maxY);
-            ctx.lineTo(maxX, maxY);
+    function onMouseMoveOnTiles(ev: MouseEvent) {
+        const tileX = Math.floor(Math.max(0, ev.offsetX) / (8 * pixelSize));
+        const tileY = Math.floor(Math.max(0, ev.offsetY) / (8 * pixelSize));
+        const hoveredIndex = tileX + tileY * 32;
+        tileDebug = `(${tileX}, ${tileY})`;
+        tileDebug += ": sprite " + (hoveredIndex < 256 ? hoveredIndex : "NONE");
+        if ($GbDebugInfoStore) {
+            const TilesOnLow = ($GbDebugInfoStore.lcd.control & (1 << 4)) != 0;
+            if (TilesOnLow) {
+                tileDebug +=
+                    "\t\tBG " + (hoveredIndex < 256 ? hoveredIndex : "NONE");
+            } else {
+                tileDebug +=
+                    "\t\tBG " +
+                    (hoveredIndex > 127 ? hoveredIndex - 255 : "NONE");
+            }
         } else {
-            ctx.moveTo(0, minY);
-            ctx.lineTo(maxX, minY);
-            ctx.moveTo(minX, minY);
-            ctx.lineTo(159, minY);
-            ctx.moveTo(0, maxY);
-            ctx.lineTo(maxX, maxY);
-            ctx.moveTo(minX, maxY);
-            ctx.lineTo(159, maxY);
+            tileDebug += " index = " + hoveredIndex;
         }
-        if (minY < maxY) {
-            ctx.moveTo(minX, minY);
-            ctx.lineTo(minX, maxY);
-            ctx.moveTo(maxX, minY);
-            ctx.lineTo(maxX, maxY);
-        } else {
-            ctx.moveTo(minX, 0);
-            ctx.lineTo(minX, maxY);
-            ctx.moveTo(minX, minY);
-            ctx.lineTo(minX, 143);
-            ctx.moveTo(maxX, 0);
-            ctx.lineTo(maxX, maxY);
-            ctx.moveTo(maxX, minY);
-            ctx.lineTo(maxX, 143);
-        }
-        ctx.stroke();
     }
 </script>
 
@@ -82,22 +66,16 @@
         <h4>Tile Data</h4>
         <LcdCanvas
             width={32 * 8}
-            height={16 * 8}
+            height={12 * 8}
             updateBuffer={(a) => drawTileData(a, 32 * 8)}
+            mouseMove={onMouseMoveOnTiles}
             bind:draw={drawTiles}
             bind:autodraw
             bind:pixelSize
         />
+        <span class="tile-debug">{tileDebug}</span>
         <h4>Background</h4>
-        <LcdCanvas
-            width={32 * 8}
-            height={32 * 8}
-            updateBuffer={drawBackgroundMap}
-            postProcess={drawBGLines}
-            bind:draw={drawBG}
-            bind:autodraw
-            bind:pixelSize
-        />
+        <BgCanvas bind:draw={drawBG} bind:autodraw bind:pixelSize />
     </div>
 </div>
 
