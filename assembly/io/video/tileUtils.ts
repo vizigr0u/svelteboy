@@ -1,6 +1,4 @@
 import { GB_VIDEO_START } from '../../cpu/memoryConstants';
-import { log } from '../../debug/logger';
-import { uToHex } from '../../utils/stringUtils';
 import { LCD_HEIGHT, LCD_WIDTH, PaletteColors } from './constants';
 import { Lcd, LcdControlBit } from './lcd';
 
@@ -46,6 +44,25 @@ export function drawTileData(screenBuffer: Uint8ClampedArray, bufferWidth: u32):
         }
     }
     return screenBuffer;
+}
+
+export function getBGTileMap(buffer: Uint8Array): Uint8Array {
+    assert(buffer.byteLength == 32 * 32);
+    const bufferSize: u16 = 32;
+    const numTilesX: u16 = bufferSize;
+    const numTilesY: u16 = bufferSize;
+
+    const mapOnHighAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGTileMapArea);
+    const tileMapAddress: u32 = GB_VIDEO_START + (mapOnHighAddress ? 0x1C00 : 0x1800);
+
+    for (let y: u16 = 0; y < numTilesY; y++) {
+        for (let x: u16 = 0; x < numTilesX; x++) {
+            const tileMapIndex: u16 = x + y * numTilesX;
+            const tileIndexAddress: u32 = tileMapAddress + tileMapIndex;
+            buffer[tileMapIndex] = load<u8>(tileIndexAddress);
+        }
+    }
+    return buffer;
 }
 
 export function drawBackgroundMap(screenBuffer: Uint8ClampedArray): Uint8ClampedArray {
