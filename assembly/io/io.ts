@@ -9,6 +9,8 @@ import { Dma } from "./video/dma";
 import { Lcd } from "./video/lcd";
 import { AudioInput } from "./audioInputs";
 import { Joypad } from "./joypad";
+import { Cpu } from "../cpu/cpu";
+import { Emulator } from "../emulator";
 
 const UNHANDLED_CGB_START: u32 = 0xFF4D;
 
@@ -26,6 +28,18 @@ export class IO {
     }
 
     static Store(gbAddress: u16, value: u8): void {
+        if (gbAddress == 0xFF50) {
+            if (MemoryMap.useBootRom) {
+                if (Logger.verbose >= 1) {
+                    log('Disabling bootrom');
+                }
+                MemoryMap.useBootRom = false;
+            } else {
+                if (Logger.verbose >= 1)
+                    log('Ignoring write to 0xFF50 after boot rom was disabled')
+            }
+
+        }
         if (Logger.verbose >= 4)
             log(`IO [${uToHex<u16>(gbAddress)}] <- ${uToHex<u8>(value)} ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`)
         if (Serial.Handles(gbAddress)) {
