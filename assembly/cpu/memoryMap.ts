@@ -1,5 +1,6 @@
 import { Logger, log } from "../debug/logger";
 import { IO } from "../io/io";
+import { Dma } from "../io/video/dma";
 import { Oam } from "../io/video/oam";
 import { uToHex } from "../utils/stringUtils";
 import {
@@ -71,6 +72,12 @@ export class MemoryMap {
     }
 
     static GBload<T>(gbAddress: u16): T {
+        if (gbAddress < 0xFF80 && Dma.active) {
+            if (Logger.verbose >= 1) {
+                log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
+            }
+            // return <T>0xFF;
+        }
         if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
             if (Logger.verbose >= 3)
                 log(`Unexpected hit in echo RAM: ${uToHex<u16>(gbAddress)}`);
@@ -91,6 +98,12 @@ export class MemoryMap {
     }
 
     static GBstore<T>(gbAddress: u16, value: T): void {
+        if (gbAddress < 0xFF80 && Dma.active) {
+            if (Logger.verbose >= 2) {
+                log(`Trying to write to ${uToHex<u16>(gbAddress)} during DMA, ignored.`);
+            }
+            // return;
+        }
         if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in echo RAM');
