@@ -10,7 +10,7 @@
   const storedRomsStore = romType == RomType.Boot ? bootRomStore : cartRomStore;
 </script>
 
-<div>
+<div class="debug-tool-container">
   <h3 class="roms-list-title">
     {title}
   </h3>
@@ -28,9 +28,6 @@
 </div>
 
 <style>
-  .roms-list-title {
-    font-size: 2.5em;
-  }
   .roms-container {
     display: flex;
     flex-direction: column;

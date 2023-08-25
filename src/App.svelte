@@ -1,5 +1,6 @@
 <script lang="ts">
   import DebugSection from "./lib/debug/DebugSection.svelte";
+  import OptionsView from "./lib/OptionsView.svelte";
   import Player from "./lib/Player.svelte";
   import RomList from "./lib/RomList.svelte";
   import { RomType } from "./types";
@@ -8,10 +9,10 @@
 <div class="page-container">
   <main>
     <Player />
-    <div class="rom-loaders">
-      <RomList romType={RomType.Boot} title="Boot roms" />
-      <RomList romType={RomType.Cartridge} title="Cartridge roms" />
-    </div>
+    <RomList romType={RomType.Cartridge} title="Cartridge roms" />
+    <OptionsView />
+    <RomList romType={RomType.Boot} title="Boot roms" />
+    <div class="rom-loaders" />
   </main>
   <aside>
     <DebugSection />

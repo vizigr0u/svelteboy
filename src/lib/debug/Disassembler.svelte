@@ -1,6 +1,5 @@
 <script lang="ts">
   import DebuggerLine from "./DebuggerLine.svelte";
-  import DebugControlBar from "./DebugControlBar.svelte";
 
   import { RomType, type GbDebugInfo, type RomReference } from "../../types";
   import MyVirtualList from "../MyVirtualList.svelte";
@@ -9,11 +8,7 @@
     GbDebugInfoStore,
     DebugSessionStarted,
   } from "../../stores/debugStores";
-  import {
-    bootRomStore,
-    loadedBootRom,
-    loadedCartridge,
-  } from "../../stores/romStores";
+  import { loadedBootRom, loadedCartridge } from "../../stores/romStores";
   import { fetchDisassembly } from "../../debug";
 
   let romToShow: RomType = RomType.Boot;
@@ -78,24 +73,23 @@
   const allRomTypes = Object.keys(RomType).filter((v) => isNaN(Number(v)));
 </script>
 
-<div class="disassembly-container debug-tool-container">
-  <h4>Disassembly</h4>
-
-  <div class="tab-select-container">
-    {#each allRomTypes as romTypeName}
-      <button
-        disabled={romToShow == RomType[romTypeName]}
-        on:click={() => (romToShow = RomType[romTypeName])}
-        >{romTypeName}</button
-      >
-    {/each}
-  </div>
-
+<div class="disassembly-container">
   <div class="container">
-    <DebugControlBar />
-    <div class="filename">
-      {$disassembledRomsStore[romToShow]?.filename ?? "No file loaded"}
+    <div class="title-bar">
+      <div class="filename">
+        {$disassembledRomsStore[romToShow]?.filename ?? "No file loaded"}
+      </div>
+      <div class="tab-select-container">
+        {#each allRomTypes as romTypeName}
+          <button
+            disabled={romToShow == RomType[romTypeName]}
+            on:click={() => (romToShow = RomType[romTypeName])}
+            >{romTypeName}</button
+          >
+        {/each}
+      </div>
     </div>
+
     <MyVirtualList
       items={$disassembledRomsStore[romToShow]?.programLines ?? []}
       bind:start={firstLine}
@@ -121,6 +115,11 @@
     justify-content: center;
     align-items: center;
     gap: 0.3em;
+  }
+
+  .title-bar {
+    display: flex;
+    justify-content: space-between;
   }
 
   .container {
