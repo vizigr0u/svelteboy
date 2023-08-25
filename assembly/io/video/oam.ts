@@ -2,6 +2,8 @@ import { GB_OAM_START } from "../../cpu/memoryConstants";
 import { Dma } from "./dma";
 import { Ppu, PpuMode } from "./ppu";
 
+export const MAX_OAM_COUNT: u32 = 40;
+
 enum OamAttribute {
     /* 0-2: CGB pal number */
     /* CGB only TileBank = 3, */
@@ -12,7 +14,7 @@ enum OamAttribute {
 }
 
 @final
-class OamData {
+export class OamData {
     yPos: u8;
     xPos: u8;
     tileIndex: u8;
