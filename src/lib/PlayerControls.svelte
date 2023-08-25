@@ -1,9 +1,14 @@
 <script lang="ts">
-    import { DebugSessionStarted } from "../stores/debugStores";
+    import {
+        DebugSessionStarted,
+        GbDebugInfoStore,
+    } from "../stores/debugStores";
     import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 
-    import { init, runOneFrame } from "../../build/release";
+    import { debugGetStatus, init, runOneFrame } from "../../build/release";
     import { GameFrames, GamePlaying } from "../stores/playStores";
+    import { fetchLogs } from "../debug";
+    import type { GbDebugInfo } from "../types";
 
     let useBoot: boolean = false;
     let frameDelay: number = 5;
@@ -17,7 +22,9 @@
             init(useBoot);
             do {
                 await new Promise<void>((r) => r(runOneFrame()));
-                $GameFrames++;
+                // $GbDebugInfoStore = (await debugGetStatus()) as GbDebugInfo;
+                GameFrames.update((f) => f + 1);
+                await fetchLogs();
                 await new Promise((resolve) => setTimeout(resolve, frameDelay));
             } while ($GamePlaying);
         }
