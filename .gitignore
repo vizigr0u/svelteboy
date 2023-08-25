@@ -11,6 +11,7 @@ nohup.out
 build
 node_modules
 roms
+profiling
 dist
 dist-ssr
 *.local

@@ -12,6 +12,7 @@
     let drawBG;
 
     function drawBGLines(ctx: CanvasRenderingContext2D): void {
+        if (!$GbDebugInfoStore) return;
         const minX = $GbDebugInfoStore.lcd.scX;
         const minY = $GbDebugInfoStore.lcd.scY;
         const maxX = (160 + minX) % ctx.canvas.width;
