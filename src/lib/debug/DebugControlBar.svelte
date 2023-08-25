@@ -17,10 +17,9 @@
     import type { GbDebugInfo } from "../../types";
     import { fetchLogs } from "../../debug";
     import { GameFrames } from "../../stores/playStores";
+    import { frameDelay, useBoot } from "../../stores/optionsStore";
 
     let verbose: number = 1;
-    let useBoot: boolean = false;
-    let frameDelay: number = 5;
 
     function runDebugger(): Promise<GbDebugInfo> {
         return new Promise<GbDebugInfo>((resolve) => {
@@ -40,7 +39,7 @@
     }
 
     function initDebug() {
-        init(useBoot);
+        init($useBoot);
         $DebugSessionStarted = true;
     }
 
@@ -56,7 +55,7 @@
     async function onStopClick() {
         $DebugSessionStarted = false;
         $ProgramRunning = false;
-        init(useBoot);
+        init($useBoot);
     }
 
     async function onResetClick() {
@@ -84,7 +83,9 @@
                 $GbDebugInfoStore = await runDebugger();
                 await fetchLogs();
                 $GameFrames = $GbDebugInfoStore.currentFrame;
-                await new Promise((resolve) => setTimeout(resolve, frameDelay));
+                await new Promise((resolve) =>
+                    setTimeout(resolve, $frameDelay)
+                );
             } while (
                 $ProgramRunning &&
                 ($GbDebugInfoStore == undefined ||
@@ -125,24 +126,6 @@
             on:change={onVerboseChange}
             min="0"
             max="10"
-        />
-    </label>
-    <label
-        >Use Boot
-        <input
-            type="checkbox"
-            bind:checked={useBoot}
-            disabled={$DebugSessionStarted}
-        />
-    </label>
-    <label
-        >Frame delay
-        <input
-            type="number"
-            class="verbose-input"
-            bind:value={frameDelay}
-            min="0"
-            max="100"
         />
     </label>
 </div>

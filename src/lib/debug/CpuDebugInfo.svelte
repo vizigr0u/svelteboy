@@ -11,8 +11,8 @@
     {#if $GbDebugInfoStore == undefined}
         Start debugging to see debug info.
     {:else}
-        <div>
-            Next Instruction:
+        <div class="next-instruction-container">
+            <div>Next:</div>
             <DebuggerLine line={$GbDebugInfoStore.nextInstruction} />
         </div>
         <div class="debug-info-blocks">
@@ -68,7 +68,7 @@
                     Cycle Count: {$GbDebugInfoStore.cycleCount}
                 </div>
                 <div class="info-field">
-                    Use boot rom: <input
+                    Using boot rom: <input
                         type="checkbox"
                         checked={$GbDebugInfoStore.useBootRom}
                         disabled={true}
@@ -137,6 +137,10 @@
         flex-wrap: wrap;
         justify-content: space-around;
         margin: 2em 0;
+    }
+
+    .next-instruction-container {
+        display: flex;
     }
 
     .debug-info-blocks {

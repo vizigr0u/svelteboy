@@ -97,3 +97,12 @@ export type GbDebugInfo = {
     serialBuffer: string,
     nextInstruction: ProgramLine
 }
+
+export type OamEntry = {
+    posX: number,
+    posY: number,
+    tileIndex: number,
+    behindBG: boolean,
+    xFlip: boolean,
+    yFlip: boolean
+}

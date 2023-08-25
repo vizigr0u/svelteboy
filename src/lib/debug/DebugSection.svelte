@@ -2,14 +2,14 @@
     import { drawTileData } from "../../../build/release";
 
     import BenchmarkControl from "./BenchmarkControl.svelte";
-    import BreakpointsControl from "./BreakpointsControl.svelte";
     import CpuDebugInfo from "./CpuDebugInfo.svelte";
-    import Disassembler from "./Disassembler.svelte";
     import HexDumpControl from "./HexDumpControl.svelte";
     import LogView from "./LogView.svelte";
     import LcdCanvas from "../LcdCanvas.svelte";
     import BgCanvas from "./BGCanvas.svelte";
     import { GbDebugInfoStore } from "../../stores/debugStores";
+    import OamView from "./OamView.svelte";
+    import Debugger from "./Debugger.svelte";
 
     let drawTiles;
     let drawBG;
@@ -47,10 +47,9 @@
 
 <div class="debug-section">
     <div class="debug-left-panel debug-panel">
-        <Disassembler />
+        <Debugger />
         <CpuDebugInfo />
         <LogView />
-        <BreakpointsControl />
         <HexDumpControl />
         <BenchmarkControl />
     </div>
@@ -76,6 +75,7 @@
         <span class="tile-debug">{tileDebug}</span>
         <h4>Background</h4>
         <BgCanvas bind:draw={drawBG} bind:autodraw bind:pixelSize />
+        <OamView />
     </div>
 </div>
 
@@ -104,5 +104,11 @@
         background-color: #1f1f1f;
         padding: 1em;
         margin: 1em 0;
+    }
+
+    :global(.debug-tool-container > h3) {
+        font-size: 1.5em;
+        text-align: center;
+        margin-bottom: 0.8em;
     }
 </style>
