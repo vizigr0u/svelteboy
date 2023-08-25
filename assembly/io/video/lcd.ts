@@ -5,6 +5,7 @@ import { Logger, log } from "../../debug/logger";
 import { GB_IO_START } from "../../cpu/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
+import { DMA_ADDRESS, Dma } from "./dma";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
@@ -119,6 +120,10 @@ export class Lcd {
     }
 
     static Store(gbAddress: u16, value: u8): void {
+        if (gbAddress == DMA_ADDRESS) {
+            // Dma.Start(value);
+            return;
+        }
         if (gbAddress == LcdGbData.getLyAddress()) {
             if (Logger.verbose >= 1)
                 log('Unexpected/forbidden write to LY');

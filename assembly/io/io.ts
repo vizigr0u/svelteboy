@@ -38,8 +38,6 @@ export class IO {
             Joypad.Store(value);
         } else if (AudioInput.Handles(gbAddress)) {
             AudioInput.Store(gbAddress, value);
-        } else if (Dma.Handles(gbAddress)) {
-            Dma.Start(value);
         } else if (gbAddress >= UNHANDLED_CGB_START) {
             if (Logger.verbose >= 3) {
                 log('Unhandled write to CGB Flag ' + uToHex<u16>(gbAddress));

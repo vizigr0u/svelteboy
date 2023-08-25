@@ -1,8 +1,9 @@
+import { GB_OAM_START } from "../../cpu/memoryConstants";
 import { MemoryMap } from "../../cpu/memoryMap";
 import { Logger, log } from "../../debug/logger";
 import { uToHex } from "../../utils/stringUtils";
-import { IO } from "../io";
-import { Oam } from "./oam";
+
+export const DMA_ADDRESS: u16 = 0xFF46;
 
 @final
 export class Dma {
@@ -18,13 +19,8 @@ export class Dma {
         Dma.startDelay = 0;
     }
 
-    @inline
-    static Handles(gbAddress: u16): boolean {
-        return (gbAddress == 0xFF46);
-    }
-
     static Start(value: u8): void {
-        if (Logger.verbose >= 2)
+        if (Logger.verbose >= 1)
             log(`DMA transfer started`);
         Dma.active = true;
         Dma.offset = 0;
@@ -42,15 +38,15 @@ export class Dma {
         }
 
         const srcAddress: u16 = <u16>(Dma.value * 0x100 + Dma.offset);
-        const value = MemoryMap.GBload<u8>(srcAddress);
-        if (Logger.verbose >= 2)
+        const value = load<u8>(MemoryMap.GBToMemory(srcAddress));
+        if (Logger.verbose >= 1)
             log(`DMA transferring: ${uToHex<u8>(value)} ${uToHex<u16>(srcAddress)}->${uToHex(0xFE00 + Dma.offset)}`);
-        IO.Store(0xFE00 + Dma.offset, value);
+        store<u8>(GB_OAM_START + Dma.offset, value);
 
         Dma.offset++;
         Dma.active = Dma.offset <= 0x9F;
 
-        if (!Dma.active) {
+        if (!Dma.active && Logger.verbose >= 1) {
             log("DMG transfer done.");
         }
     }

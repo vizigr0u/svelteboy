@@ -1,6 +1,7 @@
-import { GB_VIDEO_START } from '../../cpu/memoryConstants';
+import { GB_OAM_START, GB_VIDEO_START } from '../../cpu/memoryConstants';
 import { LCD_HEIGHT, LCD_WIDTH, PaletteColors } from './constants';
 import { Lcd, LcdControlBit } from './lcd';
+import { MAX_OAM_COUNT, OamData } from './oam';
 
 const gbTileData: u8[] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C];
 const pokemonWindowTileData: u8[] = [0xFF, 0x00, 0x7E, 0xFF, 0x85, 0x81, 0x89, 0x83, 0x93, 0x85, 0xA5, 0x8B, 0xC9, 0x97, 0x7E, 0xFF];
@@ -62,6 +63,13 @@ export function getBGTileMap(buffer: Uint8Array): Uint8Array {
             buffer[tileMapIndex] = load<u8>(tileIndexAddress);
         }
     }
+    return buffer;
+}
+
+export function getOAMTiles(buffer: Uint32Array): Uint32Array {
+    const byteLength = MAX_OAM_COUNT * offsetof<OamData>();
+    assert(buffer.byteLength == byteLength, 'getOAMTiles: Buffer size not matching');
+    memory.copy(buffer.dataStart, GB_OAM_START, byteLength);
     return buffer;
 }
 
