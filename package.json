@@ -9,7 +9,7 @@
     "asbuild:release": "asc assembly/index.ts --target release",
     "asbuild": "npm run asbuild:debug && npm run asbuild:release",
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run asbuild:release && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "start": "npx serve ."
