@@ -12,7 +12,7 @@
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Buffer } from "buffer";
 
-    const defaultThumbnailUri = "/UnknownGame.png";
+    const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
 
     export let rom: StoredRom;
