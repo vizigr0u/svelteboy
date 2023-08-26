@@ -24,7 +24,7 @@ const TILE_BASE_HI: u32 = GB_VIDEO_START + <u32>0x1000;
 @final
 export class PpuTransfer {
     static bgFifo: Fifo<u8> = new Fifo<u8>(PIXEL_FIFO_SIZE);
-    static oamFifo: Fifo<u8> = new Fifo<u8>(PIXEL_FIFO_SIZE);
+
     static state: PpuFetchState = PpuFetchState.GetTile;
     static lineX: u8 = 0;
     static fetcherX: u8 = 0;
@@ -38,7 +38,6 @@ export class PpuTransfer {
 
     static Init(): void {
         PpuTransfer.bgFifo.Clear();
-        PpuTransfer.oamFifo.Clear();
         PpuTransfer.state = PpuFetchState.GetTile;
         PpuTransfer.lineX = 0;
         PpuTransfer.fetcherX = 0;

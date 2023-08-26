@@ -6,7 +6,7 @@ import { MemoryMap } from "../cpu/memoryMap";
 import { Serial } from "../io/serial";
 import { Timer } from "../io/timer";
 import { Lcd } from "../io/video/lcd";
-import { Ppu } from "../io/video/ppu";
+import { Ppu, PpuOamFifo } from "../io/video/ppu";
 
 
 export const breakpoints: Set<u16> = new Set<u16>();
@@ -59,6 +59,7 @@ class TimerInfo {
 class PpuInfo {
     currentDot: u16;
     currentMode: u8;
+    lineSpritesIndices: StaticArray<u8>;
 }
 
 class DebugStatusInfo {
@@ -94,7 +95,8 @@ export function makeDebugInfo(): DebugInfo {
         },
         ppu: {
             currentDot: Ppu.currentDot,
-            currentMode: <u8>Ppu.currentMode
+            currentMode: <u8>Ppu.currentMode,
+            lineSpritesIndices: PpuOamFifo.buffer.slice()
         },
         debug: {
             paused: Debug.isPaused,
