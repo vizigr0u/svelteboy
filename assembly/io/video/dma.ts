@@ -3,8 +3,6 @@ import { MemoryMap } from "../../cpu/memoryMap";
 import { Logger, log } from "../../debug/logger";
 import { uToHex } from "../../utils/stringUtils";
 
-export const DMA_ADDRESS: u16 = 0xFF46;
-
 @final
 export class Dma {
     static active: boolean = false;
@@ -47,7 +45,7 @@ export class Dma {
         Dma.active = Dma.offset <= 0x9F;
 
         if (!Dma.active && Logger.verbose >= 1) {
-            log("DMG transfer done.");
+            log("DMA transfer done.");
         }
     }
 }
