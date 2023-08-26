@@ -1,3 +1,14 @@
+export function humanReadableNumber(size: number): string {
+    const bytePrefix = ["", "K", "M", "B"];
+    let prefixIndex = 0;
+    while (size > 1000 && prefixIndex < bytePrefix.length - 1) {
+        prefixIndex++;
+        size /= 1000;
+    }
+    return size.toFixed(0) + ' ' + bytePrefix[prefixIndex];
+}
+
+
 export function humanReadableSize(size: number): string {
     const bytePrefix = ["", "K", "M", " G"];
     let prefixIndex = 0;
