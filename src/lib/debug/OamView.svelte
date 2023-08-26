@@ -69,7 +69,7 @@
 
     .oam-entry {
         display: grid;
-        grid-template-columns: 2.8em 4em 8em 5.5em 6em /*repeat(auto-fill, 6em)*/;
+        grid-template-columns: 2.8em 5.5em 8em 5.5em 6em /*repeat(auto-fill, 6em)*/;
     }
 
     .oam-index {

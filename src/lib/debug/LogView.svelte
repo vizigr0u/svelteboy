@@ -1,9 +1,9 @@
 <script lang="ts">
-    import VirtualList from "svelte-virtual-list-ce";
     import { DebugLines, ProgramRunning } from "../../stores/debugStores";
     import { loadedCartridge } from "../../stores/romStores";
+    import { humanReadableNumber } from "../../utils";
 
-    let maxLines = 2000;
+    let maxLines = 500;
 
     function onClearClick() {
         $DebugLines = [];
@@ -44,26 +44,29 @@
 <div class="log-section debug-tool-container">
     <h4 class="log-title">Log</h4>
     <div class="log-section-controls">
-        {#if $DebugLines.length > maxLines}
+        {#if $DebugLines && $DebugLines.length > maxLines}
             <span class="logview-hint"
-                >showing {maxLines}/{$DebugLines.length} lines</span
+                >showing {maxLines}/{humanReadableNumber($DebugLines.length)} lines</span
             >
         {/if}
         <button
             on:click={onClearClick}
-            disabled={$DebugLines.length == 0}
+            disabled={$DebugLines && $DebugLines.length == 0}
             class="log-clear-button">Clear</button
         >
         <button
             on:click={onDownloadClick}
-            disabled={$DebugLines.length == 0 || $ProgramRunning}
+            disabled={($DebugLines && $DebugLines.length == 0) ||
+                $ProgramRunning}
             class="log-clear-button">Download</button
         >
     </div>
     <div class="log-container">
-        <VirtualList items={$DebugLines.slice(-maxLines)} let:item>
+        {#each $DebugLines.slice(-maxLines) as item}
             <span>{item}</span>
-        </VirtualList>
+        {/each}
+        <!-- <MyVirtualList items={} let:item> -->
+        <!-- </MyVirtualList> -->
     </div>
 </div>
 
@@ -84,8 +87,11 @@
         font-size: small;
     }
     .log-container {
+        display: flex;
+        flex-direction: column;
         text-align: left;
         height: 25em;
+        overflow-y: auto;
         font-size: small;
         font-family: "Courier New", Courier, monospace;
     }
