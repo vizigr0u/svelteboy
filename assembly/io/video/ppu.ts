@@ -1,7 +1,8 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger, log } from "../../debug/logger";
 import { LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
-import { Lcd } from "./lcd";
+import { Lcd, LcdControlBit } from "./lcd";
+import { Oam, OamData } from "./oam";
 import { PpuTransfer } from "./ppuTransfer";
 
 export enum PpuMode {
@@ -18,17 +19,56 @@ const OAM_SCAN_DOTS: u16 = 80;
 const TRANSFER_MIN_DOTS: u16 = 172;
 const TRANSFER_MAX_DOTS: u16 = 289;
 
+const MAX_SPRITES_PER_LINE: u32 = 10;
+const MAX_SPRITES_PER_FRAME: u32 = 40;
+
 const FRAME_BUFFER_SIZE: u32 = LCD_RES * 4; // 4 bpp
+
+export class PpuOamFifo {
+    static head: i32 = 0;
+    static size: i32 = 0;
+    static buffer: StaticArray<u8> = new StaticArray<u8>(MAX_SPRITES_PER_LINE);
+
+    static Reset() {
+        PpuOamFifo.size = 0;
+        PpuOamFifo.head = 0;
+    }
+
+    @inline static IsFull(): boolean { return PpuOamFifo.size == PpuOamFifo.buffer.length }
+
+    @inline static IsEmpty(): boolean { return PpuOamFifo.head == PpuOamFifo.size };
+
+    @inline static Dequeue(): OamData { return Oam.view[PpuOamFifo.head++] }
+
+    @inline static Peek(): OamData { return Oam.view[PpuOamFifo.head] }
+
+    static Enqueue(oamIndex: u8): void {
+        assert(PpuOamFifo.head == 0, 'Can only insert in this fifo ')
+        assert(!PpuOamFifo.IsFull(), 'Trying to insert in full PpuOamFifo');
+        const x = Oam.view[oamIndex].xPos;
+        let i = 0;
+        while (x > Oam.view[PpuOamFifo.buffer[i]].xPos)
+            i++;
+        for (let j = PpuOamFifo.size; j > i; j--) {
+            PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1];
+        }
+        PpuOamFifo.buffer[i] = oamIndex;
+        PpuOamFifo.size++;
+    }
+}
 
 @final
 export class Ppu {
     static currentMode: PpuMode = PpuMode.OAMScan;
     static currentDot: u16 = 0;
     static currentFrame: u32 = 0;
+
+    static spriteCountThisFrame: u8 = 0;
+
+    // frame buffers
     static buffersInitialized: boolean = false;
     static frameBuffers: StaticArray<Uint8ClampedArray> = new StaticArray<Uint8ClampedArray>(2);
     static workingBufferIndex: u8 = 0;
-
     static workingBuffer: Uint32Array = new Uint32Array(0);
 
     @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
@@ -117,10 +157,12 @@ function enterMode(mode: PpuMode): void {
                 Interrupt.Request(IntType.LcdSTAT);
             }
             Ppu.currentFrame++;
+            Ppu.spriteCountThisFrame = 0;
             Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
             Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
             break;
         case PpuMode.OAMScan:
+            gatherLineSprites();
             break;
         case PpuMode.Transfer:
             PpuTransfer.Init();
@@ -159,5 +201,21 @@ function tickTransfer(): void {
     PpuTransfer.Tick();
     if (PpuTransfer.pushedX == LCD_WIDTH) {
         enterMode(PpuMode.HBlank);
+    }
+}
+
+function gatherLineSprites() {
+    PpuOamFifo.Reset();
+    const ly = Lcd.gbData().lY;
+    const spriteHeight = Lcd.gbData().hasControlBit(LcdControlBit.ObjSize) ? 16 : 8;
+    const oams = Oam.view;
+    for (let i = 0; i < oams.length() && !PpuOamFifo.IsFull(); i++) {
+        if (oams[i].xPos == 0)
+            continue;
+
+        const oam = oams[i];
+        if (oam.yPos <= ly + 16 && oam.yPos + spriteHeight > ly + 16) {
+            PpuOamFifo.Enqueue(i);
+        }
     }
 }

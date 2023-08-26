@@ -1,4 +1,5 @@
-import { GB_OAM_START } from "../../cpu/memoryConstants";
+import { GB_OAM_SIZE, GB_OAM_START } from "../../cpu/memoryConstants";
+import { InlinedArray, InlinedReadonlyView } from "../../utils/inlinedArray";
 import { Dma } from "./dma";
 import { Ppu, PpuMode } from "./ppu";
 
@@ -13,7 +14,7 @@ enum OamAttribute {
     BGandWindowOver = 7
 }
 
-@final
+@unmanaged
 export class OamData {
     yPos: u8;
     xPos: u8;
@@ -36,6 +37,8 @@ export class Oam {
     static Handles(gbAddress: u16): boolean {
         return gbAddress >= 0xFE00 && gbAddress <= 0xFE9F;
     }
+
+    static view = new InlinedReadonlyView<OamData>(GB_OAM_START, 40);
 
     @inline
     static Load<T>(gbAddress: u16): T {
