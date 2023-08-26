@@ -13,11 +13,11 @@ const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
 export enum LcdControlBit {
     BGandWindowEnabled = 0,
     ObjEnabled = 1,
-    ObjSize = 2,
-    BGTileMapArea = 3,
-    BGandWindowTileArea = 4,
+    ObjSize = 2,                // 0=8×8, 1=8×16
+    BGTileMapArea = 3,          // 0=9800-9BFF, 1=9C00-9FFF
+    BGandWindowTileArea = 4,    // 0=8800-97FF, 1=8000-8FFF
     WindowEnabled = 5,
-    WindowTileMapArea = 6,
+    WindowTileMapArea = 6,      // 0=9800-9BFF, 1=9C00-9FFF
     LCDandPPUenabled = 7
 }
 

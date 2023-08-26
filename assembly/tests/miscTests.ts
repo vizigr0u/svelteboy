@@ -1,5 +1,7 @@
 import { TEST_SPACE_START } from "../cpu/memoryConstants";
+import { InlinedArray } from "../utils/inlinedArray";
 
+@unmanaged
 class TestStructA {
     a: u8;
     b: u8;
@@ -127,12 +129,54 @@ function testStructInRamDirectAccess(): boolean {
     return true;
 }
 
+@unmanaged
+class struct {
+    a: u8; b: u8; c: u8; d: u8;
+}
+
+function setI(buffer: StaticArray<u8>, i: u32, s: struct): void {
+    const st = changetype<struct>(changetype<usize>(buffer) + i * offsetof<struct>());
+    st.a = s.a;
+    st.b = s.b;
+    st.c = s.c;
+    st.d = s.d;
+}
+
+export function testStaticArrayOfStruct(): void {
+    const buffer = new StaticArray<u8>(10 * offsetof<struct>());
+    const pBuffer: usize = changetype<usize>(buffer);
+    setI(buffer, 0, { a: 17, b: 42, c: 128, d: 99 });
+    assert(changetype<StaticArray<u8>>(pBuffer + 0)[0] == 17);
+    assert(load<u8>(pBuffer + 1) == 42);
+    assert(changetype<struct>(pBuffer).c == 128);
+    assert(changetype<struct>(pBuffer).d == 99);
+}
+
+
+export function testInlineArray(): void {
+    const buffer = new InlinedArray<struct>(10);
+    buffer[0] = { a: 17, b: 42, c: 128, d: 99 };
+    buffer[1] = { a: 18, b: 43, c: 129, d: 100 };
+
+    assert(buffer[0].a == 17);
+    assert(buffer[0].b == 42);
+    assert(buffer[0].c == 128);
+    assert(buffer[0].d == 99);
+    assert(buffer[1].a == 18);
+    assert(buffer[1].b == 43);
+    assert(buffer[1].c == 129);
+    assert(buffer[1].d == 100);
+}
+
 export function testMisc(): boolean {
     assert(testStructCopy());
+    assert(testClassCopy());
     assert(testStruct2Copy());
     assert(testStruct3Copy());
     assert(testUnalignedStruct2Copy());
     assert(testStructDirectAccess());
     assert(testStructInRamDirectAccess());
+    testStaticArrayOfStruct();
+    testInlineArray();
     return true;
 }
