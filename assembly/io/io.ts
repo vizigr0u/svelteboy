@@ -1,7 +1,7 @@
 import { Interrupt } from "../cpu/interrupts";
 import { Logger, log } from "../debug/logger";
 import { MemoryMap } from "../cpu/memoryMap";
-import { GB_IO_START } from "../cpu/memoryConstants";
+import { GB_IO_SIZE, GB_IO_START } from "../cpu/memoryConstants";
 import { Serial } from "./serial";
 import { uToHex } from "../utils/stringUtils";
 import { Timer } from "./timer";
@@ -17,6 +17,9 @@ const UNHANDLED_CGB_START: u32 = 0xFF4D;
 @final
 export class IO {
     static Init(): void {
+        if (Logger.verbose >= 2) {
+            log('Initializing IO');
+        }
         Joypad.Init();
         Timer.Init();
         Serial.Init();

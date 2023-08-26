@@ -1,35 +1,70 @@
 <script lang="ts">
   import { getHexDump } from "../../debug";
+  import { type MemArea } from "../../types";
+  import { uToHex16 } from "../../utils";
   import HexView from "./HexView.svelte";
 
+  const customName = "Custom...";
+
+  const areas: MemArea[] = [
+    { name: "ROM_0", start: 0, size: 0x4000 },
+    { name: "ROM_1", start: 0x4000, size: 0x4000 },
+    { name: "Video", start: 0x8000, size: 0x2000 },
+    { name: "TileMap 0", start: 0x9800, size: 0x400 },
+    { name: "TileMap 1", start: 0x9c00, size: 0x400 },
+    { name: "Ext_RAM", start: 0xa000, size: 0x2000 },
+    { name: "Work_RAM_0", start: 0xc000, size: 0x1000 },
+    { name: "Work_RAM_1", start: 0xd000, size: 0x1000 },
+    { name: "OAM", start: 0xfe00, size: 0xa0 },
+    { name: "IOs", start: 0xff00, size: 0x80 },
+    { name: "High_RAM", start: 0xff80, size: 0x80 },
+    { name: customName, start: 0xff80, size: 0x80 },
+  ];
+
   let promise: Promise<Uint8Array> = undefined;
-  let minPC: number = 0x100;
-  let maxPC: number = 0x300;
+
+  let minPC: number = areas[0].start;
+  let count: number = areas[0].size;
+
+  let selectedArea: MemArea;
 
   function onClick() {
-    promise = getHexDump(minPC, maxPC);
+    promise = getHexDump(minPC, count);
+  }
+
+  function selectArea(area: MemArea) {
+    console.log("CHANGE");
+    minPC = area.start;
+    count = area.size;
   }
 </script>
 
 <div class="hex-viewer debug-tool-container">
-  <h4>Hex Viewer</h4>
+  <h3>Hex Viewer</h3>
   <div class="hex-viewer-controls">
-    <div>
-      <div class="hex-bound-view">
-        <input type="number" bind:value={minPC} min="0" max="65535" />
-        <div />
-      </div>
+    <select bind:value={selectedArea}>
+      {#each areas as area}
+        <option value={area} on:click={() => selectArea(area)}>
+          {`${area.name}`}
+        </option>
+      {/each}
+    </select>
+    {#if selectedArea && selectedArea.name == customName}
+      <div class="custom-hex-form">
+        <div class="hex-bound-view">
+          <input type="number" bind:value={minPC} min="0" max="65535" />
+          <div />
+        </div>
 
-      <div class="hex-bound-view">
-        <input type="number" bind:value={maxPC} min="0" max="65535" />
-        <div />
+        <div class="hex-bound-view">
+          <input type="number" bind:value={count} min="0" max="65535" />
+          <div />
+        </div>
       </div>
-    </div>
+    {/if}
 
     <button on:click={onClick}
-      >Fetch from 0x{minPC.toString(16).padStart(4, "0")} to 0x{maxPC
-        .toString(16)
-        .padStart(4, "0")}</button
+      >Fetch from {uToHex16(minPC)} to {uToHex16(minPC + count)}</button
     >
   </div>
 
@@ -59,6 +94,10 @@
   .hex-bound-view {
     display: flex;
     justify-content: center;
+  }
+
+  .custom-hex-form {
+    display: flex;
   }
 
   .hex-bound-view > input {

@@ -42,15 +42,11 @@ export function getGameFrame(buffer: Uint8ClampedArray): Uint8ClampedArray {
   return ppuBuffer;
 }
 
-export function hexDump(from: u16, to: u16): Uint8Array {
-  if (to <= from) {
-    console.log("Invalid parameters for hexDump");
-    return new Uint8Array(0);
-  }
-  const result = new Uint8Array(to - from);
+export function hexDump(from: u16, count: u16): Uint8Array {
+  const result = new Uint8Array(count);
   const oldUseBoot = MemoryMap.useBootRom;
   MemoryMap.useBootRom = false;
-  memory.copy(result.dataStart, MemoryMap.GBToMemory(from), (to - from + 1));
+  memory.copy(result.dataStart, MemoryMap.GBToMemory(from), count);
   MemoryMap.useBootRom = oldUseBoot;
   return result;
 }
