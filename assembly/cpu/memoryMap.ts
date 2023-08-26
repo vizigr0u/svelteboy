@@ -14,7 +14,13 @@ import {
     GB_IO_START,
     GB_HIGH_RAM_START,
     GB_RESTRICTED_AREA_ADDRESS,
-    BOOT_ROM_SIZE
+    BOOT_ROM_SIZE,
+    GB_VIDEO_SIZE,
+    GB_RAM_SIZE,
+    GB_HIGH_RAM_SIZE,
+    GB_IO_SIZE,
+    GB_OAM_SIZE,
+    GB_OAM_START
 } from "./memoryConstants";
 
 @final
@@ -29,6 +35,11 @@ export class MemoryMap {
     static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized MemoryMap, using boot : ' + useBootRom.toString());
+        memory.fill(GB_VIDEO_START, 0, GB_VIDEO_SIZE);
+        memory.fill(GB_OAM_START, 0, GB_OAM_SIZE);
+        memory.fill(GB_RAM_START, 0, GB_RAM_SIZE);
+        memory.fill(GB_IO_START, 0, GB_IO_SIZE);
+        memory.fill(GB_HIGH_RAM_START, 0, GB_HIGH_RAM_SIZE);
         MemoryMap.useBootRom = useBootRom;
         MemoryMap.currentRomBankIndex = 0;
         MemoryMap.currentRamBankIndex = 0;
