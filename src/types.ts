@@ -106,3 +106,9 @@ export type OamEntry = {
     xFlip: boolean,
     yFlip: boolean
 }
+
+export type MemArea = {
+    start: number;
+    size: number;
+    name: string;
+};
