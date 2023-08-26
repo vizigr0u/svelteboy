@@ -15,7 +15,7 @@ export class Logger {
             console.log(message)
         }
 
-        if (!Logger.disableBuffer) {
+        if (!Logger.disableBuffer && !!message) {
             Logger.lines.push(message);
         }
     }
