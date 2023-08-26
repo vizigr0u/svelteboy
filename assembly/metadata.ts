@@ -63,16 +63,16 @@ export class Metadata {
         let mt = new Metadata();
         mt.title = reader.readString(16);
         mt.cgbFlag = Uint8Array.wrap(rom)[0x143];
-        mt.newLicenseeCode = reader.read2Bytes();
-        mt.sgbFlag = reader.readByte();
-        mt.cartridgeType = reader.readByte();
-        mt.romSize = reader.readByte();
-        mt.ramSize = reader.readByte();
-        mt.destinationFlag = reader.readByte();
-        mt.oldLicenseeCode = reader.readByte();
-        mt.maskRomVersionNumber = reader.readByte();
-        mt.headerChecksum = reader.readByte();
-        mt.globalChecksum = reader.read2Bytes();
+        mt.newLicenseeCode = reader.read<u16>();
+        mt.sgbFlag = reader.read<u8>();
+        mt.cartridgeType = reader.read<u8>();
+        mt.romSize = reader.read<u8>();
+        mt.ramSize = reader.read<u8>();
+        mt.destinationFlag = reader.read<u8>();
+        mt.oldLicenseeCode = reader.read<u8>();
+        mt.maskRomVersionNumber = reader.read<u8>();
+        mt.headerChecksum = reader.read<u8>();
+        mt.globalChecksum = reader.read<u16>();
         return mt;
     }
 }

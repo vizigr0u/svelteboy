@@ -8,21 +8,15 @@ export class ByteReader {
         this.buffer = Uint8ClampedArray.wrap(buffer);
     }
 
-    readByte(): u8 {
-        return this.buffer[this.index++];
-    }
-
     readBytes(numBytes: u32): Uint8ClampedArray {
         let result = this.buffer.slice(this.index, this.index + numBytes);
         this.index += numBytes;
         return result;
     }
 
-    read2Bytes(): u16 {
-        let bytes = this.readBytes(2);
-        this.index += 2;
-        let arr = Uint16Array.wrap(bytes.buffer.slice());
-        return arr[0];
+    read<T>(): T {
+        this.index += offsetof<T>();
+        return load<T>(this.buffer.dataStart + this.index);
     }
 
     readString(numBytes: u32): string {
