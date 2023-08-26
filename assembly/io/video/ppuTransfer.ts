@@ -70,7 +70,7 @@ function tickFetcher(): void {
                 const mapX: u8 = PpuTransfer.fetcherX + (lcd.scrollX);
                 const mapY: u8 = (lcd.lY + lcd.scrollY);
                 let mapBase = MAP_BASE_LO;
-                const isInWindow = PpuTransfer.fetcherX + 7 >= lcd.windowX && lcd.lY >= lcd.windowY;
+                const isInWindow = lcd.hasControlBit(LcdControlBit.WindowEnabled) && PpuTransfer.fetcherX + 7 >= lcd.windowX && lcd.lY >= lcd.windowY;
                 if (lcd.hasControlBit(LcdControlBit.BGTileMapArea) && !isInWindow ||
                     lcd.hasControlBit(LcdControlBit.WindowTileMapArea) && isInWindow)
                     mapBase = MAP_BASE_HI;
