@@ -6,10 +6,12 @@ import { MemoryMap } from "../cpu/memoryMap";
 import { Serial } from "../io/serial";
 import { Timer } from "../io/timer";
 import { Lcd } from "../io/video/lcd";
-import { Ppu, PpuOamFifo } from "../io/video/ppu";
+import { Ppu, PpuMode, PpuOamFifo } from "../io/video/ppu";
+import { Logger, log } from "./logger";
 
 
-export const breakpoints: Set<u16> = new Set<u16>();
+const breakpoints: Set<u16> = new Set<u16>();
+const PPuModeBreaks: StaticArray<boolean> = new StaticArray<boolean>(4);
 
 export class DebugInfo {
     registers: DebugRegisterInfo;
@@ -67,6 +69,15 @@ class DebugStatusInfo {
     stoppedByBreakpoint: boolean;
 }
 
+enum DebugStopReason {
+    None = 0,
+    HitBreakpoint = 1,
+    HitBreakMode = 2,
+    CpuStop = 3,
+    EndOfFrame = 4,
+    UserPause = 5
+}
+
 export function makeDebugInfo(): DebugInfo {
     return {
         registers: {
@@ -120,19 +131,52 @@ export class Debug {
     static isPaused: boolean = false;
     static disableLcdForTests: boolean = false;
 
+    private static startFrame: u32;
+    private static prevMode: PpuMode;
+
     static Init(): void {
         this.isPaused = false;
     }
 
-    static RunOneFrame(): void {
+    private static GetStopReason(): DebugStopReason {
+        if (Debug.isPaused) {
+            if (Logger.verbose >= 2)
+                log('Debug stopped: UserPause')
+            return DebugStopReason.UserPause;
+        }
+        if (Cpu.isStopped) {
+            if (Logger.verbose >= 2)
+                log('Debug stopped: CpuStop')
+            return DebugStopReason.CpuStop;
+        }
+        if (Ppu.currentFrame != Debug.startFrame) {
+            if (Logger.verbose >= 2)
+                log('Debug stopped: EndOfFrame')
+            return DebugStopReason.EndOfFrame;
+        }
+        if (breakpoints.has(Cpu.ProgramCounter)) {
+            if (Logger.verbose >= 2)
+                log('Debug stopped: HitBreakpoint')
+            return DebugStopReason.HitBreakpoint;
+        }
+        if (Ppu.currentMode != Debug.prevMode && PPuModeBreaks[Ppu.currentMode]) {
+            if (Logger.verbose >= 2)
+                log('Debug stopped: HitBreakMode')
+            return DebugStopReason.HitBreakMode;
+        }
+        return DebugStopReason.None;
+    }
+
+    static RunOneFrame(): DebugStopReason {
         Debug.isPaused = false;
-        const initialFrame = Ppu.currentFrame;
+        Debug.startFrame = Ppu.currentFrame;
+        let stopReason = DebugStopReason.None;
         do {
+            Debug.prevMode = Ppu.currentMode;
             Emulator.Tick();
-        } while (Ppu.currentFrame == initialFrame
-        && !Debug.isPaused
-        && !Cpu.isStopped
-            && !breakpoints.has(Cpu.ProgramCounter));
+            stopReason = Debug.GetStopReason()
+        } while (stopReason == DebugStopReason.None);
+        return stopReason;
     }
 
     static Step(): void {
@@ -148,8 +192,8 @@ export class Debug {
     }
 }
 
-export function debugRunFrame(): void {
-    Debug.RunOneFrame();
+export function debugRunFrame(): DebugStopReason {
+    return Debug.RunOneFrame();
 }
 
 export function debugStep(): void {
@@ -162,6 +206,12 @@ export function debugPause(paused: boolean = true): void {
 
 export function debugGetStatus(): DebugInfo {
     return makeDebugInfo();
+}
+
+export function debugSetPPUBreak(mode: PpuMode, enabled: boolean = true): void {
+    if (Logger.verbose >= 1)
+        log('Debug PPU break ' + mode.toString() + ': ' + (enabled ? 'ON' : 'OFF'))
+    PPuModeBreaks[<i32>mode] = enabled;
 }
 
 export function debugSetBreakpoint(address: u16, enabled: boolean = true): void {

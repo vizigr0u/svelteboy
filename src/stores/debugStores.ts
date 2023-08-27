@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import type { DisassembledCode, GbDebugInfo, ProgramLine, RomReference } from "../types";
+import { DebugStopReason, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
 
 export const disassembledRomsStore = writable<DisassembledCode[]>([]);
 
@@ -14,6 +14,7 @@ export function setDisassemlyForRom(rom: RomReference, isLoading: boolean, progr
 export const Breakpoints = writable<Set<number>>(new Set<number>());
 export const DebugSessionStarted = writable<boolean>(false);
 export const ProgramRunning = writable<boolean>(false);
+export const LastStopReason = writable<DebugStopReason>(DebugStopReason.None);
 
 export const GbDebugInfoStore = writable<GbDebugInfo>(undefined);
 

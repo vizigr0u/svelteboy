@@ -14,6 +14,7 @@ export {
   debugPause,
   debugGetStatus,
   debugSetBreakpoint,
+  debugSetPPUBreak,
   debugHasBreakpoint,
   getActiveBreakpoints
 } from "./debug/debug";
