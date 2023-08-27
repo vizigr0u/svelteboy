@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { GameFrames } from "../stores/playStores";
+  import type { Writable } from "svelte/store";
 
   export let width: number = 42;
   export let height: number = 42;
@@ -12,6 +13,7 @@
   export let autodraw: boolean = true;
   export const draw = () => drawToCanvas();
   export let showPerfReport: boolean = true;
+  export let frameStore: Writable<number> = GameFrames;
 
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;
@@ -22,7 +24,7 @@
   let timeReport: string;
   let postProcessTime: number = 0;
 
-  GameFrames.subscribe((frame) => {
+  frameStore.subscribe((frame) => {
     if (autodraw) {
       if (frame != -1) {
         drawToCanvas();

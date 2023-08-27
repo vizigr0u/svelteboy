@@ -7,7 +7,7 @@
     import LogView from "./LogView.svelte";
     import LcdCanvas from "../LcdCanvas.svelte";
     import BgCanvas from "./BGCanvas.svelte";
-    import { GbDebugInfoStore } from "../../stores/debugStores";
+    import { DebugFrames, GbDebugInfoStore } from "../../stores/debugStores";
     import OamView from "./OamView.svelte";
     import Debugger from "./Debugger.svelte";
 
@@ -68,6 +68,7 @@
             height={12 * 8}
             updateBuffer={(a) => drawTileData(a, 32 * 8)}
             mouseMove={onMouseMoveOnTiles}
+            frameStore={DebugFrames}
             bind:draw={drawTiles}
             bind:autodraw
             bind:pixelSize
