@@ -73,6 +73,7 @@ export enum PPUMode {
 class PpuInfo {
     currentDot: number;
     currentMode: PPUMode;
+    lineSpritesIndices: Array<number>;
 }
 
 class DebugStatusInfo {

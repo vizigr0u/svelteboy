@@ -53,7 +53,7 @@ export function getBGTileMap(buffer: Uint8Array): Uint8Array {
     const numTilesX: u16 = bufferSize;
     const numTilesY: u16 = bufferSize;
 
-    const mapOnHighAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGTileMapArea);
+    const mapOnHighAddress = Lcd.data.hasControlBit(LcdControlBit.BGTileMapArea);
     const tileMapAddress: u32 = GB_VIDEO_START + (mapOnHighAddress ? 0x1C00 : 0x1800);
 
     for (let y: u16 = 0; y < numTilesY; y++) {
@@ -79,9 +79,9 @@ export function drawBackgroundMap(screenBuffer: Uint8ClampedArray): Uint8Clamped
     const bufferSize: u16 = 32;
     const numTilesX: u16 = bufferSize;
     const numTilesY: u16 = bufferSize;
-    const tilesOnLowAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGandWindowTileArea);
+    const tilesOnLowAddress = Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea);
     const tileDataBaseAddress: u32 = GB_VIDEO_START + (tilesOnLowAddress ? 0 : 0x1000);
-    const mapOnHighAddress = Lcd.gbData().hasControlBit(LcdControlBit.BGTileMapArea);
+    const mapOnHighAddress = Lcd.data.hasControlBit(LcdControlBit.BGTileMapArea);
     const tileMapAddress: u32 = GB_VIDEO_START + (mapOnHighAddress ? 0x1C00 : 0x1800);
     // let tileBuffer: Uint8Array = new Uint8Array(16);
     for (let y: u16 = 0; y < numTilesY; y++) {

@@ -18,7 +18,7 @@ export class Dma {
     }
 
     static Start(value: u8): void {
-        if (Logger.verbose >= 1)
+        if (Logger.verbose >= 2)
             log(`DMA transfer started`);
         Dma.active = true;
         Dma.offset = 0;
@@ -37,14 +37,14 @@ export class Dma {
 
         const srcAddress: u16 = <u16>(Dma.value * 0x100 + Dma.offset);
         const value = load<u8>(MemoryMap.GBToMemory(srcAddress));
-        if (Logger.verbose >= 1)
+        if (Logger.verbose >= 3)
             log(`DMA transferring: ${uToHex<u8>(value)} ${uToHex<u16>(srcAddress)}->${uToHex(0xFE00 + Dma.offset)}`);
         store<u8>(GB_OAM_START + Dma.offset, value);
 
         Dma.offset++;
         Dma.active = Dma.offset <= 0x9F;
 
-        if (!Dma.active && Logger.verbose >= 1) {
+        if (!Dma.active && Logger.verbose >= 2) {
             log("DMA transfer done.");
         }
     }

@@ -62,6 +62,11 @@
                     ]}</span
                 >
                 <span>PPU current dot: {$GbDebugInfoStore.ppu.currentDot}</span>
+                <span
+                    >Line Tiles: ${JSON.stringify(
+                        $GbDebugInfoStore.ppu.lineSpritesIndices
+                    )}</span
+                >
             </div>
             <div class="other-info">
                 <div class="info-field">

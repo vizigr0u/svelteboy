@@ -5,7 +5,7 @@ import { Ppu, PpuMode } from "./ppu";
 
 export const MAX_OAM_COUNT: u32 = 40;
 
-enum OamAttribute {
+export enum OamAttribute {
     /* 0-2: CGB pal number */
     /* CGB only TileBank = 3, */
     PaletteNumber = 4,
@@ -38,7 +38,7 @@ export class Oam {
         return gbAddress >= 0xFE00 && gbAddress <= 0xFE9F;
     }
 
-    static view = new InlinedReadonlyView<OamData>(GB_OAM_START, 40);
+    static view: InlinedReadonlyView<OamData> = new InlinedReadonlyView<OamData>(GB_OAM_START, 40);
 
     @inline
     static Load<T>(gbAddress: u16): T {
