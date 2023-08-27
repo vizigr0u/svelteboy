@@ -99,6 +99,15 @@ export type GbDebugInfo = {
     nextInstruction: ProgramLine
 }
 
+export enum DebugStopReason {
+    None = 0,
+    HitBreakpoint = 1,
+    HitBreakMode = 2,
+    CpuStop = 3,
+    EndOfFrame = 4,
+    UserPause = 5
+}
+
 export type OamEntry = {
     posX: number,
     posY: number,

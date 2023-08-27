@@ -3,6 +3,7 @@
         GbDebugInfoStore,
         ProgramRunning,
         DebugSessionStarted,
+        LastStopReason,
     } from "../../stores/debugStores";
     import { loadedCartridge, loadedBootRom } from "../../stores/romStores";
 
@@ -14,27 +15,20 @@
         setVerbose,
         debugRunFrame,
     } from "../../../build/release";
-    import type { GbDebugInfo } from "../../types";
+    import { DebugStopReason, type GbDebugInfo } from "../../types";
     import { fetchLogs } from "../../debug";
     import { GameFrames } from "../../stores/playStores";
     import { frameDelay, useBoot } from "../../stores/optionsStore";
 
     let verbose: number = 1;
 
-    function runDebugger(): Promise<GbDebugInfo> {
-        return new Promise<GbDebugInfo>((resolve) => {
-            debugRunFrame();
-            resolve(debugGetStatus() as GbDebugInfo);
-        });
-    }
-
-    function debuggerStep(): Promise<GbDebugInfo> {
-        return new Promise<GbDebugInfo>((resolve) => {
+    function debuggerStep(): Promise<void> {
+        return new Promise<void>((resolve) => {
             $ProgramRunning = true;
             debugStep();
             fetchLogs();
             $ProgramRunning = false;
-            resolve(debugGetStatus() as GbDebugInfo);
+            resolve();
         });
     }
 
@@ -48,7 +42,8 @@
         if (!$DebugSessionStarted) {
             initDebug();
         }
-        $GbDebugInfoStore = await debuggerStep();
+        await debuggerStep();
+        $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
         $GameFrames = $GbDebugInfoStore.currentFrame;
     }
 
@@ -71,7 +66,7 @@
             debugPause();
             fetchLogs();
             $ProgramRunning = false;
-            $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
+
             $GameFrames = $GbDebugInfoStore.currentFrame;
         } else {
             if (!$DebugSessionStarted) {
@@ -79,19 +74,21 @@
             }
             $GameFrames = 0;
             $ProgramRunning = true;
+            let lastStopReason = DebugStopReason.None;
             do {
-                $GbDebugInfoStore = await runDebugger();
+                lastStopReason = await new Promise<DebugStopReason>((r) => {
+                    r(debugRunFrame());
+                });
                 await fetchLogs();
+                $GbDebugInfoStore = debugGetStatus() as GbDebugInfo;
                 $GameFrames = $GbDebugInfoStore.currentFrame;
-                await new Promise((resolve) =>
-                    setTimeout(resolve, $frameDelay)
-                );
+                if (lastStopReason == DebugStopReason.EndOfFrame)
+                    await new Promise((r) => setTimeout(r, $frameDelay));
             } while (
                 $ProgramRunning &&
-                ($GbDebugInfoStore == undefined ||
-                    (!$GbDebugInfoStore.debug.stoppedByBreakpoint &&
-                        !$GbDebugInfoStore.isStopped))
+                lastStopReason == DebugStopReason.EndOfFrame
             );
+            $LastStopReason = lastStopReason;
             $ProgramRunning = false;
         }
     }

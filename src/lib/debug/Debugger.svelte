@@ -3,6 +3,7 @@
   import DebugControlBar from "./DebugControlBar.svelte";
 
   import Disassembler from "./Disassembler.svelte";
+  import PpuBreakControl from "./PPUBreakControl.svelte";
 </script>
 
 <div class="disassembly-container debug-tool-container">
@@ -11,7 +12,10 @@
   <DebugControlBar />
   <div class="debugger-container">
     <Disassembler />
-    <BreakpointsControl />
+    <div>
+      <PpuBreakControl />
+      <BreakpointsControl />
+    </div>
   </div>
 </div>
 
