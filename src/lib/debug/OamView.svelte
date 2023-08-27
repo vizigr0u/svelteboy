@@ -8,16 +8,26 @@
     let buffer: Uint32Array = new Uint32Array(40);
     let debug: string = "";
 
+    enum OamAttribute {
+        /* 0-2: CGB pal number */
+        /* CGB only TileBank = 3, */
+        PaletteNumber = 4,
+        XFlip = 5,
+        YFlip = 6,
+        BGandWindowOver = 7,
+    }
+
     GameFrames.subscribe((_) => {
         buffer = getOAMTiles(buffer);
         buffer.forEach((n, i) => {
+            const flags = (n >> 24) & 0xff;
             objects[i] = {
-                posX: (n >> 24) & 0xff,
-                posY: ((n & 0xff0000) >> 16) & 0xff,
-                tileIndex: ((n & 0xff00) >> 8) & 0xff,
-                behindBG: true,
-                xFlip: false,
-                yFlip: false,
+                posY: n & 0xff,
+                posX: ((n & 0xff00) >> 8) & 0xff,
+                tileIndex: ((n & 0xff0000) >> 16) & 0xff,
+                behindBG: (flags & OamAttribute.BGandWindowOver) != 0,
+                xFlip: (flags & OamAttribute.XFlip) != 0,
+                yFlip: (flags & OamAttribute.YFlip) != 0,
             };
         });
     });
@@ -27,20 +37,26 @@
 <div class="debug-tool-container">
     <h3 class="oam-entries-title">OAM entries</h3>
     <div class="oam-entries">
+        <div class="oam-line oam-line-header">
+            <span>#</span>
+            <span>pos</span>
+            <span>tileIndex</span>
+            <span>Behind BG</span>
+            <span>Flip</span>
+        </div>
         {#each objects as o, i}
-            <div class="oam-entry">
-                <span class="oam-index">#{i}</span>
+            <div class="oam-line">
+                <span class="oam-index">
+                    <span class="oam-u32">
+                        uint32: {buffer[i].toString(16)}
+                    </span>
+                    #{i}
+                </span>
                 <span class="oam-pos">({o.posX}, {o.posY})</span>
-                <span class="oam-tile-index">tile index: {o.tileIndex}</span>
-                <span class="oam-over-bg"
-                    >over BG: <input
-                        type="checkbox"
-                        checked={!o.behindBG}
-                        disabled={true}
-                    /></span
-                >
+                <span class="oam-tile-index">{o.tileIndex}</span>
+                <input type="checkbox" checked={o.behindBG} disabled={true} />
                 <span class="oam-flip"
-                    >flip x <input
+                    >x <input
                         type="checkbox"
                         checked={o.xFlip}
                         disabled={true}
@@ -65,21 +81,43 @@
         flex-direction: column;
         max-height: 25em;
         overflow-y: auto;
+        gap: 0.1em;
     }
 
-    .oam-entry {
+    .oam-line {
+        position: relative;
         display: grid;
-        grid-template-columns: 2.8em 5.5em 8em 5.5em 6em /*repeat(auto-fill, 6em)*/;
+        grid-template-columns: 2.8em repeat(auto-fill, 6em);
+    }
+
+    .oam-line-header {
+        font-weight: 600;
+    }
+
+    .oam-u32 {
+        position: absolute;
+        /* top: -5em; */
+        left: 2em;
+        color: black;
+        background-color: aliceblue;
+        visibility: hidden;
+    }
+
+    .oam-index:hover .oam-u32 {
+        visibility: visible;
     }
 
     .oam-index {
         color: #999;
     }
 
+    .oam-line > input[type="checkbox"] {
+        margin-right: auto;
+    }
+
     .oam-flip {
         display: flex;
         align-items: center;
-        justify-content: right;
         gap: 0.4em;
     }
 </style>

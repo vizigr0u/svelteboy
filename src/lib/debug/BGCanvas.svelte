@@ -1,6 +1,6 @@
 <script lang="ts">
     import { drawBackgroundMap, getBGTileMap } from "../../../build/release";
-    import { GbDebugInfoStore } from "../../stores/debugStores";
+    import { DebugFrames, GbDebugInfoStore } from "../../stores/debugStores";
     import LcdCanvas from "../LcdCanvas.svelte";
 
     export let pixelSize = 2;
@@ -8,7 +8,8 @@
     export const draw = () => doDraw();
 
     let tileMap: Uint8Array = new Uint8Array(32 * 32);
-    let debug: string = "";
+    let posDebug: string = "";
+    let tileDebug: string = "";
     let drawBG;
 
     function drawBGLines(ctx: CanvasRenderingContext2D): void {
@@ -50,6 +51,13 @@
             ctx.lineTo(maxX, 143);
         }
         ctx.stroke();
+        const ly = $GbDebugInfoStore.lcd.lY;
+        if (ly < 144) {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.moveTo(minX, minY + ly);
+            ctx.lineTo(maxX, minY + ly);
+            ctx.stroke();
+        }
     }
 
     function postProcess(ctx: CanvasRenderingContext2D): void {
@@ -58,9 +66,16 @@
     }
 
     function onMouseMove(ev: MouseEvent): void {
-        const tileX = Math.floor(Math.max(0, ev.offsetX) / (8 * pixelSize));
-        const tileY = Math.floor(Math.max(0, ev.offsetY) / (8 * pixelSize));
-        debug = `BG (${tileX}, ${tileY}) = ${tileMap[tileX + tileY * 32]}`;
+        const screenX = Math.floor(Math.max(0, ev.offsetX) / pixelSize);
+        const screenY = Math.floor(Math.max(0, ev.offsetY) / pixelSize);
+        const tileX = Math.floor(screenX / 8);
+        const tileY = Math.floor(screenY / 8);
+        const onScreen =
+            screenX >= 0 && screenX < 160 && screenY >= 0 && screenY < 144;
+        posDebug = onScreen ? `screenPos: (${screenX}, ${screenY})` : "";
+        tileDebug = ` BG (${tileX}, ${tileY}) tileIndex = ${
+            tileMap[tileX + tileY * 32]
+        }`;
     }
 
     function doDraw() {
@@ -74,14 +89,20 @@
     updateBuffer={drawBackgroundMap}
     {postProcess}
     mouseMove={onMouseMove}
+    frameStore={DebugFrames}
     bind:draw={drawBG}
     bind:autodraw
     bind:pixelSize
 />
-<span class="debug">{debug}</span>
+<div class="debugs">
+    <span>{posDebug}</span>
+    <span>{tileDebug}</span>
+</div>
 
 <style>
-    .debug {
+    .debugs {
+        display: flex;
+        justify-content: space-between;
         max-width: 30em;
         overflow-x: auto;
     }

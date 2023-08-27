@@ -65,11 +65,7 @@ export class PpuOamFifo {
         const spriteHeight: u8 = Lcd.data.hasControlBit(LcdControlBit.ObjSize) ? 16 : 8;
         const oams = Oam.view;
         for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
-            if (oams[i].xPos == 0)
-                continue;
-
-            const oam = oams[i];
-            if (oam.yPos <= ly + 16 && oam.yPos + spriteHeight > ly + 16) {
+            if (oams[i].yPos < (ly + 16) && (oams[i].yPos + spriteHeight) >= (ly + 16)) {
                 PpuOamFifo.Enqueue(<u8>i);
             }
         }
@@ -77,11 +73,13 @@ export class PpuOamFifo {
 
     static GetSpriteIndicesFor(x: u8): Uint8Array {
         let numValidSprites = 0;
-        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos + 8 < x)
+        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos < x + 8)
             PpuOamFifo.Dequeue();
-        for (let i = 0; i < 3 && numValidSprites + PpuOamFifo.head < PpuOamFifo.size
-            && Oam.view[PpuOamFifo.head + numValidSprites].xPos < x + 8; i++) {
-            numValidSprites++;
+        for (let i = 0; numValidSprites < 3 && i + PpuOamFifo.head < PpuOamFifo.size; i++) {
+            const spriteX = PpuOamFifo.Peek(i).xPos - 8 + Lcd.data.scrollX % 8;
+            if (spriteX > x && spriteX < x + 8
+                || spriteX + 8 > x && spriteX + 8 < x + 8)
+                numValidSprites++;
         }
         return Uint8Array.wrap(changetype<ArrayBuffer>(PpuOamFifo.buffer), PpuOamFifo.head, numValidSprites);
     }

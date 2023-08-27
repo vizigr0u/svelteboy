@@ -107,7 +107,8 @@ export function makeDebugInfo(): DebugInfo {
         ppu: {
             currentDot: Ppu.currentDot,
             currentMode: <u8>Ppu.currentMode,
-            lineSpritesIndices: PpuOamFifo.buffer.slice()
+            lineSpritesIndices: PpuOamFifo.buffer.slice(PpuOamFifo.head, PpuOamFifo.size)
+
         },
         debug: {
             paused: Debug.isPaused,

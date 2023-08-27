@@ -1,7 +1,10 @@
 import { writable } from "svelte/store";
 import { DebugStopReason, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
+import { GameFrames } from "./playStores";
 
 export const disassembledRomsStore = writable<DisassembledCode[]>([]);
+
+export const DebugFrames = writable<number>(0);
 
 export function setDisassemlyForRom(rom: RomReference, isLoading: boolean, programLines: ProgramLine[]) {
     disassembledRomsStore.update(roms => {
@@ -26,3 +29,7 @@ export function appendLog(newLines: string[]): void {
         return lines;
     });
 }
+
+GbDebugInfoStore.subscribe(info => {
+    GameFrames.set(info?.currentFrame ?? -1)
+})

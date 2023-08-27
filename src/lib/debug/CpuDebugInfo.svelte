@@ -63,7 +63,7 @@
                 >
                 <span>PPU current dot: {$GbDebugInfoStore.ppu.currentDot}</span>
                 <span
-                    >Line Tiles: ${JSON.stringify(
+                    >Line Tiles: {JSON.stringify(
                         $GbDebugInfoStore.ppu.lineSpritesIndices
                     )}</span
                 >
