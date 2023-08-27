@@ -25,12 +25,15 @@
     let loadedRom =
         rom.romType == RomType.Boot ? loadedBootRom : loadedCartridge;
 
-    let imagePromise = Promise.resolve({
-        src: defaultThumbnailUri,
-        alt: defaultAltText,
-    });
+    let imagePromise;
 
-    $: imagePromise = fetchImageAndAlt(rom);
+    $: imagePromise =
+        rom.romType == RomType.Cartridge
+            ? fetchImageAndAlt(rom)
+            : Promise.resolve({
+                  src: defaultThumbnailUri,
+                  alt: defaultAltText,
+              });
 
     async function fetchImageAndAlt(rom: StoredRom): Promise<RomImgData> {
         const isGbc = rom.filename.endsWith(".gbc");
