@@ -72,6 +72,8 @@ class LcdGbData {
         return (this.stat >> 3) & 3;
     }
 
+    @inline spriteHeight(): u8 { return this.hasControlBit(LcdControlBit.ObjSize) ? 16 : 8 };
+
     @inline
     hasStatMode(mode: PpuMode): boolean {
         return mode == PpuMode.Transfer ? false : ((1 << mode) & (this.stat >> 3)) != 0;
@@ -100,19 +102,19 @@ export class Lcd {
         if (Debug.disableLcdForTests) {
             if (Logger.verbose >= 1)
                 log('LCD disabld for tests');
-            Lcd.gbData().lY = 0xFF;
+            Lcd.data.lY = 0xFF;
         }
     }
 
     @inline
-    static gbData(): LcdGbData {
+    static get data(): LcdGbData {
         return LcdGbData.get();
     }
 
     @inline
     static setLY(lY: u8): void {
-        Lcd.gbData().lY = lY;
-        Lcd.CheckStatInterrupt(lY, Lcd.gbData().lYcompare);
+        Lcd.data.lY = lY;
+        Lcd.CheckStatInterrupt(lY, Lcd.data.lYcompare);
     }
 
     @inline
@@ -141,13 +143,13 @@ export class Lcd {
                     log('Ignoring unexpected writes to readonly LCD STAT bits ' + uToHex<u8>(value));
             value = filteredValue;
         } else if (gbAddress == LcdGbData.getLyCompareAddress()) {
-            Lcd.CheckStatInterrupt(Lcd.gbData().lY, value);
+            Lcd.CheckStatInterrupt(Lcd.data.lY, value);
         }
         IO.MemStore<u8>(gbAddress, value);
     }
 
     static Load(gbAddress: u16): u8 {
-        const data = Lcd.gbData();
+        const data = Lcd.data;
         if (Logger.verbose >= 4)
             log(`LCD read at ${uToHex(gbAddress)} - data = ${data.lY}`);
         if (gbAddress == LcdGbData.getStatAddress()) {

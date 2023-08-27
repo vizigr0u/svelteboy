@@ -1,5 +1,6 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger, log } from "../../debug/logger";
+import { InlinedReadonlyView } from "../../utils/inlinedArray";
 import { LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
 import { Oam, OamData } from "./oam";
@@ -25,11 +26,13 @@ const MAX_SPRITES_PER_FRAME: u32 = 40;
 const FRAME_BUFFER_SIZE: u32 = LCD_RES * 4; // 4 bpp
 
 export class PpuOamFifo {
+    /** Head index of the PpuOamFifo */
     static head: i32 = 0;
+    /** Number of elements in the PpuOamFifo */
     static size: i32 = 0;
     static buffer: StaticArray<u8> = new StaticArray<u8>(MAX_SPRITES_PER_LINE);
 
-    static Reset() {
+    static Reset(): void {
         PpuOamFifo.size = 0;
         PpuOamFifo.head = 0;
     }
@@ -40,20 +43,47 @@ export class PpuOamFifo {
 
     @inline static Dequeue(): OamData { return Oam.view[PpuOamFifo.head++] }
 
-    @inline static Peek(): OamData { return Oam.view[PpuOamFifo.head] }
+    @inline static Peek(offset: i32 = 0): OamData { return Oam.view[PpuOamFifo.head + offset] }
 
     static Enqueue(oamIndex: u8): void {
         assert(PpuOamFifo.head == 0, 'Can only insert in this fifo ')
         assert(!PpuOamFifo.IsFull(), 'Trying to insert in full PpuOamFifo');
         const x = Oam.view[oamIndex].xPos;
         let i = 0;
-        while (x > Oam.view[PpuOamFifo.buffer[i]].xPos)
+        while (i < (PpuOamFifo.size - 1) && x > Oam.view[PpuOamFifo.buffer[i]].xPos)
             i++;
         for (let j = PpuOamFifo.size; j > i; j--) {
             PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1];
         }
         PpuOamFifo.buffer[i] = oamIndex;
         PpuOamFifo.size++;
+    }
+
+    static FetchCurrentLine(): void {
+        PpuOamFifo.Reset();
+        const ly = Lcd.data.lY;
+        const spriteHeight: u8 = Lcd.data.hasControlBit(LcdControlBit.ObjSize) ? 16 : 8;
+        const oams = Oam.view;
+        for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
+            if (oams[i].xPos == 0)
+                continue;
+
+            const oam = oams[i];
+            if (oam.yPos <= ly + 16 && oam.yPos + spriteHeight > ly + 16) {
+                PpuOamFifo.Enqueue(<u8>i);
+            }
+        }
+    }
+
+    static GetSpriteIndicesFor(x: u8): Uint8Array {
+        let numValidSprites = 0;
+        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos + 8 < x)
+            PpuOamFifo.Dequeue();
+        for (let i = 0; i < 3 && numValidSprites + PpuOamFifo.head < PpuOamFifo.size
+            && Oam.view[PpuOamFifo.head + numValidSprites].xPos < x + 8; i++) {
+            numValidSprites++;
+        }
+        return Uint8Array.wrap(changetype<ArrayBuffer>(PpuOamFifo.buffer), PpuOamFifo.head, numValidSprites);
     }
 }
 
@@ -103,7 +133,7 @@ export class Ppu {
     }
 
     static Tick(): void {
-        // if (!Lcd.gbData().hasControlBit(LcdControlBit.LCDandPPUenabled))
+        // if (!Lcd.data.hasControlBit(LcdControlBit.LCDandPPUenabled))
         //     return;
         if (Logger.verbose >= 4)
             log('PPU TICK');
@@ -129,7 +159,7 @@ export class Ppu {
 }
 
 function incrementLy(): void {
-    const data = Lcd.gbData();
+    const data = Lcd.data;
     data.lY++;
     if (data.lY == data.lYcompare) {
         data.stat = data.stat | 0b100; // set STAT LYC=LY Flag
@@ -147,13 +177,13 @@ function enterMode(mode: PpuMode): void {
     switch (mode) {
         case PpuMode.HBlank:
             PpuTransfer.bgFifo.Clear();
-            if (Lcd.gbData().hasStatMode(PpuMode.HBlank)) {
+            if (Lcd.data.hasStatMode(PpuMode.HBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }
             break;
         case PpuMode.VBlank:
             Interrupt.Request(IntType.VBlank);
-            if (Lcd.gbData().hasStatMode(PpuMode.VBlank)) {
+            if (Lcd.data.hasStatMode(PpuMode.VBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }
             Ppu.currentFrame++;
@@ -162,7 +192,7 @@ function enterMode(mode: PpuMode): void {
             Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
             break;
         case PpuMode.OAMScan:
-            gatherLineSprites();
+            PpuOamFifo.FetchCurrentLine();
             break;
         case PpuMode.Transfer:
             PpuTransfer.Init();
@@ -175,7 +205,7 @@ function enterMode(mode: PpuMode): void {
 function tickHblank(): void {
     if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of hblank
         incrementLy();
-        enterMode(Lcd.gbData().lY >= LCD_HEIGHT ? PpuMode.VBlank : PpuMode.OAMScan);
+        enterMode(Lcd.data.lY >= LCD_HEIGHT ? PpuMode.VBlank : PpuMode.OAMScan);
         Ppu.currentDot = 0;
     }
 }
@@ -183,9 +213,9 @@ function tickHblank(): void {
 function tickVblank(): void {
     if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of line
         incrementLy();
-        if (Lcd.gbData().lY >= NUM_SCANLINES) { // end of frame
+        if (Lcd.data.lY >= NUM_SCANLINES) { // end of frame
             enterMode(PpuMode.OAMScan);
-            Lcd.gbData().lY = 0;
+            Lcd.data.lY = 0;
         }
         Ppu.currentDot = 0;
     }
@@ -201,21 +231,5 @@ function tickTransfer(): void {
     PpuTransfer.Tick();
     if (PpuTransfer.pushedX == LCD_WIDTH) {
         enterMode(PpuMode.HBlank);
-    }
-}
-
-function gatherLineSprites() {
-    PpuOamFifo.Reset();
-    const ly = Lcd.gbData().lY;
-    const spriteHeight = Lcd.gbData().hasControlBit(LcdControlBit.ObjSize) ? 16 : 8;
-    const oams = Oam.view;
-    for (let i = 0; i < oams.length() && !PpuOamFifo.IsFull(); i++) {
-        if (oams[i].xPos == 0)
-            continue;
-
-        const oam = oams[i];
-        if (oam.yPos <= ly + 16 && oam.yPos + spriteHeight > ly + 16) {
-            PpuOamFifo.Enqueue(i);
-        }
     }
 }

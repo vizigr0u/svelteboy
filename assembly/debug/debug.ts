@@ -59,7 +59,7 @@ class TimerInfo {
 class PpuInfo {
     currentDot: u16;
     currentMode: u8;
-    lineSpritesIndices: StaticArray<u8>;
+    lineSpritesIndices: Array<u8>;
 }
 
 class DebugStatusInfo {
@@ -78,13 +78,13 @@ export function makeDebugInfo(): DebugInfo {
             SP: Cpu.StackPointer,
         },
         lcd: {
-            control: Lcd.gbData().control,
-            stat: Lcd.gbData().stat,
-            scY: Lcd.gbData().scrollY,
-            scX: Lcd.gbData().scrollX,
-            lY: Lcd.gbData().lY,
-            lYcompare: Lcd.gbData().lYcompare,
-            dma: Lcd.gbData().dma,
+            control: Lcd.data.control,
+            stat: Lcd.data.stat,
+            scY: Lcd.data.scrollY,
+            scX: Lcd.data.scrollX,
+            lY: Lcd.data.lY,
+            lYcompare: Lcd.data.lYcompare,
+            dma: Lcd.data.dma,
         },
         timer: {
             div: Timer.Div(),

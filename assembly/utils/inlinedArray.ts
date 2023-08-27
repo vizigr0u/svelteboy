@@ -10,6 +10,8 @@ export class InlinedArray<T> {
         this.internal = new StaticArray<u8>(size * offsetof<T>())
     }
 
+    @inline get length(): i32 { return this.internal.length; }
+
     @operator("[]")
     __get(i: i32): T {
         return changetype<T>(changetype<usize>(this.internal) + i * offsetof<T>())
@@ -35,10 +37,13 @@ export class InlinedReadonlyView<T> {
         this.size = length
     }
 
-    @inline length(): i32 { return this.size; }
+    @inline get length(): i32 { return this.size; }
 
     @operator("[]")
     __get(i: i32): T {
+        if (i < 0)
+            i += this.size
+        assert(i >= 0 && i < this.size, 'InlinedReadonlyView: Index out of bounds')
         return changetype<T>(this.pointer + i * offsetof<T>())
     }
 }
