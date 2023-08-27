@@ -43,6 +43,7 @@
                 class="address-input"
                 type="text"
                 bind:value={breakpointToAdd}
+                placeholder="address"
             />
             <button
                 on:click={onAddClick}
@@ -54,9 +55,14 @@
             </button>
         </div>
         {#each $Breakpoints.entries() as breakpoint}
-            <div>
-                0x{breakpoint[0].toString(16).padStart(4, "0")}
-                <button on:click={() => onRemoveClick(breakpoint[0])}>-</button>
+            <div class="breakpoint-entry">
+                <span class="breakpoint-address">
+                    0x{breakpoint[0].toString(16).padStart(4, "0")}
+                </span>
+                <button
+                    class="remove-button"
+                    on:click={() => onRemoveClick(breakpoint[0])}>X</button
+                >
             </div>
         {/each}
     </div>
@@ -87,5 +93,27 @@
     }
     .address-input {
         width: 4em;
+    }
+
+    .breakpoint-address:has(+ button:hover) {
+        text-decoration: line-through;
+        color: #ce6666;
+    }
+
+    .remove-button {
+        border-radius: 25%;
+        font-weight: 600;
+        background-color: #4c4c4c;
+        color: #c7c7c7;
+        height: 1.6em;
+        width: 1.6em;
+        padding: 0;
+        border-width: 2px;
+        transition-duration: 0;
+    }
+
+    .remove-button:hover {
+        color: #ce6666;
+        border-color: #b22a2a;
     }
 </style>
