@@ -49,7 +49,7 @@ function getMemoryBounds(romType: RomType, region: MemoryRegion): number[] {
 
 // async function always returns a Promise
 export async function fetchDisassembly(rom: RomReference, region: MemoryRegion = MemoryRegion.Rom): Promise<void> {
-    console.log("Started fetching");
+    // console.log("Started fetching");
     const bounds = getMemoryBounds(rom.romType, region);
     let pc = bounds[0];
     const maxPC = bounds[1];
@@ -68,18 +68,18 @@ export async function fetchDisassembly(rom: RomReference, region: MemoryRegion =
             return roms;
         });
         pc = lines.at(-1).pc + lines.at(-1).byteSize;
-        console.log(
-            `fetched ${lines.length} lines of  $${oldPc.toString(
-                16
-            )}->$${pc.toString(16)}`
-        );
+        // console.log(
+        //     `fetched ${lines.length} lines of  $${oldPc.toString(
+        //         16
+        //     )}->$${pc.toString(16)}`
+        // );
     }
 
     disassembledRomsStore.update(roms => {
         roms[rom.romType].isLoading = false;
         return roms;
     });
-    console.log("Done fetching ");
+    // console.log("Done fetching ");
 }
 
 // async function always returns a Promise
