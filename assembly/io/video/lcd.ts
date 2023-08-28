@@ -47,6 +47,11 @@ class LcdGbData {
     }
 
     @inline
+    static getControlAddress(): u16 {
+        return LCD_GB_START_ADDRESS + <u16>offsetof<LcdGbData>('control');
+    }
+
+    @inline
     static getStatAddress(): u16 {
         return LCD_GB_START_ADDRESS + <u16>offsetof<LcdGbData>('stat');
     }
@@ -92,8 +97,6 @@ class LcdGbData {
 
 @final
 export class Lcd {
-    static currentPalette: u8;
-
     static Init(): void {
         if (Logger.verbose >= 3) {
             log('Initializing Lcd');
@@ -130,6 +133,14 @@ export class Lcd {
     static Store(gbAddress: u16, value: u8): void {
         if (gbAddress == LcdGbData.getDmaAddress()) {
             Dma.Start(value);
+        }
+        if (gbAddress == LcdGbData.getControlAddress()
+            && Lcd.data.hasControlBit(LcdControlBit.LCDandPPUenabled)
+            && (value & LcdControlBit.LCDandPPUenabled) == 0
+            && Ppu.currentMode != PpuMode.VBlank) {
+            if (Logger.verbose >= 1)
+                log('Ignoring disabling PPU outside of VBlank')
+            return;
         }
         if (gbAddress == LcdGbData.getLyAddress()) {
             if (Logger.verbose >= 1)
