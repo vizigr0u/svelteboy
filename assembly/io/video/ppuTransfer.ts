@@ -1,6 +1,7 @@
 import { GB_VIDEO_START } from "../../cpu/memoryConstants";
 import { Logger, log } from "../../debug/logger";
 import { InlinedReadonlyView } from "../../utils/inlinedArray";
+import { uToHex } from "../../utils/stringUtils";
 import { LCD_WIDTH, PaletteColors } from "./constants";
 import { Fifo } from "./fifo";
 import { Lcd, LcdControlBit } from "./lcd";
@@ -116,18 +117,27 @@ export class PpuTransfer {
     }
 
     static FetchSpriteBytes(): void {
+        if (Logger.verbose >= 3) {
+            log(`FetchSpriteBytes() ${PpuTransfer.fetchedSpriteIndices}`);
+        }
         const ly = Lcd.data.lY;
         const spriteHeight = Lcd.data.spriteHeight();
         for (let i = 0; i < PpuTransfer.fetchedSpriteIndices.length; i++) {
             const index = PpuTransfer.fetchedSpriteIndices[i];
             const oam = Oam.view[index];
 
-            let spriteY = (ly + 16 - oam.yPos) * 2;
+            let spriteY = (ly + 16 - oam.yPos);
             if (oam.hasAttr(OamAttribute.YFlip))
-                spriteY = ((spriteHeight * 2) - 2) - spriteY;
+                spriteY = (spriteHeight - 1) - spriteY;
 
             const tileIndex = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
-            PpuTransfer.fetchedSpriteBytes[i] = load<u16>(TILE_BASE_LO + <u32>(tileIndex * 16) + spriteY);
+            PpuTransfer.fetchedSpriteBytes[i] = load<u16>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2);
+            if (Logger.verbose >= 4) {
+                log('u16: ' + uToHex<u16>(load<u16>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2)))
+                log('u8 lo: ' + uToHex<u8>(load<u8>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2)))
+                log('u8 hi: ' + uToHex<u8>(load<u8>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2 + 1)))
+                log(`Fetched bytes from tileIndex ${tileIndex} Y: ${spriteY} => ${load<u8>(changetype<usize>(PpuTransfer.fetchedSpriteBytes) + i).toString(2).padStart(8, '0')} and ${load<u8>(changetype<usize>(PpuTransfer.fetchedSpriteBytes) + i + 1).toString(2).padStart(8, '0')}`)
+            }
         }
     }
 }

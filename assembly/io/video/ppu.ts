@@ -62,25 +62,42 @@ export class PpuOamFifo {
     static FetchCurrentLine(): void {
         PpuOamFifo.Reset();
         const ly = Lcd.data.lY;
-        const spriteHeight: u8 = Lcd.data.hasControlBit(LcdControlBit.ObjSize) ? 16 : 8;
+        const spriteHeight: u8 = Lcd.data.spriteHeight();
         const oams = Oam.view;
         for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
-            if (oams[i].yPos < (ly + 16) && (oams[i].yPos + spriteHeight) >= (ly + 16)) {
+            if (Logger.verbose >= 5) {
+                log(`OAM #${i}: yPos = ${oams[i].yPos}, ly = ${ly}, spriteHeight = ${spriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) <= oams[i].yPos}. < (oams[i].yPos + spriteHeight) ? ${(ly + 16) < (oams[i].yPos + spriteHeight)}`);
+            }
+            if ((ly + 16) >= oams[i].yPos && (ly + 16) < (oams[i].yPos + spriteHeight)) {
                 PpuOamFifo.Enqueue(<u8>i);
             }
+        }
+        if (Logger.verbose >= 3) {
+            log(`FetchCurrentLine: ${ly}, ${PpuOamFifo.size} match(es).`)
         }
     }
 
     static GetSpriteIndicesFor(x: u8): Uint8Array {
         let numValidSprites = 0;
-        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos < x + 8)
+        if (Logger.verbose >= 3)
+            log(`GetSpriteIndicesFor(${x}) (${PpuOamFifo.size} sprites on line ${Lcd.data.lY}`)
+        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos < x + 8) {
+            if (Logger.verbose >= 4)
+                log(`Trimmed ${PpuOamFifo.head} (xPos = ${PpuOamFifo.Peek().xPos} < ${x + 8} (x + 8))`)
             PpuOamFifo.Dequeue();
+        }
         for (let i = 0; numValidSprites < 3 && i + PpuOamFifo.head < PpuOamFifo.size; i++) {
             const spriteX = PpuOamFifo.Peek(i).xPos - 8 + Lcd.data.scrollX % 8;
-            if (spriteX > x && spriteX < x + 8
-                || spriteX + 8 > x && spriteX + 8 < x + 8)
+            if (Logger.verbose >= 4)
+                log(`Looking at #${i}: xPos = ${PpuOamFifo.Peek(i).xPos} - spriteX = ${spriteX}`)
+            if (x >= spriteX && x < spriteX + 8)
                 numValidSprites++;
+            else if (Logger.verbose >= 4) {
+                log(' -discarded.')
+            }
         }
+        if (Logger.verbose >= 3)
+            log(`GetSpriteIndicesFor(${x}) => ${numValidSprites} match(es)`)
         return Uint8Array.wrap(changetype<ArrayBuffer>(PpuOamFifo.buffer), PpuOamFifo.head, numValidSprites);
     }
 }
