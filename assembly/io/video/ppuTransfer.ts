@@ -130,12 +130,9 @@ export class PpuTransfer {
             if (oam.hasAttr(OamAttribute.YFlip))
                 spriteY = (spriteHeight - 1) - spriteY;
 
-            const tileIndex = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
-            PpuTransfer.fetchedSpriteBytes[i] = load<u16>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2);
+            const tileIndex: u16 = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
+            PpuTransfer.fetchedSpriteBytes[i] = load<u16>(GB_VIDEO_START + (<u16>tileIndex * 16) + spriteY * 2);
             if (Logger.verbose >= 4) {
-                log('u16: ' + uToHex<u16>(load<u16>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2)))
-                log('u8 lo: ' + uToHex<u8>(load<u8>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2)))
-                log('u8 hi: ' + uToHex<u8>(load<u8>(GB_VIDEO_START + <u16>(tileIndex * 16) + spriteY * 2 + 1)))
                 log(`Fetched bytes from tileIndex ${tileIndex} Y: ${spriteY} => ${load<u8>(changetype<usize>(PpuTransfer.fetchedSpriteBytes) + i).toString(2).padStart(8, '0')} and ${load<u8>(changetype<usize>(PpuTransfer.fetchedSpriteBytes) + i + 1).toString(2).padStart(8, '0')}`)
             }
         }
@@ -151,7 +148,7 @@ function getColorIndexFromBytes(b: u16, mask: u8): u8 {
 }
 
 function fetcherEnqueuePixel(): void {
-    const x = PpuTransfer.fetcherX - (8 - (Lcd.data.scrollX % 8));
+    const x: i16 = PpuTransfer.fetcherX - (8 - (Lcd.data.scrollX % 8));
     if (x >= 0) {
         for (let i = 0; i < 8; i++) {
             const mask: u8 = (1 << <u8>(7 - i));
@@ -161,13 +158,18 @@ function fetcherEnqueuePixel(): void {
                 for (let j = 0; j < PpuTransfer.fetchedSpriteIndices.length; j++) {
                     const index = PpuTransfer.fetchedSpriteIndices[j];
                     const oam = Oam.view[index];
-                    const spriteX = oam.xPos - 8 + Lcd.data.scrollX % 8;
-                    const offset = i - spriteX;
-                    if (offset < 0 || offset > 7)
+                    const spriteX: i16 = <i16>oam.xPos - 8 + Lcd.data.scrollX % 8;
+                    const offset: i16 = spriteX - (x + <i16>i); // [-7, 0] if sprite is [x - 7, x]
+                    if (Logger.verbose >= 4) {
+                        log(`Fetching pixel ${x + i} on ${oam.tileIndex}: spriteX=${spriteX}, offset=${offset}`)
+                    }
+                    if (offset < -7 || offset > 0)
                         continue;
-                    const bit = oam.hasAttr(OamAttribute.XFlip) ? offset : 7 - offset;
-                    const spriteBitMask: u8 = (1 << <u8>(7 - bit));
+                    const bit: u8 = <u8>(oam.hasAttr(OamAttribute.XFlip) ? -offset : offset + 7); // [7-0] or [0-7] when flipped
+                    assert((bit & 7) == bit);
+                    const spriteBitMask: u8 = (1 << bit);
                     const spriteColorId = getColorIndexFromBytes(PpuTransfer.fetchedSpriteBytes[j], spriteBitMask)
+
                     if (spriteColorId != 0) {
                         colorId = spriteColorId;
                         break;
