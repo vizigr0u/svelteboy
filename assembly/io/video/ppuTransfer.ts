@@ -1,7 +1,5 @@
 import { GB_VIDEO_START } from "../../cpu/memoryConstants";
 import { Logger, log } from "../../debug/logger";
-import { InlinedReadonlyView } from "../../utils/inlinedArray";
-import { uToHex } from "../../utils/stringUtils";
 import { LCD_WIDTH, PaletteColors } from "./constants";
 import { Fifo } from "./fifo";
 import { Lcd, LcdControlBit } from "./lcd";

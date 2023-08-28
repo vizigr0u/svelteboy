@@ -41,16 +41,16 @@ export class PpuOamFifo {
 
     @inline static IsEmpty(): boolean { return PpuOamFifo.head == PpuOamFifo.size };
 
-    @inline static Dequeue(): OamData { return Oam.view[PpuOamFifo.head++] }
+    @inline static Dequeue(): OamData { return Oam.view[PpuOamFifo.buffer[PpuOamFifo.head++]] }
 
-    @inline static Peek(offset: i32 = 0): OamData { return Oam.view[PpuOamFifo.head + offset] }
+    @inline static Peek(offset: i32 = 0): OamData { return Oam.view[PpuOamFifo.buffer[PpuOamFifo.head + offset]] }
 
     static Enqueue(oamIndex: u8): void {
         assert(PpuOamFifo.head == 0, 'Can only insert in this fifo ')
         assert(!PpuOamFifo.IsFull(), 'Trying to insert in full PpuOamFifo');
         const x = Oam.view[oamIndex].xPos;
         let i = 0;
-        while (i < (PpuOamFifo.size - 1) && x > Oam.view[PpuOamFifo.buffer[i]].xPos)
+        while (i < (PpuOamFifo.size) && x > PpuOamFifo.Peek(i).xPos)
             i++;
         for (let j = PpuOamFifo.size; j > i; j--) {
             PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1];
@@ -65,32 +65,49 @@ export class PpuOamFifo {
         const spriteHeight: u8 = Lcd.data.spriteHeight();
         const oams = Oam.view;
         for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
+            if (oams[i].xPos == 0)
+                continue;
             if (Logger.verbose >= 5) {
-                log(`OAM #${i}: yPos = ${oams[i].yPos}, ly = ${ly}, spriteHeight = ${spriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) <= oams[i].yPos}. < (oams[i].yPos + spriteHeight) ? ${(ly + 16) < (oams[i].yPos + spriteHeight)}`);
+                log(`OAM #${i}: yPos = ${oams[i].yPos}, ly = ${ly}, spriteHeight = ${spriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) >= oams[i].yPos}. < (oams[i].yPos + spriteHeight) ? ${(ly + 16) < (oams[i].yPos + spriteHeight)}`);
             }
             if ((ly + 16) >= oams[i].yPos && (ly + 16) < (oams[i].yPos + spriteHeight)) {
                 PpuOamFifo.Enqueue(<u8>i);
+                if (Logger.verbose >= 5) {
+                    let s = '';
+                    for (let j = 0; j < PpuOamFifo.size; j++) {
+                        s += PpuOamFifo.buffer[j].toString() + ' '
+                    }
+                    log(`Enqueue #${i} -> [ ${s} ]`);
+                }
             }
         }
         if (Logger.verbose >= 3) {
             log(`FetchCurrentLine: ${ly}, ${PpuOamFifo.size} match(es).`)
+        }
+        if (Logger.verbose >= 4) {
+            let s = '';
+            for (let i = 0; i < PpuOamFifo.size; i++) {
+                s += PpuOamFifo.buffer[i].toString() + ' '
+            }
+            log('FetchCurrentLine -> [' + s + ']');
         }
     }
 
     static GetSpriteIndicesFor(x: u8): Uint8Array {
         let numValidSprites = 0;
         if (Logger.verbose >= 3)
-            log(`GetSpriteIndicesFor(${x}) (${PpuOamFifo.size} sprites on line ${Lcd.data.lY}`)
-        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos < x + 8) {
+            log(`GetSpriteIndicesFor(${x}) (${PpuOamFifo.size} sprites on line ${Lcd.data.lY})`)
+        while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos < x) {
             if (Logger.verbose >= 4)
-                log(`Trimmed ${PpuOamFifo.head} (xPos = ${PpuOamFifo.Peek().xPos} < ${x + 8} (x + 8))`)
-            PpuOamFifo.Dequeue();
+                log(`Trimmed Fifo[${PpuOamFifo.head}] (tile ${PpuOamFifo.Peek().tileIndex}): xPos = ${PpuOamFifo.Peek().xPos} < x = ${x}`)
+            PpuOamFifo.head++;
         }
         for (let i = 0; numValidSprites < 3 && i + PpuOamFifo.head < PpuOamFifo.size; i++) {
-            const spriteX = PpuOamFifo.Peek(i).xPos - 8 + Lcd.data.scrollX % 8;
+            const spriteX: i16 = <i16>PpuOamFifo.Peek(i).xPos - 8 + Lcd.data.scrollX % 8;
             if (Logger.verbose >= 4)
                 log(`Looking at #${i}: xPos = ${PpuOamFifo.Peek(i).xPos} - spriteX = ${spriteX}`)
-            if (x >= spriteX && x < spriteX + 8)
+            if (spriteX >= <i16>x && spriteX < <i16>x + 8
+                || spriteX < <i16>x && spriteX + 8 >= <i16>x)
                 numValidSprites++;
             else if (Logger.verbose >= 4) {
                 log(' -discarded.')
