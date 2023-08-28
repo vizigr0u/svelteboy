@@ -35,6 +35,9 @@
                   alt: defaultAltText,
               });
 
+    let isLoaded;
+    $: isLoaded = $loadedRom && $loadedRom.sha1 == rom.sha1;
+
     async function fetchImageAndAlt(rom: StoredRom): Promise<RomImgData> {
         const isGbc = rom.filename.endsWith(".gbc");
         const names = isGbc ? await getGbcNames() : await getGbNames();
@@ -42,9 +45,7 @@
         let alt = defaultAltText;
         if (rom.sha1.toUpperCase() in names) {
             alt = names[rom.sha1.toUpperCase()];
-            src = `https://thumbnails.libretro.com//Nintendo%20-%20Game%20Boy${
-                isGbc ? "%20Color" : ""
-            }/Named_Boxarts/${alt}.png`;
+            src = (isGbc ? "./gbc_art/" : "./gb_art/") + alt + ".png";
         }
         return { src, alt };
     }
@@ -74,7 +75,7 @@
         cartRomStore.update((store) => {
             return store.filter((r) => r.sha1 !== rom.sha1);
         });
-        if ($loadedRom?.sha1 == rom.sha1) $loadedRom = undefined;
+        if (isLoaded) $loadedRom = undefined;
     }
 
     function onThumbnailError(ev) {
@@ -84,7 +85,7 @@
     }
 </script>
 
-<div class="rom-container" class:rom-loaded={$loadedRom?.sha1 == rom.sha1}>
+<div class="rom-container" class:rom-loaded={isLoaded}>
     {#await imagePromise}
         <img
             class="rom-thumbnail"
@@ -115,8 +116,8 @@
             <button
                 class="rom-action-button"
                 on:click={() => loadRom()}
-                disabled={isLoading || $loadedRom?.sha1 == rom.sha1}
-                >{$loadedRom?.sha1 == rom.sha1
+                disabled={isLoading || isLoaded}
+                >{isLoaded
                     ? isLoading
                         ? "LOADING..."
                         : "LOADED"
