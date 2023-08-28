@@ -156,9 +156,8 @@ function fetcherEnqueuePixel(): void {
             const mask: u8 = (1 << <u8>(7 - i));
             const bgColorId: u8 = getColorIndexFromBytes(PpuTransfer.fetchedBgBytes, mask);
             const BgPalette: u8 = Lcd.getBGPalette();
-            const bgColor: u8 = applyPalette(bgColorId, BgPalette);
+            let color = applyPalette(Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled) ? bgColorId : 0, BgPalette);
 
-            let color = Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled) ? bgColor : 0;
             if (Lcd.data.hasControlBit(LcdControlBit.ObjEnabled)) {
                 for (let j = 0; j < PpuTransfer.fetchedSpriteIndices.length; j++) {
                     const index = PpuTransfer.fetchedSpriteIndices[j];
