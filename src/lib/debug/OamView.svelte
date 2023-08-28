@@ -45,7 +45,7 @@
             <span>Flip</span>
         </div>
         {#each objects as o, i}
-            <div class="oam-line">
+            <div class="oam-line" class:line-disabled={o.posX == 0}>
                 <span class="oam-index">
                     <span class="oam-u32">
                         uint32: {buffer[i].toString(16)}
@@ -88,6 +88,10 @@
         position: relative;
         display: grid;
         grid-template-columns: 2.8em repeat(auto-fill, 6em);
+    }
+
+    .line-disabled {
+        color: #999;
     }
 
     .oam-line-header {
