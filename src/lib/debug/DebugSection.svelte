@@ -37,7 +37,7 @@
             } else {
                 tileDebug +=
                     "\t\tBG " +
-                    (hoveredIndex > 127 ? hoveredIndex - 255 : "NONE");
+                    (hoveredIndex > 127 ? hoveredIndex - 256 : "NONE");
             }
         } else {
             tileDebug += " index = " + hoveredIndex;
