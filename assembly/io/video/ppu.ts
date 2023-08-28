@@ -1,7 +1,7 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger, log } from "../../debug/logger";
 import { InlinedReadonlyView } from "../../utils/inlinedArray";
-import { LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
+import { DefaultPaletteColors, LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
 import { Oam, OamData } from "./oam";
 import { PpuTransfer } from "./ppuTransfer";
@@ -124,6 +124,8 @@ export class Ppu {
     static currentMode: PpuMode = PpuMode.OAMScan;
     static currentDot: u16 = 0;
     static currentFrame: u32 = 0;
+
+    static current32bitPalette: StaticArray<u32> = DefaultPaletteColors;
 
     static spriteCountThisFrame: u8 = 0;
 

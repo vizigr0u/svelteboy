@@ -1,6 +1,6 @@
 import { GB_VIDEO_START } from "../../cpu/memoryConstants";
 import { Logger, log } from "../../debug/logger";
-import { LCD_WIDTH, PaletteColors } from "./constants";
+import { LCD_WIDTH } from "./constants";
 import { Fifo } from "./fifo";
 import { Lcd, LcdControlBit } from "./lcd";
 import { Oam, OamAttribute } from "./oam";
@@ -145,17 +145,28 @@ function getColorIndexFromBytes(b: u16, mask: u8): u8 {
     return (((b & mask) == mask) ? 1 : 0) | ((((b >> 8) & mask) == mask) ? 2 : 0);
 }
 
+function applyPalette(colorId: u8, palette: u8): u8 {
+    return (palette >> (colorId << 1)) & 0b11;
+}
+
 function fetcherEnqueuePixel(): void {
     const x: i16 = PpuTransfer.fetcherX - (8 - (Lcd.data.scrollX % 8));
     if (x >= 0) {
         for (let i = 0; i < 8; i++) {
             const mask: u8 = (1 << <u8>(7 - i));
             const bgColorId: u8 = getColorIndexFromBytes(PpuTransfer.fetchedBgBytes, mask);
-            let colorId = Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled) ? bgColorId : 0;
+            const BgPalette: u8 = Lcd.getBGPalette();
+            const bgColor: u8 = applyPalette(bgColorId, BgPalette);
+
+            let color = Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled) ? bgColor : 0;
             if (Lcd.data.hasControlBit(LcdControlBit.ObjEnabled)) {
                 for (let j = 0; j < PpuTransfer.fetchedSpriteIndices.length; j++) {
                     const index = PpuTransfer.fetchedSpriteIndices[j];
                     const oam = Oam.view[index];
+
+                    if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
+                        continue;
+
                     const spriteX: i16 = <i16>oam.xPos - 8 + Lcd.data.scrollX % 8;
                     const offset: i16 = spriteX - (x + <i16>i); // [-7, 0] if sprite is [x - 7, x]
                     if (Logger.verbose >= 4) {
@@ -163,18 +174,20 @@ function fetcherEnqueuePixel(): void {
                     }
                     if (offset < -7 || offset > 0)
                         continue;
+
                     const bit: u8 = <u8>(oam.hasAttr(OamAttribute.XFlip) ? -offset : offset + 7); // [7-0] or [0-7] when flipped
                     assert((bit & 7) == bit);
                     const spriteBitMask: u8 = (1 << bit);
                     const spriteColorId = getColorIndexFromBytes(PpuTransfer.fetchedSpriteBytes[j], spriteBitMask)
+                    if (spriteColorId == 0)
+                        continue;
 
-                    if (spriteColorId != 0) {
-                        colorId = spriteColorId;
-                        break;
-                    }
+                    const spritePalette = oam.hasAttr(OamAttribute.PaletteNumber) ? Lcd.data.objPalette1 : Lcd.data.objPalette0;
+                    color = applyPalette(spriteColorId, spritePalette & 0b11111100); // lower 2 bits of palette ignored for transparency
+                    break;
                 }
             }
-            PpuTransfer.bgFifo.Enqueue(colorId);
+            PpuTransfer.bgFifo.Enqueue(color);
         }
     }
 }
@@ -187,12 +200,10 @@ function tickPushPixel(): void {
                 if (Logger.verbose >= 1)
                     log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.data.lY}`);
             } else {
-                const paletteId = PpuTransfer.bgFifo.Dequeue();
-                const palette: u8 = Lcd.getBGPalette();
-                const colorId: u8 = (palette >> (paletteId << 1)) & 0b11;
-                const color = PaletteColors[colorId];
+                const color = PpuTransfer.bgFifo.Dequeue();
+                const color32 = Ppu.current32bitPalette[color];
                 // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.data.lY) * 255 / 144)) << 8;
-                Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color;
+                Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32;
             }
             PpuTransfer.pushedX++;
         }
