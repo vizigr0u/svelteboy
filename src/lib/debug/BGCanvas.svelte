@@ -53,7 +53,7 @@
         ctx.stroke();
         const ly = $GbDebugInfoStore.lcd.lY;
         if (ly < 144) {
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.strokeStyle = "rgba(80, 80, 80, 0.6)";
             ctx.moveTo(minX, minY + ly);
             ctx.lineTo(maxX, minY + ly);
             ctx.stroke();
@@ -66,13 +66,17 @@
     }
 
     function onMouseMove(ev: MouseEvent): void {
-        const screenX = Math.floor(Math.max(0, ev.offsetX) / pixelSize);
-        const screenY = Math.floor(Math.max(0, ev.offsetY) / pixelSize);
-        const tileX = Math.floor(screenX / 8);
-        const tileY = Math.floor(screenY / 8);
+        const bufferX = Math.floor(Math.max(0, ev.offsetX) / pixelSize);
+        const bufferY = Math.floor(Math.max(0, ev.offsetY) / pixelSize);
+        const tileX = Math.floor(bufferX / 8);
+        const tileY = Math.floor(bufferY / 8);
+        const screenX = bufferX - $GbDebugInfoStore.lcd.scX;
+        const screenY = bufferY - $GbDebugInfoStore.lcd.scY;
         const onScreen =
             screenX >= 0 && screenX < 160 && screenY >= 0 && screenY < 144;
-        posDebug = onScreen ? `screenPos: (${screenX}, ${screenY})` : "";
+        posDebug = onScreen
+            ? `screenPos: (${screenX}, ${screenY}) TODO: support wrap`
+            : "";
         tileDebug = ` BG (${tileX}, ${tileY}) tileIndex = ${
             tileMap[tileX + tileY * 32]
         }`;
