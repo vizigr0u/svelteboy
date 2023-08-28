@@ -21,6 +21,7 @@
     import { frameDelay, useBoot } from "../../stores/optionsStore";
 
     let verbose: number = 1;
+    let breakSkipCount: number = 1;
 
     function debuggerRunOnFrame(): Promise<DebugStopReason> {
         return new Promise<DebugStopReason>((r) => {
@@ -61,6 +62,28 @@
         if (!$DebugSessionStarted) {
             initDebug();
         }
+        const _ = await debuggerRunOnFrame();
+    }
+
+    async function onIgnoreBreakClick() {
+        setVerbose(verbose);
+        if (!$DebugSessionStarted) {
+            initDebug();
+        }
+        $ProgramRunning = true;
+        let lastStopReason = DebugStopReason.None;
+        for (let i = 0; i < breakSkipCount; i++) {
+            do {
+                lastStopReason = await debuggerRunOnFrame();
+                if (lastStopReason == DebugStopReason.EndOfFrame)
+                    await new Promise((r) => setTimeout(r, $frameDelay));
+            } while (
+                $ProgramRunning &&
+                lastStopReason == DebugStopReason.EndOfFrame
+            );
+        }
+        $LastStopReason = lastStopReason;
+        $ProgramRunning = false;
         const _ = await debuggerRunOnFrame();
     }
 
@@ -120,8 +143,24 @@
     <button
         on:click={onNextFrameClick}
         disabled={$loadedBootRom == undefined && $loadedCartridge == undefined}
-        >Next Frame</button
     >
+        Next Frame
+    </button>
+    <div class="next-frame-group">
+        <button
+            on:click={onIgnoreBreakClick}
+            disabled={$loadedBootRom == undefined &&
+                $loadedCartridge == undefined}
+            >{`Ignore ${breakSkipCount} break`}</button
+        >
+        <div class="next-frame-count-buttons">
+            <button on:click={() => breakSkipCount++}>+</button>
+            <button
+                on:click={() => breakSkipCount--}
+                disabled={breakSkipCount <= 1}>-</button
+            >
+        </div>
+    </div>
     <button on:click={onResetClick} disabled={$DebugSessionStarted}
         >{$DebugSessionStarted ? "Reset" : "Init"}</button
     >
@@ -144,6 +183,21 @@
     .debug-control-buttons {
         display: flex;
         align-items: center;
+    }
+
+    .next-frame-group {
+        display: flex;
+    }
+
+    .next-frame-count-buttons {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .next-frame-count-buttons > button {
+        font-size: 0.8em;
+        height: 1.5em;
+        padding: 0 0.2em;
     }
 
     .verbose-input {
