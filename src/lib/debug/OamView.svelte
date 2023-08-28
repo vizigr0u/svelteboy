@@ -52,7 +52,7 @@
                     </span>
                     #{i}
                 </span>
-                <span class="oam-pos">({o.posX}, {o.posY})</span>
+                <span class="oam-pos">({o.posX - 8}, {o.posY - 16})</span>
                 <span class="oam-tile-index">{o.tileIndex}</span>
                 <input type="checkbox" checked={o.behindBG} disabled={true} />
                 <span class="oam-flip"
