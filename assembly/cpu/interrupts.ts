@@ -1,6 +1,6 @@
-import { IO } from "../io/io";
 import { uToHex } from "../utils/stringUtils";
 import { Cpu } from "./cpu";
+import { GB_IO_START } from "./memoryConstants";
 
 export enum IntType {
     VBlank = 0x1,
@@ -72,17 +72,17 @@ export class Interrupt {
 
     @inline
     static Requests(): u8 {
-        return IO.MemLoad<u8>(IF_ADDRESS);
+        return load<u8>(GB_IO_START + 0x0F);
     }
 
     @inline
     static GetEnabled(): u8 {
-        return IO.MemLoad<u8>(IE_ADDRESS);
+        return load<u8>(GB_IO_START + 0xFF);
     }
 
     @inline
     static SetRequests(flags: u8): void {
-        IO.MemStore<u8>(IF_ADDRESS, flags);
+        store<u8>(GB_IO_START + 0x0F, flags);
     }
 
     static Request(flag: IntType, enabled: bool = 1): void {
