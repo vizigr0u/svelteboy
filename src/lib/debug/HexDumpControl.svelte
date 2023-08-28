@@ -22,6 +22,7 @@
   ];
 
   let promise: Promise<Uint8Array> = undefined;
+  let index = 0;
 
   let minPC: number = areas[0].start;
   let count: number = areas[0].size;
@@ -32,10 +33,9 @@
     promise = getHexDump(minPC, count);
   }
 
-  function selectArea(area: MemArea) {
-    console.log("CHANGE");
-    minPC = area.start;
-    count = area.size;
+  $: {
+    minPC = selectedArea?.start ?? areas[0].start;
+    count = selectedArea?.size ?? areas[0].size;
   }
 </script>
 
@@ -44,7 +44,7 @@
   <div class="hex-viewer-controls">
     <select bind:value={selectedArea}>
       {#each areas as area}
-        <option value={area} on:click={() => selectArea(area)}>
+        <option value={area}>
           {`${area.name}`}
         </option>
       {/each}
