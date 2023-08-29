@@ -17,10 +17,10 @@ const CYCLES_PER_FRAME: u32 = CYCLES_PER_SECOND / FPS;
 
     static Init(useBootRom: boolean = true): void {
         Logger.Init()
-        Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
         MemoryMap.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
         IO.Init();
         Ppu.Init();
+        Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
         Emulator.wasInit = true;
     }
 
