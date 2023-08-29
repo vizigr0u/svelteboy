@@ -1,4 +1,5 @@
-import { GB_VIDEO_START } from "../../cpu/memoryConstants";
+import { Cpu } from "../../cpu/cpu";
+import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../cpu/memoryConstants";
 import { Logger, log } from "../../debug/logger";
 import { LCD_WIDTH } from "./constants";
 import { Fifo } from "./fifo";
@@ -37,7 +38,7 @@ export class PpuTransfer {
     private static readonly noSpriteIndices: Uint8Array = new Uint8Array(0);
 
     static fetchedBgBytes: u16 = 0;
-    static fetchedSpriteIndices: Uint8Array = PpuTransfer.noSpriteIndices;
+    static numSpritesThisFetch: u8 = 0;
     static fetchedSpriteBytes: StaticArray<u16> = new StaticArray<u16>(3);
 
     static Init(): void {
@@ -84,9 +85,9 @@ export class PpuTransfer {
                 }
 
                 if (lcd.hasControlBit(LcdControlBit.ObjEnabled)) {
-                    PpuTransfer.fetchedSpriteIndices = PpuOamFifo.GetSpriteIndicesFor(PpuTransfer.fetcherX);
+                    PpuTransfer.numSpritesThisFetch = PpuOamFifo.GetSpriteIndicesFor(PpuTransfer.fetcherX);
                 } else {
-                    PpuTransfer.fetchedSpriteIndices = PpuTransfer.noSpriteIndices;
+                    PpuTransfer.numSpritesThisFetch = 0;
                 }
                 PpuTransfer.FetchSpriteBytes();
 
@@ -94,7 +95,17 @@ export class PpuTransfer {
                 PpuTransfer.fetcherX += 8;
                 break;
             case PpuFetchState.GetDataLo:
-                PpuTransfer.fetchedBgBytes = load<u16>(getBGDataAddress() + <u32>(PpuTransfer.bgTileOffset * 16) + PpuTransfer.tileY);
+                const tileByteAddress: u32 = getBGDataAddress() + (PpuTransfer.bgTileOffset * 16) + PpuTransfer.tileY;
+                if (tileByteAddress < GB_VIDEO_START || tileByteAddress >= (GB_VIDEO_START + GB_VIDEO_BANK_SIZE)) {
+                    const error = `Invalid pointer: ${tileByteAddress} (GB ${tileByteAddress + 0x8000 - GB_VIDEO_START})\n`
+                        + `getBGDataAddress() = ${getBGDataAddress()}, tileOffset = ${PpuTransfer.bgTileOffset}, *16 = ${(PpuTransfer.bgTileOffset * 16)}, tileY = ${PpuTransfer.tileY} \n`
+                        + Cpu.GetTrace();
+                    log(error)
+                    console.log(error)
+                    Cpu.isStopped = true;
+                    return;
+                }
+                PpuTransfer.fetchedBgBytes = load<u16>(tileByteAddress);
                 PpuTransfer.state = PpuFetchState.GetDataHi;
                 break;
             case PpuFetchState.GetDataHi:
@@ -116,13 +127,12 @@ export class PpuTransfer {
 
     static FetchSpriteBytes(): void {
         if (Logger.verbose >= 3) {
-            log(`FetchSpriteBytes() ${PpuTransfer.fetchedSpriteIndices}`);
+            log(`FetchSpriteBytes() ${PpuTransfer.numSpritesThisFetch}`);
         }
         const ly = Lcd.data.lY;
         const spriteHeight = Lcd.data.spriteHeight();
-        for (let i = 0; i < PpuTransfer.fetchedSpriteIndices.length; i++) {
-            const index = PpuTransfer.fetchedSpriteIndices[i];
-            const oam = Oam.view[index];
+        for (let i = 0; i < <i32>PpuTransfer.numSpritesThisFetch; i++) {
+            const oam = PpuOamFifo.Peek(i);
 
             let spriteY = (ly + 16 - oam.yPos);
             if (oam.hasAttr(OamAttribute.YFlip))
@@ -159,9 +169,8 @@ function fetcherEnqueuePixel(): void {
             let color = applyPalette(Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled) ? bgColorId : 0, BgPalette);
 
             if (Lcd.data.hasControlBit(LcdControlBit.ObjEnabled)) {
-                for (let j = 0; j < PpuTransfer.fetchedSpriteIndices.length; j++) {
-                    const index = PpuTransfer.fetchedSpriteIndices[j];
-                    const oam = Oam.view[index];
+                for (let j = 0; j < <i32>PpuTransfer.numSpritesThisFetch; j++) {
+                    const oam = PpuOamFifo.Peek(j);
 
                     if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
                         continue;

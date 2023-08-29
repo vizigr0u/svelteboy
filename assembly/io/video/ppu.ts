@@ -65,12 +65,13 @@ export class PpuOamFifo {
         const spriteHeight: u8 = Lcd.data.spriteHeight();
         const oams = Oam.view;
         for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
-            if (oams[i].xPos == 0)
+            const oam = unchecked(oams[i]);
+            if (oam.xPos == 0)
                 continue;
             if (Logger.verbose >= 5) {
-                log(`OAM #${i}: yPos = ${oams[i].yPos}, ly = ${ly}, spriteHeight = ${spriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) >= oams[i].yPos}. < (oams[i].yPos + spriteHeight) ? ${(ly + 16) < (oams[i].yPos + spriteHeight)}`);
+                log(`OAM #${i}: yPos = ${oam.yPos}, ly = ${ly}, spriteHeight = ${spriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) >= oam.yPos}. < (oam.yPos + spriteHeight) ? ${(ly + 16) < (oam.yPos + spriteHeight)}`);
             }
-            if ((ly + 16) >= oams[i].yPos && (ly + 16) < (oams[i].yPos + spriteHeight)) {
+            if ((ly + 16) >= oam.yPos && (ly + 16) < (oam.yPos + spriteHeight)) {
                 PpuOamFifo.Enqueue(<u8>i);
                 if (Logger.verbose >= 5) {
                     let s = '';
@@ -93,8 +94,8 @@ export class PpuOamFifo {
         }
     }
 
-    static GetSpriteIndicesFor(x: u8): Uint8Array {
-        let numValidSprites = 0;
+    static GetSpriteIndicesFor(x: u8): u8 {
+        let numValidSprites: u8 = 0;
         if (Logger.verbose >= 3)
             log(`GetSpriteIndicesFor(${x}) (${PpuOamFifo.size} sprites on line ${Lcd.data.lY})`)
         while (!PpuOamFifo.IsEmpty() && PpuOamFifo.Peek().xPos < x) {
@@ -115,7 +116,7 @@ export class PpuOamFifo {
         }
         if (Logger.verbose >= 3)
             log(`GetSpriteIndicesFor(${x}) => ${numValidSprites} match(es)`)
-        return Uint8Array.wrap(changetype<ArrayBuffer>(PpuOamFifo.buffer), PpuOamFifo.head, numValidSprites);
+        return numValidSprites;
     }
 }
 

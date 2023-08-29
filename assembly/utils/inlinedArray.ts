@@ -46,4 +46,9 @@ export class InlinedReadonlyView<T> {
         assert(i >= 0 && i < this.size, 'InlinedReadonlyView: Index out of bounds')
         return changetype<T>(this.pointer + i * offsetof<T>())
     }
+
+    @operator("{}")
+    __unchecked_get(i: i32): T {
+        return changetype<T>(changetype<usize>(this.pointer) + i * offsetof<T>())
+    }
 }
