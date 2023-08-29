@@ -20,7 +20,7 @@ const MAP_BASE_LO: u32 = GB_VIDEO_START + <u32>0x1800;
 const MAP_BASE_HI: u32 = GB_VIDEO_START + <u32>0x1C00;
 
 const TILE_BASE_LO: u32 = GB_VIDEO_START;
-const TILE_BASE_HI: u32 = GB_VIDEO_START + <u32>0x1000;
+const TILE_BASE_HI: u32 = GB_VIDEO_START + <u32>0x800;
 
 @final
 export class PpuTransfer {
@@ -76,9 +76,9 @@ export class PpuTransfer {
                         lcd.hasControlBit(LcdControlBit.WindowTileMapArea) && isInWindow)
                         mapBase = MAP_BASE_HI;
 
-                    let dataIndex = load<u8>(mapBase + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
+                    let dataIndex: u8 = load<u8>(mapBase + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
                     const tileBaseIsLow = Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea);
-                    PpuTransfer.bgTileOffset = tileBaseIsLow ? <i16><u8>dataIndex : <i16><i8>dataIndex;
+                    PpuTransfer.bgTileOffset = tileBaseIsLow ? <i16>dataIndex : <i16><u8>(dataIndex + 128);
                     if (Logger.verbose >= 4)
                         log(`currentDot: ${Ppu.currentDot}, fetcherX: ${PpuTransfer.fetcherX}, ly:${lcd.lY}, scroll:${lcd.scrollX},${lcd.scrollY}, map: ${mapX},${mapY}=>${(mapX >> 3) + (<u16>(mapY >> 3) << 5)}, tileIndex: ${dataIndex} (offset ${PpuTransfer.bgTileOffset}). tileY: ${PpuTransfer.tileY}`);
                 }
