@@ -28,8 +28,8 @@ export class Cartridge {
 
         if (metadata.cgbFlag == CGBMode.CGBOnly) {
             if (Logger.verbose >= 1)
-                log('Cartridge is for Gameboy Color only, which is unsupported.')
-            return false;
+                log('Warning Cartridge is for Gameboy Color only, which is unsupported.')
+            // return false;
         }
 
         if (!supportedTypes.includes(metadata.cartridgeType) && Logger.verbose >= 1)
