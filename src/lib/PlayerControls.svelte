@@ -10,13 +10,14 @@
     async function onRunStopClick() {
         if ($GamePlaying) {
             $GamePlaying = false;
+            $GameFrames = 0;
+            init($useBoot);
         } else {
             $GamePlaying = true;
             $GameFrames = 0;
             init($useBoot);
             do {
                 await new Promise<void>((r) => r(runOneFrame()));
-                // $GbDebugInfoStore = (await debugGetStatus()) as GbDebugInfo;
                 GameFrames.update((f) => f + 1);
                 await fetchLogs();
                 await new Promise((resolve) =>
