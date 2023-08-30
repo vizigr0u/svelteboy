@@ -122,3 +122,14 @@ export type MemArea = {
     size: number;
     name: string;
 };
+
+export enum InputType {
+    Left = 0,
+    Right = 1,
+    Up = 2,
+    Down = 3,
+    A = 4,
+    B = 5,
+    Select = 6,
+    Start = 7
+}

@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import { InputType } from "../inputs";
+import { InputType } from "../types";
 
 export const GamePlaying = writable<boolean>(false);
 export const GameFrames = writable<number>(0);

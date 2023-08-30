@@ -4,6 +4,17 @@ import { uToHex } from "../utils/stringUtils";
 
 const JOYPAD_ADDRESS: u16 = 0xFF00;
 
+export enum InputType {
+    Left = 0,
+    Right = 1,
+    Up = 2,
+    Down = 3,
+    A = 4,
+    B = 5,
+    Select = 6,
+    Start = 7
+}
+
 @final
 export class Joypad {
     static Init(): void {
