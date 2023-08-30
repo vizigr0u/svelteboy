@@ -66,6 +66,7 @@
     }
 
     function onMouseMove(ev: MouseEvent): void {
+        if (!$GbDebugInfoStore) return;
         const bufferX = Math.floor(Math.max(0, ev.offsetX) / pixelSize);
         const bufferY = Math.floor(Math.max(0, ev.offsetY) / pixelSize);
         const tileX = Math.floor(bufferX / 8);
