@@ -161,21 +161,21 @@ export class Alu {
         const sourceOp = instr.operands[1];
         switch (targetOp.target) {
             case OpTarget.HL:
-                const b16 = Cpu.get16bitValue(opCodeAddress + 1, sourceOp);
+                const bu16: u16 = Cpu.get16bitValue(opCodeAddress + 1, sourceOp);
                 // Flags: -0HC
                 Cpu.SetFlag(Flag.N_Sub, 0);
-                Cpu.SetFlag(Flag.H_HalfC, isAddHalfCarry16bit(Cpu.HL, b16));
-                Cpu.SetFlag(Flag.C_Carry, isAddCarry16bit(Cpu.HL, b16));
-                Cpu.HL += b16;
+                Cpu.SetFlag(Flag.H_HalfC, (Cpu.HL & 0xFFF) + (bu16 & 0xFFF) >= 0x1000);
+                Cpu.SetFlag(Flag.C_Carry, <u32>Cpu.HL + <u32>bu16 >= 0x10000);
+                Cpu.HL += bu16;
                 break;
             case OpTarget.SP:
                 const signedSP = <i16>Cpu.StackPointer;
-                const value: i16 = <i16>Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
+                const b16: i16 = <i16>Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
                 // Flags 0 0 H C
                 Cpu.SetF(0);
-                Cpu.SetFlag(Flag.H_HalfC, ((signedSP & 0xF) + (value & 0xF)) >= 0x10);
-                Cpu.SetFlag(Flag.C_Carry, ((signedSP & 0xFF) + (value & 0xFF)) >= 0x100);
-                Cpu.StackPointer = <u16>(signedSP + value);
+                Cpu.SetFlag(Flag.H_HalfC, ((signedSP & 0xF) + (b16 & 0xF)) >= 0x10);
+                Cpu.SetFlag(Flag.C_Carry, ((signedSP & 0xFF) + (b16 & 0xFF)) >= 0x100);
+                Cpu.StackPointer = <u16>(signedSP + b16);
                 break;
             case OpTarget.A:
                 const b8 = Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
