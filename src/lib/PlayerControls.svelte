@@ -2,7 +2,12 @@
     import { DebugSessionStarted } from "../stores/debugStores";
     import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 
-    import { init, runOneFrame, setJoypad } from "../../build/release";
+    import {
+        dumpLogToConsole,
+        init,
+        runOneFrame,
+        setJoypad,
+    } from "../../build/release";
     import { GameFrames, GamePlaying } from "../stores/playStores";
     import { fetchLogs } from "../debug";
     import { useBoot, frameDelay } from "../stores/optionsStore";
@@ -11,11 +16,10 @@
     async function onRunStopClick() {
         if ($GamePlaying) {
             $GamePlaying = false;
-            $GameFrames = 0;
             init($useBoot);
+            $GameFrames = 0;
         } else {
             $GamePlaying = true;
-            $GameFrames = 0;
             init($useBoot);
             do {
                 const keys = getInputForEmu();
