@@ -39,12 +39,14 @@
     <h4 class="title">Breakpoints:</h4>
     <div class="breakpoint-info">
         <div class="add-breakpoint-form">
-            <input
-                class="address-input"
-                type="text"
-                bind:value={breakpointToAdd}
-                placeholder="address"
-            />
+            <form on:submit|preventDefault={onAddClick}>
+                <input
+                    class="address-input"
+                    type="text"
+                    bind:value={breakpointToAdd}
+                    placeholder="address"
+                />
+            </form>
             <button
                 on:click={onAddClick}
                 disabled={!strToAddress(breakpointToAdd)}
