@@ -1,11 +1,6 @@
 ☐ disassemble dynamic parts (WRAM, HRAM)
 ☐ pass CPU tests: 3 4 5 9 11
-☐ profile: https://profiler.firefox.com/public/ejzps2p1adhdyas98h1q2pbsj5vr52t4b8yepfg/calltree/?globalTrackOrder=0&implementation=js&thread=0&v=10
-    ☐ PPU stop wrapping to a Uint32?
-    ☐ PPU cache LCD control bits?
-    ☐ CPU Look at CheckAndRunInterrupts
-☐ add window(?) + OAM
-☐ Joypad
+☐ PPU: add window support
 ☐ support for ROM+RAM banks in MBC1
 ☐ battery MBC?
 ☐ ???
