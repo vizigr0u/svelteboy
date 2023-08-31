@@ -8,18 +8,21 @@ const TAC_ADDRESS: u16 = 0xFF07;
 
 @final
 export class Timer {
-    static internalDiv: u16 = 0xABCC;
+    private static readonly InitialDiv: u16 = 0xAC00; // 0xABCC; // value found on boot in cgb emu
+    private static readonly InitialTac: u8 = 0; // 0xF8; // value found on boot in cgb emu
+
+    static internalDiv: u16 = Timer.InitialDiv;
 
     static Div(): u8 { return <u8>(Timer.internalDiv >> 8); }
     static Tima: u8 = 0;
     static Tma: u8 = 0;
-    static Tac: u8 = 0xF8;
+    static Tac: u8 = Timer.InitialTac;
 
     static Init(): void {
-        Timer.internalDiv = 0xABCC;
+        Timer.internalDiv = Timer.InitialDiv;
         Timer.Tima = 0;
         Timer.Tma = 0;
-        Timer.Tac = MemoryMap.useBootRom ? 0x00 : 0xF8;
+        Timer.Tac = MemoryMap.useBootRom ? 0x00 : Timer.InitialTac;
     }
 
     static Tick(): void {
@@ -28,16 +31,16 @@ export class Timer {
         let update = false;
         switch (Timer.Tac & 0b11) {
             case 0b00:
-                update = !!(prevDiv & (1 << 9)) && !(Timer.internalDiv & (1 << 9));
+                update = (prevDiv & (1 << 9)) != 0 && (Timer.internalDiv & (1 << 9)) == 0;
                 break;
             case 0b01:
-                update = !!(prevDiv & (1 << 3)) && !(Timer.internalDiv & (1 << 3));
+                update = (prevDiv & (1 << 3)) != 0 && (Timer.internalDiv & (1 << 3)) == 0;
                 break;
             case 0b10:
-                update = !!(prevDiv & (1 << 5)) && !(Timer.internalDiv & (1 << 5));
+                update = (prevDiv & (1 << 5)) != 0 && (Timer.internalDiv & (1 << 5)) == 0;
                 break;
             case 0b1:
-                update = !!(prevDiv & (1 << 7)) && !(Timer.internalDiv & (1 << 7));
+                update = (prevDiv & (1 << 7)) != 0 && (Timer.internalDiv & (1 << 7)) == 0;
                 break;
         }
         if (update && !!(Timer.Tac & 0b100)) {

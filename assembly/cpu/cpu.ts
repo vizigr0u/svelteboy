@@ -86,7 +86,8 @@ export class Cpu {
         }
 
         if (Interrupt.masterEnabled) {
-            Interrupt.HandleInterrupts();
+            if (Interrupt.HandleInterrupts())
+                Cpu.CycleCount += 20;
             Cpu.isEnablingIME = false;
         }
 

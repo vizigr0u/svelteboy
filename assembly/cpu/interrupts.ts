@@ -57,21 +57,18 @@ export class Interrupt {
         return 0;
     }
 
-    static HandleInterrupts(): void {
+    static HandleInterrupts(): boolean {
         const flags = Interrupt.Requests() & Interrupt.GetEnabled() & 0x1F;
         if (flags != 0) {
-            if (CheckAndRunInterrupt(flags, IntType.VBlank, 0x40)) {
-
-            } else if (CheckAndRunInterrupt(flags, IntType.LcdSTAT, 0x48)) {
-
-            } else if (CheckAndRunInterrupt(flags, IntType.Timer, 0x50)) {
-
-            } else if (CheckAndRunInterrupt(flags, IntType.Serial, 0x58)) {
-
-            } else if (CheckAndRunInterrupt(flags, IntType.Joypad, 0x60)) {
-
+            if (CheckAndRunInterrupt(flags, IntType.VBlank, 0x40)
+                || CheckAndRunInterrupt(flags, IntType.LcdSTAT, 0x48)
+                || CheckAndRunInterrupt(flags, IntType.Timer, 0x50)
+                || CheckAndRunInterrupt(flags, IntType.Serial, 0x58)
+                || CheckAndRunInterrupt(flags, IntType.Joypad, 0x60)) {
+                return true;
             }
         }
+        return false;
     }
 
     @inline
