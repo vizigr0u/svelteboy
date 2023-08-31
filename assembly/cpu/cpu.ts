@@ -99,9 +99,18 @@ export class Cpu {
         return t_cycles;
     }
 
+    static GetStack(): string {
+        let stack = "";
+        for (let sp = Cpu.StackPointer; sp > 0xFF80 && sp < 0xFFFD; sp += 2) {
+            const pc: u16 = MemoryMap.GBload<u16>(sp)
+            stack += "\t\t" + uToHex(pc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(pc));
+        }
+        return stack == "" ? "(empty stack)" : stack;
+    }
+
     static GetTrace(): string {
-        let s = '-> ' + uToHex(Cpu.PCbeingRan) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(Cpu.PCbeingRan));
-        return s;
+
+        return '-> ' + uToHex(Cpu.PCbeingRan) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(Cpu.PCbeingRan)) + '\n' + Cpu.GetStack();
     }
 
     static executeNextInstruction(): u8 {
@@ -122,7 +131,7 @@ export class Cpu {
 
         // TODO  opCode != 0 -> log 2
         if (Logger.verbose >= (opCode == 0 ? 3 : 2))
-            log('executing: ' + disassembleInstruction(MemoryMap.GBToMemory(originalPc)) + `(at 0x${originalPc.toString(16)} = 0x${MemoryMap.GBToMemory(originalPc).toString(16)})`);
+            log('executing ' + uToHex<u16>(originalPc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(originalPc)));
 
         const nextPc: u16 = originalPc + totalInstructionSize;
         if (Logger.verbose >= 3)

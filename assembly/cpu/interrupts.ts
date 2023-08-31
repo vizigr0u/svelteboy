@@ -1,3 +1,5 @@
+import { Logger, log } from "../debug/logger";
+import { IntNames } from "../debug/symbols";
 import { uToHex } from "../utils/stringUtils";
 import { Cpu } from "./cpu";
 import { GB_IO_START } from "./memoryConstants";
@@ -12,6 +14,8 @@ export enum IntType {
 
 function CheckAndRunInterrupt(flags: u8, int: IntType, intAddress: u16): boolean {
     if ((flags & <u8>int) != 0) {
+        if (Logger.verbose >= 2)
+            log('Servicing INT ' + IntNames.get(int) + ', Jumping to ' + uToHex<u16>(intAddress))
         Cpu.PushToSP(Cpu.ProgramCounter);
         Cpu.ProgramCounter = intAddress;
         Interrupt.Request(int, 0);

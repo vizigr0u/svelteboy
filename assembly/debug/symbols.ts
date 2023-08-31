@@ -1,3 +1,4 @@
+import { IntType } from "../cpu/interrupts";
 import { Op, OpCondition, OpTarget } from "../cpu/opcodes";
 import { CGBMode } from "../metadata";
 
@@ -106,3 +107,11 @@ targetNames.set(OpTarget.L, "L");
 targetNames.set(OpTarget.SP, "SP");
 targetNames.set(OpTarget.Value, "Value");
 targetNames.set(OpTarget.Constant, "Constant");
+
+
+export const IntNames: Map<IntType, string> = new Map<IntType, string>();
+IntNames.set(IntType.VBlank, "VBlank");
+IntNames.set(IntType.LcdSTAT, "LcdSTAT");
+IntNames.set(IntType.Timer, "Timer");
+IntNames.set(IntType.Serial, "Serial");
+IntNames.set(IntType.Joypad, "Joypad");
