@@ -159,10 +159,9 @@ export class Alu {
     static AddOp(instr: Instruction, opCodeAddress: u16): void {
         const targetOp = instr.operands[0];
         const sourceOp = instr.operands[1];
-        let b16: u16;
         switch (targetOp.target) {
             case OpTarget.HL:
-                b16 = Cpu.get16bitValue(opCodeAddress + 1, sourceOp);
+                const b16 = Cpu.get16bitValue(opCodeAddress + 1, sourceOp);
                 // Flags: -0HC
                 Cpu.SetFlag(Flag.N_Sub, 0);
                 Cpu.SetFlag(Flag.H_HalfC, isAddHalfCarry16bit(Cpu.HL, b16));
@@ -170,12 +169,13 @@ export class Alu {
                 Cpu.HL += b16;
                 break;
             case OpTarget.SP:
-                b16 = <u16>Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
-                // Flags: 00HC - SP uses 8bit Half-carry logic - https://stackoverflow.com/a/57978555
+                const signedSP = <i16>Cpu.StackPointer;
+                const value: i16 = <i16>Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
+                // Flags 0 0 H C
                 Cpu.SetF(0);
-                Cpu.SetFlag(Flag.H_HalfC, isAddHalfCarry8bit(<u8>Cpu.StackPointer & 0xff, <u8>b16 & 0xff));
-                Cpu.SetFlag(Flag.C_Carry, isAddCarry16bit(Cpu.StackPointer, b16));
-                Cpu.StackPointer += b16;
+                Cpu.SetFlag(Flag.H_HalfC, ((signedSP & 0xF) + (value & 0xF)) >= 0x10);
+                Cpu.SetFlag(Flag.C_Carry, ((signedSP & 0xFF) + (value & 0xFF)) >= 0x100);
+                Cpu.StackPointer = <u16>(signedSP + value);
                 break;
             case OpTarget.A:
                 const b8 = Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
