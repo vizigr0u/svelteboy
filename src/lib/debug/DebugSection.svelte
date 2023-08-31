@@ -10,6 +10,8 @@
     import { DebugFrames, GbDebugInfoStore } from "../../stores/debugStores";
     import OamView from "./OamView.svelte";
     import Debugger from "./Debugger.svelte";
+    import { KeyPressMap } from "../../stores/playStores";
+    import { InputType } from "../../types";
 
     let drawTiles;
     let drawBG;
@@ -52,6 +54,93 @@
         <LogView />
         <HexDumpControl />
         <BenchmarkControl />
+        <div>
+            A <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.A)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked) $KeyPressMap.add(InputType.A);
+                    else $KeyPressMap.delete(InputType.A);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            B
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.B)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked) $KeyPressMap.add(InputType.B);
+                    else $KeyPressMap.delete(InputType.B);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            Up
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.Up)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked)
+                        $KeyPressMap.add(InputType.Up);
+                    else $KeyPressMap.delete(InputType.Up);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            Down
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.Down)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked)
+                        $KeyPressMap.add(InputType.Down);
+                    else $KeyPressMap.delete(InputType.Down);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            Left
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.Left)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked)
+                        $KeyPressMap.add(InputType.Left);
+                    else $KeyPressMap.delete(InputType.Left);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            Right
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.Right)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked)
+                        $KeyPressMap.add(InputType.Right);
+                    else $KeyPressMap.delete(InputType.Right);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            Start
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.Start)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked)
+                        $KeyPressMap.add(InputType.Start);
+                    else $KeyPressMap.delete(InputType.Start);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+            Select
+            <input
+                type="checkbox"
+                value={$KeyPressMap.has(InputType.Select)}
+                on:change={(ev) => {
+                    if (ev.currentTarget.checked)
+                        $KeyPressMap.add(InputType.Select);
+                    else $KeyPressMap.delete(InputType.Select);
+                    $KeyPressMap = $KeyPressMap;
+                }}
+            />
+        </div>
     </div>
     <div class="debug-right-panel debug-panel">
         <div class="canvas-controls">
