@@ -6,6 +6,7 @@ import { GB_IO_START } from "../../cpu/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 import { Dma } from "./dma";
+import { Cpu } from "../../cpu/cpu";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
@@ -139,7 +140,7 @@ export class Lcd {
             && (value & LcdControlBit.LCDandPPUenabled) == 0
             && Ppu.currentMode != PpuMode.VBlank) {
             if (Logger.verbose >= 1)
-                log('Ignoring disabling PPU outside of VBlank')
+                log('Ignoring disabling PPU outside of VBlank ' + Cpu.GetTrace())
             return;
         }
         if (gbAddress == LcdGbData.getLyAddress()) {
