@@ -169,8 +169,8 @@ export class Alu {
                 Cpu.HL += bu16;
                 break;
             case OpTarget.SP:
-                const signedSP = <i16>Cpu.StackPointer;
-                const b16: i16 = <i16>Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
+                const signedSP: i32 = <i32>Cpu.StackPointer;
+                const b16: i16 = <i16><i8>Cpu.get8bitSourceValue(opCodeAddress + 1, sourceOp);
                 // Flags 0 0 H C
                 Cpu.SetF(0);
                 Cpu.SetFlag(Flag.H_HalfC, ((signedSP & 0xF) + (b16 & 0xF)) >= 0x10);
