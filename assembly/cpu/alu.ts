@@ -87,23 +87,28 @@ export class Alu {
     }
 
     static SbcOp(source: Operand, originalPc: u16): void {
-        const b = Cpu.get8bitSourceValue(originalPc + 1, source) + (Cpu.HasFlag(Flag.C_Carry) ? 1 : 0);
+        const a = Cpu.A();
+        const b: u8 = Cpu.get8bitSourceValue(originalPc + 1, source);
+        const c: u8 = Cpu.HasFlag(Flag.C_Carry) ? 1 : 0;
+        Cpu.SetA(a - b - c);
         // Flags: Z1HC
-        Cpu.SetFlag(Flag.Z_Zero, Cpu.A() - b == 0);
+        Cpu.SetFlag(Flag.Z_Zero, Cpu.A() == 0);
         Cpu.SetFlag(Flag.N_Sub);
-        Cpu.SetFlag(Flag.H_HalfC, (b & 0xf) > (Cpu.A() & 0xf));
-        Cpu.SetFlag(Flag.C_Carry, b > Cpu.A());
-        Cpu.SetA(Cpu.A() - b);
+        Cpu.SetFlag(Flag.H_HalfC, <i8>(a & 0xf) - <i8>(b & 0xf) - <i8>c < 0);
+        Cpu.SetFlag(Flag.C_Carry, <i16>a - <i16>b - <i16>c < 0);
+
     }
 
     static AdcOp(source: Operand, originalPc: u16): void {
-        const b = Cpu.get8bitSourceValue(originalPc + 1, source) + (Cpu.HasFlag(Flag.C_Carry) ? 1 : 0);
+        const a = Cpu.A();
+        const b: u8 = Cpu.get8bitSourceValue(originalPc + 1, source);
+        const c: u8 = Cpu.HasFlag(Flag.C_Carry) ? 1 : 0;
+        Cpu.SetA(a + b + c);
         // Flags: Z0HC
-        Cpu.SetFlag(Flag.Z_Zero, Cpu.A() + b == 0);
+        Cpu.SetFlag(Flag.Z_Zero, Cpu.A() == 0);
         Cpu.SetFlag(Flag.N_Sub, 0);
-        Cpu.SetFlag(Flag.H_HalfC, isAddHalfCarry8bit(Cpu.A(), b));
-        Cpu.SetFlag(Flag.C_Carry, isAddCarry8bit(Cpu.A(), b));
-        Cpu.SetA(Cpu.A() + b);
+        Cpu.SetFlag(Flag.H_HalfC, (a & 0xf) + (b & 0xf) + c > 0xf);
+        Cpu.SetFlag(Flag.C_Carry, <u16>a + b + c > 0xFF);
     }
 
     static CpOp(sourceOp: Operand, originalPc: u16): void {
