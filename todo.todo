@@ -1,6 +1,6 @@
 ☐ disassemble dynamic parts (WRAM, HRAM)
-☐ pass CPU tests: 3 4 5 9 11
 ☐ PPU: add window support
+☐ Pass Acid2
 ☐ support for ROM+RAM banks in MBC1
 ☐ battery MBC?
 ☐ ???
