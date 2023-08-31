@@ -15,16 +15,20 @@
         debugGetStatus,
         setVerbose,
         debugRunFrame,
+        setJoypad,
     } from "../../../build/release";
     import { DebugStopReason, type GbDebugInfo } from "../../types";
     import { fetchLogs } from "../../debug";
     import { frameDelay, useBoot } from "../../stores/optionsStore";
+    import { getInputForEmu } from "../../inputs";
 
     let verbose: number = 1;
     let breakSkipCount: number = 1;
 
     function debuggerRunOnFrame(): Promise<DebugStopReason> {
         return new Promise<DebugStopReason>((r) => {
+            const keys = getInputForEmu();
+            setJoypad(keys);
             const res = debugRunFrame();
             $DebugFrames++;
             fetchLogs();
@@ -36,6 +40,8 @@
     function debuggerStep(): Promise<void> {
         return new Promise<void>((resolve) => {
             $ProgramRunning = true;
+            const keys = getInputForEmu();
+            setJoypad(keys);
             debugStep();
             fetchLogs();
             $ProgramRunning = false;

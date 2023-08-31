@@ -1,3 +1,4 @@
+import { get } from "svelte/store";
 import { KeyPressMap } from "./stores/playStores";
 import { InputType } from "./types";
 
@@ -13,10 +14,6 @@ export const defaultKeybinds: { [k: string]: InputType } = {
 }
 
 function updateInput(input: InputType, pressed: boolean) {
-    // KeyPresses.update(keys => {
-    //     keys[input] = pressed;
-    //     return keys;
-    // })
     KeyPressMap.update(m => {
         if (!pressed)
             m.delete(input);
@@ -24,6 +21,14 @@ function updateInput(input: InputType, pressed: boolean) {
             m.add(input);
         return m;
     })
+}
+
+export function getInputForEmu(): number {
+    let res = 0;
+    for (let k of get(KeyPressMap)) {
+        res |= Number(k)
+    }
+    return res;
 }
 
 function keydownHandler(event: KeyboardEvent) {

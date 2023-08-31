@@ -2,10 +2,11 @@
     import { DebugSessionStarted } from "../stores/debugStores";
     import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 
-    import { init, runOneFrame } from "../../build/release";
+    import { init, runOneFrame, setJoypad } from "../../build/release";
     import { GameFrames, GamePlaying } from "../stores/playStores";
     import { fetchLogs } from "../debug";
     import { useBoot, frameDelay } from "../stores/optionsStore";
+    import { getInputForEmu } from "../inputs";
 
     async function onRunStopClick() {
         if ($GamePlaying) {
@@ -17,6 +18,8 @@
             $GameFrames = 0;
             init($useBoot);
             do {
+                const keys = getInputForEmu();
+                setJoypad(keys);
                 await new Promise<void>((r) => r(runOneFrame()));
                 GameFrames.update((f) => f + 1);
                 await fetchLogs();
