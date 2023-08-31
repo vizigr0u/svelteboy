@@ -1,5 +1,3 @@
-import { log } from "../debug/logger";
-import { uToHex } from "../utils/stringUtils";
 import { Cpu, Flag } from "./cpu";
 import { Instruction, OpTarget, Operand } from "./opcodes";
 
@@ -81,7 +79,10 @@ export class Alu {
 
     static SwapOp(target: Operand): void {
         let value: u8 = Cpu.get8bitSourceValue(0x00, target);
-        value = ((value && 0xF) << 4) | ((value && 0xF0) >> 4);
+        value = ((value & 0xF) << 4) | ((value & 0xF0) >> 4);
+        // Flags Z 0 0 0
+        Cpu.SetF(0);
+        Cpu.SetFlag(Flag.Z_Zero, value == 0);
         Cpu.set8bitTargetValue(0x00, target, value);
     }
 
