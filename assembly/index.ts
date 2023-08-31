@@ -84,3 +84,5 @@ export {
   getBootLines,
   getCartLines
 } from "./debug/disassemble";
+
+export { setJoypad } from "./io/joypad";
