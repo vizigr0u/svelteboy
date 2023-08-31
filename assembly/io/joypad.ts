@@ -63,7 +63,7 @@ export class Joypad {
         const buttonBits: u8 = (Joypad.selector == InputSelector.Actions) ? (<u8>(~Joypad.keys) >> 4) : (<u8>(~Joypad.keys) & 0xF);
         // const value: u8 = <u8>Joypad.selector | ((Joypad.keys >> ((<u8>Joypad.selector >> 5) << 2)) & 0xF);
         const value: u8 = <u8>0b11000000 | <u8>(<u8>~<u8>Joypad.selector & <u8>0b00110000) | buttonBits;
-        if (Logger.verbose >= 3 || Logger.verbose >= 1 && (value & 0xF) != 0xF) // TODO: tone down
+        if (Logger.verbose >= 3 || Logger.verbose >= 2 && (value & 0xF) != 0xF) // TODO: tone down
             log('Joypad read: ' + `selector: ${Joypad.selector == InputSelector.Actions ? 'Actions' : 'DirPad'}, key: ${value.toString(2)}`);
         return value;
     }
