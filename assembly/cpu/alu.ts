@@ -336,6 +336,9 @@ export class Alu {
     @inline
     static CplOp(): void {
         Cpu.SetA(~Cpu.A());
+        // Flags - 1 1 -
+        Cpu.SetFlag(Flag.N_Sub, 1);
+        Cpu.SetFlag(Flag.H_HalfC, 1);
     }
 
     static CcfOp(): void {
