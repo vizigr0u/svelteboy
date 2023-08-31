@@ -20,9 +20,9 @@ function isAddHalfCarry16bit(a: u16, b: u16): boolean {
 function rr(value: u8): u8 {
     const bit0isSet: boolean = (value & 1) == 1;
     value = (value >> 1) | (Cpu.HasFlag(Flag.C_Carry) ? 0x80 : 0);
+    // Flags 0 0 0 C for RRA - Z 0 0 C for RR r
     Cpu.SetF(0);
     Cpu.SetFlag(Flag.C_Carry, bit0isSet);
-    Cpu.SetFlag(Flag.Z_Zero, value == 0);
     return value;
 }
 
@@ -37,9 +37,9 @@ function rrc(value: u8): u8 {
 function rl(value: u8): u8 {
     const bit7isSet: boolean = (value & 0x80) == 0x80;
     value = (value << 1) | (Cpu.HasFlag(Flag.C_Carry) ? 1 : 0);
+    // Flags 0 0 0 C for RLA - Z 0 0 C for RL r
     Cpu.SetF(0);
     Cpu.SetFlag(Flag.C_Carry, bit7isSet);
-    Cpu.SetFlag(Flag.Z_Zero, value == 0);
     return value;
 }
 
@@ -246,27 +246,8 @@ export class Alu {
         Cpu.set8bitTargetValue(0x00, sourceReg, regValue | bit);
     }
 
-    static RlcOp(target: Operand): void {
-        const value: u8 = Cpu.get8bitSourceValue(0x00, target);
-        Cpu.set8bitTargetValue(0x00, target, rlc(value));
-        // Flags Z 0 0 C
-        Cpu.SetFlag(Flag.Z_Zero, value == 0);
-    }
-
     static RlcaOp(): void {
         Cpu.SetA(rlc(Cpu.A()));
-    }
-
-    static RlOp(target: Operand): void {
-        const value: u8 = Cpu.get8bitSourceValue(0x00, target);
-        Cpu.set8bitTargetValue(0x00, target, rl(value));
-    }
-
-    static RrcOp(target: Operand): void {
-        const value: u8 = Cpu.get8bitSourceValue(0x00, target);
-        Cpu.set8bitTargetValue(0x00, target, rrc(value));
-        // Flags Z 0 0 C
-        Cpu.SetFlag(Flag.Z_Zero, value == 0);
     }
 
     static RrcaOp(): void {
@@ -281,9 +262,36 @@ export class Alu {
         Cpu.SetA(rl(Cpu.A()));
     }
 
+    static RlcOp(target: Operand): void {
+        const source: u8 = Cpu.get8bitSourceValue(0x00, target);
+        const value = rlc(source)
+        Cpu.set8bitTargetValue(0x00, target, value);
+        // Flags Z 0 0 C
+        Cpu.SetFlag(Flag.Z_Zero, value == 0);
+    }
+
+    static RlOp(target: Operand): void {
+        const source: u8 = Cpu.get8bitSourceValue(0x00, target);
+        const value = rl(source)
+        Cpu.set8bitTargetValue(0x00, target, value);
+        // Flags Z 0 0 C
+        Cpu.SetFlag(Flag.Z_Zero, value == 0);
+    }
+
+    static RrcOp(target: Operand): void {
+        const source: u8 = Cpu.get8bitSourceValue(0x00, target);
+        const value = rrc(source)
+        Cpu.set8bitTargetValue(0x00, target, value);
+        // Flags Z 0 0 C
+        Cpu.SetFlag(Flag.Z_Zero, value == 0);
+    }
+
     static RrOp(target: Operand): void {
-        const value: u8 = Cpu.get8bitSourceValue(0x00, target);
-        Cpu.set8bitTargetValue(0x00, target, rr(value));
+        const source: u8 = Cpu.get8bitSourceValue(0x00, target);
+        const value = rr(source);
+        Cpu.set8bitTargetValue(0x00, target, value);
+        // Flags Z 0 0 C
+        Cpu.SetFlag(Flag.Z_Zero, value == 0);
     }
 
     static SrlOp(target: Operand): void {
