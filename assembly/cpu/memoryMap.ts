@@ -99,7 +99,7 @@ export class MemoryMap {
     }
 
     static GBload<T>(gbAddress: u16): T {
-        if (gbAddress < 0xFF80 && Dma.active) {
+        if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
             if (Logger.verbose >= 1) {
                 log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
             }
@@ -125,7 +125,7 @@ export class MemoryMap {
     }
 
     static GBstore<T>(gbAddress: u16, value: T): void {
-        if (gbAddress < 0xFF80 && Dma.active) {
+        if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
             if (Logger.verbose >= 2) {
                 log(`Trying to write to ${uToHex<u16>(gbAddress)} during DMA, ignored.`);
             }
