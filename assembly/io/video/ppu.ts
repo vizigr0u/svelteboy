@@ -54,7 +54,7 @@ export class PpuOamFifo {
         assert(!PpuOamFifo.IsFull(), 'Trying to insert in full PpuOamFifo');
         const x = Oam.view[oamIndex].xPos;
         let i = 0;
-        while (i < (PpuOamFifo.size) && x > PpuOamFifo.Peek(i).xPos)
+        while (i < (PpuOamFifo.size) && x >= PpuOamFifo.Peek(i).xPos)
             i++;
         for (let j = PpuOamFifo.size; j > i; j--) {
             PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1];
