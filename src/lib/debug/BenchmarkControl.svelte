@@ -15,6 +15,7 @@
 </script>
 
 <div class="benchmark-section debug-tool-container">
+    <h3>Benchmark</h3>
     <div class="benchmark-controls">
         <label>
             Frames

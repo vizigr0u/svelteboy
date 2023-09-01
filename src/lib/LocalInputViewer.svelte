@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { InputType } from "../../inputs";
-    import { KeyPressMap } from "../../stores/playStores";
+    import { InputType } from "../inputs";
+    import { KeyPressMap } from "../stores/playStores";
 </script>
 
 <div class="input-viewer">

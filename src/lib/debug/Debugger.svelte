@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { GbDebugInfoStore } from "../../stores/debugStores";
   import BreakpointsControl from "./BreakpointsControl.svelte";
+  import CpuDebugInfo from "./CpuDebugInfo.svelte";
   import DebugControlBar from "./DebugControlBar.svelte";
 
   import Disassembler from "./Disassembler.svelte";
@@ -17,6 +19,9 @@
       <BreakpointsControl />
     </div>
   </div>
+  {#if $GbDebugInfoStore != undefined}
+    <CpuDebugInfo />
+  {/if}
 </div>
 
 <style>
