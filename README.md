@@ -1,9 +1,12 @@
-# svelteboy
-A gameboy emulator in AssemblyScript with a Svelte front-end
+# SvelteBoy
+A gameboy emulator and debugger written in AssemblyScript and Svelte
+
+Try it on my [github page](https://vizigr0u.github.io/svelteboy/)
 
 Frontend in [Vite](https://vitejs.dev/)+[Svelte](https://svelte.dev/) - backend in [AssemblyScript](https://www.assemblyscript.org)
 
-![Screenshot as of 2023-08-19 - e1df429](https://github.com/vizigr0u/svelteboy/blob/main/Screenshot%202023-08-19%20005928.png)
+![Capture as of 2023-09-01](https://github.com/vizigr0u/svelteboy/assets/1981001/dba8aead-0ec1-4117-9bfd-aa19c63f18e0)
+
 
 ## Status and scope
 
@@ -13,19 +16,9 @@ This is a gameboy emulator (DMG, the old bulky black and white one).
 
 being able to run at least one of these : Tetris, Pokemon Red.
 
-First up to the title screen, then maybe play if the performance is not too bad.
-
-Let's be realistic: it will probably never work completely.
-
 ### Features
 
 A debugger that is good enough for me to dev and compare with good emulators.
-
-### Hosting
-
-As long as this is too unstable and can't even display a game main title, I don't plan on hosting this to github pages.
-
-Maybe I'll eventually add screen captures here.
 
 ## Installing
 
