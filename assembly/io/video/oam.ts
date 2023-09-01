@@ -1,6 +1,9 @@
 import { GB_OAM_SIZE, GB_OAM_START } from "../../cpu/memoryConstants";
+import { Logger } from "../../debug/logger";
 import { InlinedArray, InlinedReadonlyView } from "../../utils/inlinedArray";
+import { uToHex } from "../../utils/stringUtils";
 import { Dma } from "./dma";
+import { Lcd, LcdControlBit } from "./lcd";
 import { Ppu, PpuMode } from "./ppu";
 
 export const MAX_OAM_COUNT: u32 = 40;
@@ -12,6 +15,10 @@ export enum OamAttribute {
     XFlip = 5,
     YFlip = 6,
     BGandWindowOver = 7
+}
+
+function log(s: string): void {
+    Logger.Log("MEM: " + s);
 }
 
 @unmanaged
@@ -47,7 +54,21 @@ export class Oam {
 
     @inline
     static Store<T>(gbAddress: u16, value: T): void {
-        if (!Dma.active && (Ppu.currentMode == PpuMode.HBlank || Ppu.currentMode == PpuMode.VBlank))
-            store<T>(GB_OAM_START + gbAddress - 0xFE00, value);
+        if (Dma.active) {
+            if (Logger.verbose >= 2) {
+                log('Ignoring writing to OAM during DMA: ' + uToHex<u16>(gbAddress))
+            }
+            return;
+        }
+        if (Lcd.data.hasControlBit(LcdControlBit.LCDandPPUenabled) && Ppu.currentMode != PpuMode.HBlank && Ppu.currentMode != PpuMode.VBlank) {
+            if (Logger.verbose >= 2) {
+                log('Ignoring writing to OAM outside of VBlank and HBlank: ' + uToHex<u16>(gbAddress) + ` (current mode: ${Ppu.currentMode})`)
+            }
+            return;
+        }
+        if (Logger.verbose >= 3)
+            log('OAM write ' + uToHex<T>(value) + ' to ' + uToHex<u16>(gbAddress));
+
+        store<T>(GB_OAM_START + gbAddress - 0xFE00, value);
     }
 }
