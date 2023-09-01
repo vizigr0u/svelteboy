@@ -15,7 +15,7 @@ export function setDisassemlyForRom(rom: RomReference, isLoading: boolean, progr
     });
 }
 
-export const Verbose = MakeLocalStore<number>("DebugVerbose", 1);
+export const Verbose = writable<number>(1);
 export const Breakpoints = writable<Set<number>>(new Set<number>());
 export const DebugSessionStarted = writable<boolean>(false);
 export const ProgramRunning = writable<boolean>(false);
