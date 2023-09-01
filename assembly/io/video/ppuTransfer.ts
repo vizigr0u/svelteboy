@@ -1,10 +1,10 @@
 import { Cpu } from "../../cpu/cpu";
 import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../cpu/memoryConstants";
 import { Logger } from "../../debug/logger";
-import { LCD_WIDTH } from "./constants";
+import { LCD_HEIGHT, LCD_WIDTH } from "./constants";
 import { Fifo } from "./fifo";
 import { Lcd, LcdControlBit } from "./lcd";
-import { Oam, OamAttribute } from "./oam";
+import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
 
 enum PpuFetchState {
@@ -66,6 +66,13 @@ export class PpuTransfer {
         tickPushPixel();
     }
 
+    private static isInWindow(): boolean {
+        const lcd = Lcd.data;
+        return Lcd.isWindowVisible()
+            && PpuTransfer.fetcherX + 7 >= lcd.windowX && PpuTransfer.fetcherX + 7 < lcd.windowX + LCD_WIDTH + 14
+            && lcd.lY >= lcd.windowY && lcd.lY < lcd.windowY + LCD_HEIGHT;
+    }
+
     private static TickFetcher(): void {
         const lcd = Lcd.data;
         switch (PpuTransfer.state) {
@@ -73,13 +80,11 @@ export class PpuTransfer {
                 PpuTransfer.spriteCount = 0;
 
                 if (lcd.hasControlBit(LcdControlBit.BGandWindowEnabled)) {
-                    const mapX: u8 = PpuTransfer.fetcherX + (lcd.scrollX);
-                    const mapY: u8 = (lcd.lY + lcd.scrollY);
-                    let mapBase = MAP_BASE_LO;
-                    const isInWindow = lcd.hasControlBit(LcdControlBit.WindowEnabled) && PpuTransfer.fetcherX + 7 >= lcd.windowX && lcd.lY >= lcd.windowY;
-                    if (lcd.hasControlBit(LcdControlBit.BGTileMapArea) && !isInWindow ||
-                        lcd.hasControlBit(LcdControlBit.WindowTileMapArea) && isInWindow)
-                        mapBase = MAP_BASE_HI;
+                    const inWindow = PpuTransfer.isInWindow();
+                    const mapBaseIsHigh = lcd.hasControlBit(inWindow ? LcdControlBit.WindowTileMapArea : LcdControlBit.BGTileMapArea);
+                    const mapBase = mapBaseIsHigh ? MAP_BASE_HI : MAP_BASE_LO;
+                    const mapX: u8 = inWindow ? PpuTransfer.fetcherX + 7 - lcd.windowX : PpuTransfer.fetcherX + (lcd.scrollX);
+                    const mapY: u8 = inWindow ? Lcd.WindowLineY : lcd.lY + lcd.scrollY;
 
                     let dataIndex: u8 = load<u8>(mapBase + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
                     const tileBaseIsLow = Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea);
