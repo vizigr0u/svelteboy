@@ -76,6 +76,18 @@ export class MemoryMap {
                 return GB_RAM_START + gbAddress - 0xA000 + MemoryMap.currentRamBankIndex * GB_RAM_BANK_SIZE;
             case 0xE:
             case 0xF:
+                if (gbAddress <= 0xFDFF) {
+                    if (Logger.verbose >= 2)
+                        log('Ignoring access to Echo RAM ' + uToHex<u16>(gbAddress))
+                    return GB_RESTRICTED_AREA_ADDRESS;
+                }
+                if (gbAddress <= 0xFE9F)
+                    return GB_OAM_START + gbAddress - 0xFE00;
+                if (gbAddress <= 0xFEFF) {
+                    if (Logger.verbose >= 2)
+                        log('Ignoring access to unusable area ' + uToHex<u16>(gbAddress))
+                    return GB_RESTRICTED_AREA_ADDRESS;
+                }
                 if (gbAddress < 0xFF80)
                     return GB_IO_START + gbAddress - 0xFF00;
                 return GB_HIGH_RAM_START + gbAddress - 0xFF80;
