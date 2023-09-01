@@ -1,4 +1,4 @@
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { IO } from "../io/io";
 import { Dma } from "../io/video/dma";
 import { Oam } from "../io/video/oam";
@@ -22,6 +22,10 @@ import {
     GB_OAM_SIZE,
     GB_OAM_START
 } from "./memoryConstants";
+
+function log(s: string): void {
+    Logger.Log("MEM: " + s);
+}
 
 @final
 export class MemoryMap {

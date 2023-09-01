@@ -1,4 +1,4 @@
-import { Logger, log, setVerbose } from "./debug/logger";
+import { Logger } from "./debug/logger";
 import { ByteReader } from "./utils/bytereader";
 
 export enum CartridgeType {
@@ -38,6 +38,10 @@ export enum CGBMode {
     CGBOnly = 0xC0,
 }
 
+function log(s: string): void {
+    Logger.Log("ROM: " + s);
+}
+
 @unmanaged
 export class Metadata {
     title: string = "";
@@ -57,7 +61,7 @@ export class Metadata {
 
     static read(rom: ArrayBuffer): Metadata {
         if (Logger.verbose >= 2)
-            console.log('Extracting metadata from rom of size ' + rom.byteLength.toString()); // TODO CHANGE TO LOG
+            log('Extracting metadata from rom of size ' + rom.byteLength.toString());
         let reader = new ByteReader(rom);
         reader.seek(0x134);
         let mt = new Metadata();

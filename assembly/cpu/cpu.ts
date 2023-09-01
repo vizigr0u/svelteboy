@@ -2,7 +2,7 @@ import { Alu } from "./alu";
 import { CpuOps } from "./cpuOps";
 import { disassembleInstruction, getMnemonicName, getOperandTargetName } from "../debug/disassemble";
 import { Interrupt } from "./interrupts";
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { MemoryMap } from "./memoryMap";
 import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
@@ -12,6 +12,10 @@ export enum Flag {
     N_Sub = 0b01000000,
     H_HalfC = 0b00100000,
     C_Carry = 0b00010000,
+}
+
+function log(s: string): void {
+    Logger.Log("CPU: " + s);
 }
 
 @final

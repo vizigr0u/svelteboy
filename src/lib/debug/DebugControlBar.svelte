@@ -5,6 +5,7 @@
         DebugSessionStarted,
         LastStopReason,
         DebugFrames,
+        Verbose,
     } from "../../stores/debugStores";
     import { loadedCartridge, loadedBootRom } from "../../stores/romStores";
 
@@ -13,16 +14,15 @@
         debugPause,
         init,
         debugGetStatus,
-        setVerbose,
         debugRunFrame,
         setJoypad,
+        setVerbose,
     } from "../../../build/release";
     import { DebugStopReason, type GbDebugInfo } from "../../types";
     import { fetchLogs } from "../../debug";
     import { frameDelay, useBoot } from "../../stores/optionsStore";
     import { getInputForEmu } from "../../inputs";
 
-    let verbose: number = 1;
     let breakSkipCount: number = 1;
 
     function debuggerRunOnFrame(): Promise<DebugStopReason> {
@@ -51,11 +51,11 @@
 
     function initDebug() {
         init($useBoot);
+        setVerbose($Verbose);
         $DebugSessionStarted = true;
     }
 
     async function onStepClick() {
-        setVerbose(verbose);
         if (!$DebugSessionStarted) {
             initDebug();
         }
@@ -64,7 +64,6 @@
     }
 
     async function onNextFrameClick() {
-        setVerbose(verbose);
         if (!$DebugSessionStarted) {
             initDebug();
         }
@@ -72,7 +71,6 @@
     }
 
     async function onIgnoreBreakClick() {
-        setVerbose(verbose);
         if (!$DebugSessionStarted) {
             initDebug();
         }
@@ -106,7 +104,6 @@
     }
 
     async function onRunPauseClick() {
-        setVerbose(verbose);
         if ($ProgramRunning) {
             debugPause();
             fetchLogs();
@@ -128,10 +125,6 @@
             $LastStopReason = lastStopReason;
             $ProgramRunning = false;
         }
-    }
-
-    function onVerboseChange() {
-        setVerbose(verbose);
     }
 </script>
 
@@ -172,17 +165,6 @@
     >
     <button on:click={onStopClick} disabled={!$DebugSessionStarted}>Stop</button
     >
-    <label
-        >Verbose
-        <input
-            type="number"
-            class="verbose-input"
-            bind:value={verbose}
-            on:change={onVerboseChange}
-            min="0"
-            max="10"
-        />
-    </label>
 </div>
 
 <style>
@@ -204,9 +186,5 @@
         font-size: 0.8em;
         height: 1.5em;
         padding: 0 0.2em;
-    }
-
-    .verbose-input {
-        max-width: 3em;
     }
 </style>

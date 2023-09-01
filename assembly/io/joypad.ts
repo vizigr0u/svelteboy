@@ -1,8 +1,12 @@
 import { IntType, Interrupt } from "../cpu/interrupts";
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 
 const JOYPAD_ADDRESS: u16 = 0xFF00;
+
+function log(s: string): void {
+    Logger.Log("IO: " + s);
+}
 
 enum InputType {
     Right = 1 << 0,

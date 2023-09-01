@@ -25,8 +25,6 @@ export class Logger {
     }
 }
 
-export const log = Logger.Log;
-
 export function setVerbose(v: u8): void {
     Logger.verbose = v;
 }

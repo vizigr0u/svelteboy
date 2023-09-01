@@ -1,7 +1,7 @@
 import { Debug } from "../../debug/debug";
 import { IntType, Interrupt } from "../../cpu/interrupts";
 import { IO } from "../io";
-import { Logger, log } from "../../debug/logger";
+import { Logger } from "../../debug/logger";
 import { GB_IO_START } from "../../cpu/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
@@ -10,6 +10,10 @@ import { Cpu } from "../../cpu/cpu";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
+
+function log(s: string): void {
+    Logger.Log("IO: " + s);
+}
 
 export enum LcdControlBit {
     BGandWindowEnabled = 0,
