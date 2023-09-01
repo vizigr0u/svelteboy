@@ -40,7 +40,7 @@ function keydownHandler(event: KeyboardEvent) {
     }
 
     updateInput(defaultKeybinds[event.key], true);
-    event.preventDefault();
+    // event.preventDefault();
 }
 
 function keyupHandler(event: KeyboardEvent) {
@@ -51,7 +51,7 @@ function keyupHandler(event: KeyboardEvent) {
         return;
 
     updateInput(defaultKeybinds[event.key], false);
-    event.preventDefault();
+    // event.preventDefault();
 }
 
 export function EnableKeyBoardInput() {

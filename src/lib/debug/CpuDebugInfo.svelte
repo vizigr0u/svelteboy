@@ -7,7 +7,7 @@
     import RegisterView from "./RegisterView.svelte";
 </script>
 
-<div class="cpu-debug-info debug-tool-container">
+<div class="cpu-debug-info">
     {#if $GbDebugInfoStore == undefined}
         Start debugging to see debug info.
     {:else}

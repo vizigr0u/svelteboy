@@ -4,7 +4,7 @@
     import FpsCounter from "./debug/FPSCounter.svelte";
     import LcdCanvas from "./LcdCanvas.svelte";
     import { playerPixelSize } from "../stores/optionsStore";
-    import LocalInputViewer from "./debug/LocalInputViewer.svelte";
+    import LocalInputViewer from "./LocalInputViewer.svelte";
     import { onMount } from "svelte";
     import { EnableKeyBoardInput, DisableKeyBoardInput } from "../inputs";
 
