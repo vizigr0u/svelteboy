@@ -1,5 +1,5 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
-import { Logger, log } from "../../debug/logger";
+import { Logger } from "../../debug/logger";
 import { InlinedReadonlyView } from "../../utils/inlinedArray";
 import { DefaultPaletteColors, LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
@@ -24,6 +24,10 @@ const MAX_SPRITES_PER_LINE: u32 = 10;
 const MAX_SPRITES_PER_FRAME: u32 = 40;
 
 const FRAME_BUFFER_SIZE: u32 = LCD_RES * 4; // 4 bpp
+
+function log(s: string): void {
+    Logger.Log("PPU: " + s);
+}
 
 export class PpuOamFifo {
     /** Head index of the PpuOamFifo */

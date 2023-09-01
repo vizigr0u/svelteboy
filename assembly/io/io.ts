@@ -1,5 +1,5 @@
 import { Interrupt } from "../cpu/interrupts";
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { MemoryMap } from "../cpu/memoryMap";
 import { GB_IO_START } from "../cpu/memoryConstants";
 import { Serial } from "./serial";
@@ -11,6 +11,10 @@ import { AudioInput } from "./audioInputs";
 import { Joypad } from "./joypad";
 
 const UNHANDLED_CGB_START: u32 = 0xFF4D;
+
+function log(s: string): void {
+    Logger.Log("IO: " + s);
+}
 
 @final
 export class IO {

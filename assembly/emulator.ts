@@ -1,6 +1,6 @@
 import { Cpu } from "./cpu/cpu";
 import { IO } from "./io/io";
-import { Logger, log } from "./debug/logger";
+import { Logger } from "./debug/logger";
 import { MemoryMap } from "./cpu/memoryMap";
 import { Timer } from "./io/timer";
 import { Dma } from "./io/video/dma";
@@ -11,6 +11,10 @@ const CYCLES_PER_SECOND: u32 = 4194162; // measured on real GBs in a small surve
 
 const FPS: u32 = 60;
 const CYCLES_PER_FRAME: u32 = CYCLES_PER_SECOND / FPS;
+
+function log(s: string): void {
+    Logger.Log("EMU: " + s);
+}
 
 @final export class Emulator {
     static wasInit: boolean = false;

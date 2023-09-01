@@ -1,11 +1,15 @@
 import { MemoryMap, loadRom } from "./cpu/memoryMap";
 import { CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE } from "./cpu/memoryConstants";
-import { Logger, log } from "./debug/logger";
+import { Logger } from "./debug/logger";
 import { CGBModeNames, CartridgeTypeNames } from "./debug/symbols";
 import { CGBMode, CartridgeType, Metadata } from "./metadata";
 import { uToHex } from "./utils/stringUtils";
 
 const supportedTypes: CartridgeType[] = [CartridgeType.ROM_ONLY, CartridgeType.MBC1, CartridgeType.MBC1_RAM, CartridgeType.MBC1_RAM_BATTERY];
+
+function log(s: string): void {
+    Logger.Log("ROM: " + s);
+}
 
 @final
 export class Cartridge {

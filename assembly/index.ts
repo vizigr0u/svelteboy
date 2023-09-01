@@ -3,8 +3,6 @@ memory.grow(1);
 import { Emulator } from "./emulator";
 import { MemoryMap } from "./cpu/memoryMap";
 import { Ppu } from "./io/video/ppu";
-import { log } from "./debug/logger";
-import { uToHex } from "./utils/stringUtils";
 
 export { setVerbose, spliceLogs, dumpLogToConsole } from "./debug/logger";
 

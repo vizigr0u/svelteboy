@@ -1,9 +1,13 @@
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { IO } from "./io";
 
 const AUDIO_IO_START: u16 = 0xFF10;
 const AUDIO_IO_LAST_ADDRESS: u16 = 0xFF3F;
+
+function log(s: string): void {
+    Logger.Log("AUD: " + s);
+}
 
 @final
 export class AudioInput {

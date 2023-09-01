@@ -3,7 +3,11 @@ import { getOperandTargetName, getConditionName } from "../debug/disassemble";
 import { MemoryMap } from "./memoryMap";
 import { Operand, Instruction, OpTarget, OpCondition } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
+
+function log(s: string): void {
+    Logger.Log("CPU: " + s);
+}
 
 function checkAndStoreCondition(cond: OpCondition): boolean {
     Cpu.failedLastCondition = !isConditionFullfilled(cond);

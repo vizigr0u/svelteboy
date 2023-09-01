@@ -1,7 +1,11 @@
 import { GB_OAM_START } from "../../cpu/memoryConstants";
 import { MemoryMap } from "../../cpu/memoryMap";
-import { Logger, log } from "../../debug/logger";
+import { Logger } from "../../debug/logger";
 import { uToHex } from "../../utils/stringUtils";
+
+function log(s: string): void {
+    Logger.Log("PPU: " + s);
+}
 
 @final
 export class Dma {

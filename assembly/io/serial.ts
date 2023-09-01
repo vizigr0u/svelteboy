@@ -1,10 +1,14 @@
 import { MemoryMap } from "../cpu/memoryMap";
 import { Debug } from "../debug/debug";
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { IO } from "./io";
 
 const SB_ADDRESS: u16 = 0xFF01;
 const SC_ADDRESS: u16 = 0xFF02;
+
+function log(s: string): void {
+    Logger.Log("SRL: " + s);
+}
 
 @final
 export class Serial {

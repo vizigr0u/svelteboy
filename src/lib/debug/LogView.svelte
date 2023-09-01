@@ -1,9 +1,27 @@
 <script lang="ts">
-    import { DebugLines, ProgramRunning } from "../../stores/debugStores";
+    import { setVerbose } from "../../../build/release";
+    import {
+        DebugLines,
+        MutedCategories,
+        ProgramRunning,
+        Verbose,
+    } from "../../stores/debugStores";
     import { loadedCartridge } from "../../stores/romStores";
     import { humanReadableNumber } from "../../utils";
 
     let maxLines = 500;
+
+    const LogCategories = [
+        "EMU",
+        "CPU",
+        "PPU",
+        "MEM",
+        "AUD",
+        "DBG",
+        "IO:",
+        "SRL",
+        "ROM",
+    ];
 
     function onClearClick() {
         $DebugLines = [];
@@ -28,10 +46,14 @@
         return `${getCurrentDateTime()}_${$loadedCartridge?.filename}.txt`;
     }
 
-    function onDownloadClick() {
+    function filterLog(log: string[], mutedCategories: string[]): string[] {
+        return log.filter((m) => !mutedCategories.includes(m.slice(0, 3)));
+    }
+
+    function downloadLog(mutedCategories: string[]) {
         const link = document.createElement("a");
         const file = new Blob(
-            $DebugLines.map((s) => s + "\n"),
+            filterLog($DebugLines, mutedCategories).map((s) => s + "\n"),
             { type: "text/plain" }
         );
         link.href = URL.createObjectURL(file);
@@ -39,11 +61,43 @@
         link.click();
         URL.revokeObjectURL(link.href);
     }
+
+    function toggleCategory(cat: string) {
+        MutedCategories.update((cats) => {
+            if (cats.includes(cat)) cats.splice(cats.indexOf(cat), 1);
+            else cats.push(cat);
+            return cats;
+        });
+    }
 </script>
 
 <div class="log-section debug-tool-container">
-    <h4 class="log-title">Log</h4>
+    <h3>Logs</h3>
     <div class="log-section-controls">
+        <label
+            >Verbose
+            <input
+                type="number"
+                class="verbose-input"
+                bind:value={$Verbose}
+                on:change={() => setVerbose($Verbose)}
+                min="0"
+                max="10"
+            />
+        </label>
+        <div class="log-category-dropdown">
+            <button class="log-category-toggle">Filter... </button>
+            <div class="log-category-dropdown-content">
+                {#each LogCategories as cat}
+                    <button
+                        class="category-option"
+                        on:click={() => toggleCategory(cat)}
+                        >{$MutedCategories.includes(cat) ? "\u2610" : "\u2611"}
+                        {cat}</button
+                    >
+                {/each}
+            </div>
+        </div>
         {#if $DebugLines && $DebugLines.length > maxLines}
             <span class="logview-hint"
                 >showing {maxLines}/{humanReadableNumber($DebugLines.length)} lines</span
@@ -51,32 +105,59 @@
         {/if}
         <button
             on:click={onClearClick}
-            disabled={$DebugLines && $DebugLines.length == 0}
+            disabled={!$DebugLines || $DebugLines.length == 0}
             class="log-clear-button">Clear</button
         >
         <button
-            on:click={onDownloadClick}
-            disabled={($DebugLines && $DebugLines.length == 0) ||
+            on:click={() => downloadLog([])}
+            disabled={!$DebugLines ||
+                $DebugLines.length == 0 ||
                 $ProgramRunning}
             class="log-clear-button">Download</button
         >
+        <button
+            on:click={() => downloadLog($MutedCategories)}
+            disabled={!$DebugLines ||
+                $DebugLines.length == 0 ||
+                $ProgramRunning}
+            class="log-clear-button">Download Fitlered</button
+        >
     </div>
     <div class="log-container">
-        {#each $DebugLines.slice(-maxLines) as item}
+        {#each filterLog($DebugLines, $MutedCategories).slice(-maxLines) as item}
             <span>{item}</span>
         {/each}
-        <!-- <MyVirtualList items={} let:item> -->
-        <!-- </MyVirtualList> -->
     </div>
 </div>
 
 <style>
+    .log-category-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    .log-category-dropdown:hover .log-category-dropdown-content {
+        display: block;
+    }
+    .log-category-dropdown-content {
+        display: none;
+        position: absolute;
+        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+        background-color: #1a1a1a;
+        z-index: 1;
+    }
+    .category-option {
+        min-width: 5em;
+        text-align: left;
+        text-decoration: none;
+        display: block;
+        text-transform: capitalize;
+    }
+    .category-option:hover {
+        background-color: #333;
+    }
     .log-section {
         min-height: 5em;
         position: relative;
-    }
-    .log-title {
-        font-weight: 600;
     }
     .log-section-controls {
         display: flex;
@@ -86,6 +167,7 @@
     .logview-hint {
         font-size: small;
     }
+
     .log-container {
         display: flex;
         flex-direction: column;
@@ -94,5 +176,9 @@
         overflow-y: auto;
         font-size: small;
         font-family: "Courier New", Courier, monospace;
+    }
+
+    .verbose-input {
+        max-width: 3em;
     }
 </style>

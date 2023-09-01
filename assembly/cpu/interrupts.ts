@@ -1,4 +1,4 @@
-import { Logger, log } from "../debug/logger";
+import { Logger } from "../debug/logger";
 import { IntNames } from "../debug/symbols";
 import { uToHex } from "../utils/stringUtils";
 import { Cpu } from "./cpu";
@@ -10,6 +10,10 @@ export enum IntType {
     Timer = 0x4,
     Serial = 0x8,
     Joypad = 0x10
+}
+
+function log(s: string): void {
+    Logger.Log("CPU: " + s);
 }
 
 function CheckAndRunInterrupt(flags: u8, int: IntType, intAddress: u16): boolean {

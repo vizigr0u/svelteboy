@@ -7,11 +7,15 @@ import { Serial } from "../io/serial";
 import { Timer } from "../io/timer";
 import { Lcd } from "../io/video/lcd";
 import { Ppu, PpuMode, PpuOamFifo } from "../io/video/ppu";
-import { Logger, log } from "./logger";
+import { Logger } from "./logger";
 
 
 const breakpoints: Set<u16> = new Set<u16>();
 const PPuModeBreaks: StaticArray<boolean> = new StaticArray<boolean>(4);
+
+function log(s: string): void {
+    Logger.Log("DBG: " + s);
+}
 
 export class DebugInfo {
     registers: DebugRegisterInfo;
