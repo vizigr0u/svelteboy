@@ -7,6 +7,7 @@ import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 import { Dma } from "./dma";
 import { Cpu } from "../../cpu/cpu";
+import { LCD_HEIGHT } from "./constants";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
@@ -102,10 +103,13 @@ class LcdGbData {
 
 @final
 export class Lcd {
+    private static windowLy: u8 = 0;
+
     static Init(): void {
         if (Logger.verbose >= 3) {
             log('Initializing Lcd');
         }
+        Lcd.windowLy = 0
         memory.fill(LcdGbData.getGlobalPointer(), 0, offsetof<LcdGbData>()); // TODO: what are initial values?
         if (Debug.disableLcdForTests) {
             if (Logger.verbose >= 1)
@@ -124,6 +128,9 @@ export class Lcd {
         Lcd.data.lY = lY;
         Lcd.CheckStatInterrupt(lY, Lcd.data.lYcompare);
     }
+
+    @inline
+    static get WindowLineY(): u8 { return Lcd.windowLy; }
 
     @inline
     static getBGPalette(): u8 {
@@ -175,6 +182,34 @@ export class Lcd {
             return stat;
         }
         return IO.MemLoad<u8>(gbAddress);
+    }
+
+    static isWindowVisible(): boolean {
+        const lcd = Lcd.data;
+        return lcd.hasControlBit(LcdControlBit.WindowEnabled)
+            && lcd.lY >= lcd.windowY && lcd.lY < lcd.windowY + LCD_HEIGHT
+            && lcd.windowX >= 0 && lcd.windowX <= 166;
+    }
+
+    static NextLine(): void {
+        if (Lcd.isWindowVisible()) {
+            Lcd.windowLy++;
+        }
+        const data = Lcd.data;
+        data.lY++;
+        if (data.lY == data.lYcompare) {
+            data.stat = data.stat | 0b100;  // set STAT LYC=LY Flag
+            if (data.stat & 0b1000000)      // request STAT int on LY=LYC
+                Interrupt.Request(IntType.LcdSTAT);
+        } else {
+            data.stat = data.stat & ~0b100; // reset STAT LYC=LY Flag
+        }
+    }
+
+    @inline
+    static ResetLine(): void {
+        Lcd.data.lY = 0;
+        Lcd.windowLy = 0;
     }
 
     static CheckStatInterrupt(ly: u8, lyc: u8): void {

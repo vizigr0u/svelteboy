@@ -1,8 +1,7 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger } from "../../debug/logger";
-import { InlinedReadonlyView } from "../../utils/inlinedArray";
 import { DefaultPaletteColors, LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
-import { Lcd, LcdControlBit } from "./lcd";
+import { Lcd } from "./lcd";
 import { Oam, OamData } from "./oam";
 import { PpuTransfer } from "./ppuTransfer";
 
@@ -197,18 +196,6 @@ export class Ppu {
     }
 }
 
-function incrementLy(): void {
-    const data = Lcd.data;
-    data.lY++;
-    if (data.lY == data.lYcompare) {
-        data.stat = data.stat | 0b100;  // set STAT LYC=LY Flag
-        if (data.stat & 0b1000000)      // request STAT int on LY=LYC
-            Interrupt.Request(IntType.LcdSTAT);
-    } else {
-        data.stat = data.stat & ~0b100; // reset STAT LYC=LY Flag
-    }
-}
-
 function enterMode(mode: PpuMode): void {
     if (Logger.verbose >= 3)
         log('PPU going from mode ' + Ppu.currentMode.toString() + ' to ' + mode.toString());
@@ -243,7 +230,7 @@ function enterMode(mode: PpuMode): void {
 
 function tickHblank(): void {
     if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of hblank
-        incrementLy();
+        Lcd.NextLine();
         enterMode(Lcd.data.lY >= LCD_HEIGHT ? PpuMode.VBlank : PpuMode.OAMScan);
         Ppu.currentDot = 0;
     }
@@ -251,9 +238,9 @@ function tickHblank(): void {
 
 function tickVblank(): void {
     if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of line
-        incrementLy();
+        Lcd.NextLine();
         if (Lcd.data.lY >= NUM_SCANLINES) { // end of frame
-            Lcd.data.lY = 0;
+            Lcd.ResetLine();
             enterMode(PpuMode.OAMScan);
         }
         Ppu.currentDot = 0;
