@@ -253,8 +253,8 @@ function tickVblank(): void {
     if (Ppu.currentDot >= SCANLINE_NUM_DOTS) { // end of line
         incrementLy();
         if (Lcd.data.lY >= NUM_SCANLINES) { // end of frame
-            enterMode(PpuMode.OAMScan);
             Lcd.data.lY = 0;
+            enterMode(PpuMode.OAMScan);
         }
         Ppu.currentDot = 0;
     }
