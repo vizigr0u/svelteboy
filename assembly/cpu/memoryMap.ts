@@ -1,8 +1,11 @@
+import { Cartridge } from "../cartridge";
 import { Logger } from "../debug/logger";
 import { IO } from "../io/io";
 import { Dma } from "../io/video/dma";
 import { Oam } from "../io/video/oam";
+import { CartridgeType } from "../metadata";
 import { uToHex } from "../utils/stringUtils";
+import { MBC } from "./mbc";
 import {
     BOOT_ROM_START,
     CARTRIDGE_ROM_START,
@@ -39,10 +42,10 @@ export class MemoryMap {
     static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized MemoryMap, using boot : ' + useBootRom.toString());
+        MBC.Init();
         memory.fill(GB_VIDEO_START, 0, GB_VIDEO_SIZE);
         memory.fill(GB_OAM_START, 0, GB_OAM_SIZE);
         memory.fill(GB_RAM_START, 0, GB_RAM_SIZE);
-        memory.fill(GB_IO_START, 0, GB_IO_SIZE);
         memory.fill(GB_HIGH_RAM_START, 0, GB_HIGH_RAM_SIZE);
         MemoryMap.useBootRom = useBootRom;
         MemoryMap.currentRomBankIndex = 0;
@@ -70,8 +73,12 @@ export class MemoryMap {
                 return GB_VIDEO_START + gbAddress - 0x8000 + MemoryMap.currentVideoBankIndex * GB_VIDEO_BANK_SIZE;
             case 0xA:
             case 0xB:
+                if (!MBC.ramEnabled && Logger.verbose >= 1) {
+                    log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
+                }
                 return GB_RAM_START + gbAddress - 0xA000;
             case 0xC:
+                return GB_RAM_START + gbAddress - 0xA000;
             case 0xD:
                 return GB_RAM_START + gbAddress - 0xA000 + MemoryMap.currentRamBankIndex * GB_RAM_BANK_SIZE;
             case 0xE:
@@ -108,7 +115,7 @@ export class MemoryMap {
             if (Logger.verbose >= 1) {
                 log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
             }
-            // return <T>0xFF;
+            return <T>0xFF;
         }
         if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
             if (Logger.verbose >= 3)

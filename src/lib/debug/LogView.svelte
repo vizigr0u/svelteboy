@@ -22,6 +22,7 @@
         "IO:",
         "SRL",
         "ROM",
+        "MBC",
     ];
 
     function onClearClick() {
