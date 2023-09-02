@@ -1,6 +1,7 @@
 import { IntType } from "../cpu/interrupts";
 import { Op, OpCondition, OpTarget } from "../cpu/opcodes";
 import { CGBMode } from "../metadata";
+import { uToHex } from "../utils/stringUtils";
 
 export const conditionNames: Map<OpCondition, string> = new Map<OpCondition, string>();
 conditionNames.set(OpCondition.NonZero, "NZ");
@@ -8,36 +9,41 @@ conditionNames.set(OpCondition.Zero, "Z");
 conditionNames.set(OpCondition.NonCarry, "NC");
 conditionNames.set(OpCondition.Carry, "C");
 
-export const CartridgeTypeNames = [
-    'ROM_ONLY',
-    'MBC1',
-    'MBC1_RAM',
-    'MBC1_RAM_BATTERY',
-    'MBC2',
-    'MBC2_BATTERY',
-    'ROM_RAM_1',
-    'ROM_RAM_BATTERY_1',
-    'MMM01',
-    'MMM01_RAM',
-    'MMM01_RAM_BATTERY',
-    'MBC3_TIMER_BATTERY',
-    'MBC3_TIMER_RAM_BATTERY_2',
-    'MBC3',
-    'MBC3_RAM_2',
-    'MBC3_RAM_BATTERY_2',
-    'MBC5',
-    'MBC5_RAM',
-    'MBC5_RAM_BATTERY',
-    'MBC5_RUMBLE',
-    'MBC5_RUMBLE_RAM',
-    'MBC5_RUMBLE_RAM_BATTERY',
-    'MBC6',
-    'MBC7_SENSOR_RUMBLE_RAM_BATTERY',
-    'POCKET_CAMERA',
-    'BANDAI_TAMA5',
-    'HuC3',
-    'HuC1_RAM_BATTERY',
-];
+export function getCartridgeTypeName(type: u8): string {
+    if (!CartridgeTypeNames.has(type))
+        return 'Unknown: ' + uToHex<u8>(type);
+    return CartridgeTypeNames.get(type);
+}
+
+export const CartridgeTypeNames: Map<u8, string> = new Map<u8, string>();
+CartridgeTypeNames.set(0x00, 'ROM_ONLY');
+CartridgeTypeNames.set(0x01, 'MBC1');
+CartridgeTypeNames.set(0x02, 'MBC1_RAM');
+CartridgeTypeNames.set(0x03, 'MBC1_RAM_BATTERY');
+CartridgeTypeNames.set(0x05, 'MBC2');
+CartridgeTypeNames.set(0x06, 'MBC2_BATTERY');
+CartridgeTypeNames.set(0x08, 'ROM_RAM_1');
+CartridgeTypeNames.set(0x09, 'ROM_RAM_BATTERY_1');
+CartridgeTypeNames.set(0x0B, 'MMM01');
+CartridgeTypeNames.set(0x0C, 'MMM01_RAM');
+CartridgeTypeNames.set(0x0D, 'MMM01_RAM_BATTERY');
+CartridgeTypeNames.set(0x0F, 'MBC3_TIMER_BATTERY');
+CartridgeTypeNames.set(0x10, 'MBC3_TIMER_RAM_BATTERY_2');
+CartridgeTypeNames.set(0x11, 'MBC3');
+CartridgeTypeNames.set(0x12, 'MBC3_RAM_2');
+CartridgeTypeNames.set(0x13, 'MBC3_RAM_BATTERY_2');
+CartridgeTypeNames.set(0x19, 'MBC5');
+CartridgeTypeNames.set(0x1A, 'MBC5_RAM');
+CartridgeTypeNames.set(0x1B, 'MBC5_RAM_BATTERY');
+CartridgeTypeNames.set(0x1C, 'MBC5_RUMBLE');
+CartridgeTypeNames.set(0x1D, 'MBC5_RUMBLE_RAM');
+CartridgeTypeNames.set(0x1E, 'MBC5_RUMBLE_RAM_BATTERY');
+CartridgeTypeNames.set(0x20, 'MBC6');
+CartridgeTypeNames.set(0x22, 'MBC7_SENSOR_RUMBLE_RAM_BATTERY');
+CartridgeTypeNames.set(0xFC, 'POCKET_CAMERA');
+CartridgeTypeNames.set(0xFD, 'BANDAI_TAMA5');
+CartridgeTypeNames.set(0xFE, 'HuC3');
+CartridgeTypeNames.set(0xFF, 'HuC1_RAM_BATTERY');
 
 export const CGBModeNames = new Map<CGBMode, string>();
 CGBModeNames.set(CGBMode.NonCGB, "NonCGB");

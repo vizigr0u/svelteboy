@@ -1,5 +1,6 @@
 import { Logger } from "./debug/logger";
 import { ByteReader } from "./utils/bytereader";
+import { uToHex } from "./utils/stringUtils";
 
 export enum CartridgeType {
     ROM_ONLY = 0x00,
@@ -42,7 +43,6 @@ function log(s: string): void {
     Logger.Log("ROM: " + s);
 }
 
-@unmanaged
 export class Metadata {
     title: string = "";
     cgbFlag: u8 = 0;
@@ -66,17 +66,41 @@ export class Metadata {
         reader.seek(0x134);
         let mt = new Metadata();
         mt.title = reader.readString(16);
-        mt.cgbFlag = Uint8Array.wrap(rom)[0x143];
+        if (Logger.verbose >= 4)
+            log('title: ' + mt.title);
+        mt.cgbFlag = reader.buffer[0x143];
+        if (Logger.verbose >= 4)
+            log('cgbFlag: ' + uToHex<u8>(mt.cgbFlag));
         mt.newLicenseeCode = reader.read<u16>();
+        if (Logger.verbose >= 4)
+            log('newLicenseeCode: ' + uToHex<u16>(mt.newLicenseeCode));
         mt.sgbFlag = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('sgbFlag: ' + uToHex<u8>(mt.sgbFlag));
         mt.cartridgeType = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('cartridgeType: ' + uToHex<u8>(mt.cartridgeType));
         mt.romSize = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('romSize: ' + uToHex<u8>(mt.romSize));
         mt.ramSize = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('ramSize: ' + uToHex<u8>(mt.ramSize));
         mt.destinationFlag = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('destinationFlag: ' + uToHex<u8>(mt.destinationFlag));
         mt.oldLicenseeCode = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('oldLicenseeCode: ' + uToHex<u8>(mt.oldLicenseeCode));
         mt.maskRomVersionNumber = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('maskRomVersionNumber: ' + uToHex<u8>(mt.maskRomVersionNumber));
         mt.headerChecksum = reader.read<u8>();
+        if (Logger.verbose >= 4)
+            log('headerChecksum: ' + uToHex<u8>(mt.headerChecksum));
         mt.globalChecksum = reader.read<u16>();
+        if (Logger.verbose >= 4)
+            log('globalChecksum: ' + uToHex<u16>(mt.globalChecksum));
         return mt;
     }
 }
