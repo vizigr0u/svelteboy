@@ -194,4 +194,11 @@ export function loadBootRom(bootRom: ArrayBuffer): boolean {
     return result;
 }
 
-
+export function hexDump(from: u16, count: u16): Uint8Array {
+    const result = new Uint8Array(count);
+    const oldUseBoot = MemoryMap.useBootRom;
+    MemoryMap.useBootRom = false;
+    memory.copy(result.dataStart, MemoryMap.GBToMemory(from), count);
+    MemoryMap.useBootRom = oldUseBoot;
+    return result;
+}

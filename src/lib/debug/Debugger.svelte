@@ -1,15 +1,28 @@
 <script lang="ts">
-  import { GbDebugInfoStore } from "../../stores/debugStores";
+  import { attachDebugger, detachDebugger } from "../../../build/release";
+  import { DebuggerAttached, GbDebugInfoStore } from "../../stores/debugStores";
   import BreakpointsControl from "./BreakpointsControl.svelte";
   import CpuDebugInfo from "./CpuDebugInfo.svelte";
   import DebugControlBar from "./DebugControlBar.svelte";
 
   import Disassembler from "./Disassembler.svelte";
   import PpuBreakControl from "./PPUBreakControl.svelte";
+
+  DebuggerAttached.subscribe((attach) => {
+    attach ? attachDebugger : detachDebugger();
+  });
 </script>
 
 <div class="disassembly-container debug-tool-container">
-  <h3>Debugger</h3>
+  <h3 class:title-detached={$DebuggerAttached}>
+    <input
+      class="debugger-attach-toggle"
+      type="checkbox"
+      checked={$DebuggerAttached}
+      on:change={() => ($DebuggerAttached = !$DebuggerAttached)}
+    />
+    Debugger {$DebuggerAttached ? "" : "(detached)"}
+  </h3>
 
   <DebugControlBar />
   <div class="debugger-container">
@@ -29,5 +42,12 @@
     display: flex;
     justify-content: center;
     gap: 1em;
+  }
+  .title-detached {
+    color: #aaa;
+  }
+  .debugger-attach-toggle {
+    width: 1em;
+    height: 1em;
   }
 </style>

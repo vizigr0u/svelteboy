@@ -1,4 +1,3 @@
-import { Debug } from "../../debug/debug";
 import { IntType, Interrupt } from "../../cpu/interrupts";
 import { IO } from "../io";
 import { Logger } from "../../debug/logger";
@@ -111,11 +110,6 @@ export class Lcd {
         }
         Lcd.windowLy = 0
         memory.fill(LcdGbData.getGlobalPointer(), 0, offsetof<LcdGbData>()); // TODO: what are initial values?
-        if (Debug.disableLcdForTests) {
-            if (Logger.verbose >= 1)
-                log('LCD disabld for tests');
-            Lcd.data.lY = 0xFF;
-        }
     }
 
     @inline

@@ -76,17 +76,11 @@ class PpuInfo {
     lineSpritesIndices: Array<number>;
 }
 
-class DebugStatusInfo {
-    paused: boolean;
-    stoppedByBreakpoint: boolean;
-}
-
 export type GbDebugInfo = {
     registers: GbRegisterInfo,
     lcd: LcdInfo,
     timer: TimerInfo,
     ppu: PpuInfo,
-    debug: DebugStatusInfo,
     currentFrame: number,
     useBootRom: boolean,
     isHalted: boolean,

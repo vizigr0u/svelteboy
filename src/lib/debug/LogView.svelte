@@ -3,9 +3,9 @@
     import {
         DebugLines,
         MutedCategories,
-        ProgramRunning,
         Verbose,
     } from "../../stores/debugStores";
+    import { EmulatorBusy } from "../../stores/playStores";
     import { loadedCartridge } from "../../stores/romStores";
     import { humanReadableNumber } from "../../utils";
 
@@ -110,16 +110,12 @@
         >
         <button
             on:click={() => downloadLog([])}
-            disabled={!$DebugLines ||
-                $DebugLines.length == 0 ||
-                $ProgramRunning}
+            disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
             class="log-clear-button">Download</button
         >
         <button
             on:click={() => downloadLog($MutedCategories)}
-            disabled={!$DebugLines ||
-                $DebugLines.length == 0 ||
-                $ProgramRunning}
+            disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
             class="log-clear-button">Download Fitlered</button
         >
     </div>

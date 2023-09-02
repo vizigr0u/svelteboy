@@ -1,6 +1,7 @@
 <script lang="ts">
     import { drawBackgroundMap, getBGTileMap } from "../../../build/release";
-    import { DebugFrames, GbDebugInfoStore } from "../../stores/debugStores";
+    import { GbDebugInfoStore } from "../../stores/debugStores";
+    import { GameFrames } from "../../stores/playStores";
     import LcdCanvas from "../LcdCanvas.svelte";
 
     export let pixelSize = 2;
@@ -94,7 +95,7 @@
     updateBuffer={drawBackgroundMap}
     {postProcess}
     mouseMove={onMouseMove}
-    frameStore={DebugFrames}
+    frameStore={GameFrames}
     bind:draw={drawBG}
     bind:autodraw
     bind:pixelSize

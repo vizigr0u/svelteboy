@@ -1,5 +1,4 @@
 import { MemoryMap } from "../cpu/memoryMap";
-import { Debug } from "../debug/debug";
 import { Logger } from "../debug/logger";
 import { IO } from "./io";
 
@@ -17,11 +16,6 @@ export class Serial {
 
     static Init(): void {
         Serial.message = "";
-        if (Debug.disableLcdForTests) {
-            if (Logger.verbose >= 1)
-                log('SC returns 0xFF for tests');
-            IO.MemStore<u8>(SC_ADDRESS, 0xFF);
-        }
     }
 
     @inline
@@ -35,6 +29,9 @@ export class Serial {
             Serial.message += String.fromCharCode(char);
             if (Serial.logToConsole)
                 console.log("SERIAL: " + Serial.message);
+            if (Logger.verbose >= 2) {
+                log(Serial.message)
+            }
             value = 0; // change the value to store to 0 so that we don't read SB_ADDRESS again
         }
         IO.MemStore<u8>(gbAddress, value);
@@ -42,11 +39,6 @@ export class Serial {
 
     @inline
     static Load(gbAddress: u16): u8 {
-        if (Debug.disableLcdForTests && gbAddress == SC_ADDRESS) {
-            if (Logger.verbose >= 1)
-                log('SC returns 0xFF for tests');
-            return 0xFF;
-        }
         return IO.MemLoad<u8>(gbAddress);
     }
 }

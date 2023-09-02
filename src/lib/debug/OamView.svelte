@@ -17,7 +17,8 @@
         BGandWindowOver = 7,
     }
 
-    GameFrames.subscribe((_) => {
+    GameFrames.subscribe((frameNumber) => {
+        if (frameNumber == 0) return;
         buffer = getOAMTiles(buffer);
         buffer.forEach((n, i) => {
             const flags = (n >> 24) & 0xff;
@@ -29,6 +30,7 @@
                 xFlip: (flags & OamAttribute.XFlip) != 0,
                 yFlip: (flags & OamAttribute.YFlip) != 0,
             };
+            objects = objects;
         });
     });
 </script>

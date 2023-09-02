@@ -1,13 +1,15 @@
 
 @final
 export class Logger {
+    private static readonly NoLines: Array<string> = new Array<string>(0);
+    private static readonly lines: Array<string> = new Array<string>();
+
     static verbose: u8 = 0;
-    static lines: Array<string> = new Array<string>();
     static dumpToConsole: boolean = false;
     static disableBuffer: boolean = false;
 
     static Init(): void {
-        this.lines.splice(0);
+        Logger.lines.splice(0);
     }
 
     static Log(message: string): void {
@@ -21,7 +23,9 @@ export class Logger {
     }
 
     static Splice(maxLines: i32): string[] {
-        return this.lines.splice(0, maxLines);
+        if (Logger.lines == null || Logger.lines.length == 0)
+            return Logger.NoLines;
+        return Logger.lines.splice(0, maxLines);
     }
 }
 

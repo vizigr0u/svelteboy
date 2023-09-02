@@ -6,7 +6,6 @@ import { Ppu } from './ppu';
 
 const gbTileData: u8[] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C];
 const pokemonWindowTileData: u8[] = [0xFF, 0x00, 0x7E, 0xFF, 0x85, 0x81, 0x89, 0x83, 0x93, 0x85, 0xA5, 0x8B, 0xC9, 0x97, 0x7E, 0xFF];
-const letterATileData: u8[] = [0x7C, 0x7C, 0x00, 0xC6, 0xC6, 0x00, 0x00, 0xFE, 0xC6, 0xC6, 0x00, 0xC6, 0xC6, 0x00, 0x00, 0x00];
 
 export function blitTile(dest: Uint32Array, tileAddress: usize, bufferWidth: u32, xOffset: u32 = 0, yOffset: u32 = 0): void {
     for (let tileY: u32 = 0; tileY < 8; tileY++) {
@@ -34,6 +33,8 @@ export function tileToRgba(tile: Uint8Array): Uint8ClampedArray {
 }
 
 export function drawTileData(screenBuffer: Uint8ClampedArray, bufferWidth: u32): Uint8ClampedArray {
+    assert(screenBuffer != null && screenBuffer.buffer != null, 'Screenbuffer is null')
+    assert(screenBuffer.byteLength >= 3 * 128 * 4, 'Insufficient buffer size to blit all tiles');
     const buffer = Uint32Array.wrap(screenBuffer.buffer);
     const numTilesX: u16 = <u16>(bufferWidth / 8);
     const numTilesY: u16 = <u16>((3 * 128) / numTilesX);
@@ -69,6 +70,8 @@ export function getBGTileMap(buffer: Uint8Array): Uint8Array {
 
 export function getOAMTiles(buffer: Uint32Array): Uint32Array {
     const byteLength = MAX_OAM_COUNT * offsetof<OamData>();
+    // console.log(uToHex<usize>(buffer.dataStart))
+    assert(buffer != null && buffer.buffer != null, 'OAM is null')
     assert(buffer.byteLength == byteLength, 'getOAMTiles: Buffer size not matching');
     memory.copy(buffer.dataStart, GB_OAM_START, byteLength);
     return buffer;
@@ -107,12 +110,4 @@ export function getTestExampleData(screenBuffer: Uint8ClampedArray, bufferWidth:
 
 export function getGameboyTileExampleData(): Uint8ClampedArray {
     return tileToRgba(changetype<Uint8Array>(gbTileData));
-}
-
-export function getPokemonTileExampleData(): Uint8ClampedArray {
-    return tileToRgba(changetype<Uint8Array>(pokemonWindowTileData));
-}
-
-export function getLetterTileExampleData(): Uint8ClampedArray {
-    return tileToRgba(changetype<Uint8Array>(letterATileData));
 }

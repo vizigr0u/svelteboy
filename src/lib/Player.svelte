@@ -6,7 +6,7 @@
     import { playerPixelSize } from "../stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { onMount } from "svelte";
-    import { EnableKeyBoardInput, DisableKeyBoardInput } from "../inputs";
+    import { DisableKeyBoardInput, EnableKeyBoardInput } from "../inputs";
 
     onMount(() => {
         EnableKeyBoardInput();
@@ -17,7 +17,7 @@
 <div class="console">
     <div class="screen">
         <LcdCanvas
-            updateBuffer={(buffer) => getGameFrame(buffer)}
+            updateBuffer={(_) => getGameFrame()}
             width={160}
             height={144}
             bind:pixelSize={$playerPixelSize}
