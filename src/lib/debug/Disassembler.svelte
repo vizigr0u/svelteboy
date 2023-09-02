@@ -4,17 +4,22 @@
   import { RomType, type GbDebugInfo, type RomReference } from "../../types";
   import MyVirtualList from "../MyVirtualList.svelte";
   import {
+    DebuggerAttached,
     disassembledRomsStore,
     GbDebugInfoStore,
-    DebugSessionStarted,
   } from "../../stores/debugStores";
   import { loadedBootRom, loadedCartridge } from "../../stores/romStores";
   import { fetchDisassembly } from "../../debug";
+  import { EmulatorInitialized, EmulatorPaused } from "../../stores/playStores";
 
   let romToShow: RomType = RomType.Boot;
   let scrollToIndex;
   let lastJumpTime: number = 0;
-  const minJumpDelay: number = 100;
+  const minJumpDelay: number = 200;
+  let currentPC = 0;
+
+  $: currentPC =
+    $GbDebugInfoStore == undefined ? 0 : $GbDebugInfoStore.registers.PC;
 
   let lineMaps = [{}, {}];
 
@@ -33,10 +38,10 @@
     }
   }
 
-  DebugSessionStarted.subscribe((debugStarted) => {
+  EmulatorInitialized.subscribe((initialized) => {
     if (
-      !debugStarted &&
-      scrollToIndex &&
+      $DebuggerAttached &&
+      initialized &&
       $disassembledRomsStore[romToShow] != undefined
     ) {
       scrollToIndex(0);
@@ -60,7 +65,7 @@
     if (
       lineNumber !== undefined &&
       (lineNumber < firstLine || lineNumber > lastLine) &&
-      (lastJumpTime == 0 || t - lastJumpTime > minJumpDelay)
+      (lastJumpTime == 0 || $EmulatorPaused || t - lastJumpTime > minJumpDelay)
     ) {
       scrollToIndex(Math.max(0, lineNumber - 5));
       lastJumpTime = t;
@@ -97,13 +102,7 @@
       bind:scrollToIndex
       let:item
     >
-      <DebuggerLine
-        line={item}
-        highlighted={item.pc ==
-          ($DebugSessionStarted && !!$GbDebugInfoStore
-            ? $GbDebugInfoStore.registers.PC
-            : 0)}
-      />
+      <DebuggerLine line={item} highlighted={item.pc == currentPC} />
     </MyVirtualList>
   </div>
 </div>

@@ -259,3 +259,7 @@ function tickTransfer(): void {
         enterMode(PpuMode.HBlank);
     }
 }
+
+export function getGameFrame(): Uint8ClampedArray {
+    return Ppu.DrawnBuffer();
+}

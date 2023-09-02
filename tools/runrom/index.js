@@ -1,5 +1,5 @@
 import {
-    runCartridge, loadCartridgeRom, loadBootRom, runOneFrame, init, setVerbose, serialEnableLog, dumpLogToConsole
+    runCartridge, loadCartridgeRom, loadBootRom, runOneFrame, initEmulator, setVerbose, serialEnableLog, dumpLogToConsole
 } from "../../build/release.js";
 
 import { open } from 'node:fs/promises';
@@ -54,7 +54,6 @@ const promises = [bootFile.readFile(), cartFile.readFile()];
 setVerbose(0);
 
 function runBenchmark() {
-    init();
     const t0 = performance.now();
     const frames = 800;
     for (let i = 0; i < frames; i++)
@@ -66,6 +65,7 @@ function runBenchmark() {
 Promise.all(promises).then(result => {
     loadBootRom(result[0]);
     loadCartridgeRom(result[1]);
+    initEmulator();
     if (benchmark) {
         runBenchmark();
     } else {

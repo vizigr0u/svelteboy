@@ -23,9 +23,10 @@
   let drawCounts: number = 0;
   let timeReport: string;
   let postProcessTime: number = 0;
+  let initialized: boolean = false;
 
   frameStore.subscribe((frame) => {
-    if (autodraw) {
+    if (initialized && autodraw) {
       if (frame != -1) {
         drawToCanvas();
         drawCounts++;
@@ -44,6 +45,7 @@
   onMount(() => {
     context = canvas.getContext("2d");
     screenData = context.createImageData(width, height);
+    initialized = true;
   });
 
   function drawToCanvas() {

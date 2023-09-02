@@ -2,15 +2,15 @@
     import { drawTileData } from "../../../build/release";
 
     import BenchmarkControl from "./BenchmarkControl.svelte";
-    import CpuDebugInfo from "./CpuDebugInfo.svelte";
     import HexDumpControl from "./HexDumpControl.svelte";
     import LogView from "./LogView.svelte";
     import LcdCanvas from "../LcdCanvas.svelte";
     import BgCanvas from "./BGCanvas.svelte";
-    import { DebugFrames, GbDebugInfoStore } from "../../stores/debugStores";
+    import { GbDebugInfoStore } from "../../stores/debugStores";
     import OamView from "./OamView.svelte";
     import Debugger from "./Debugger.svelte";
     import ForceInputControl from "./ForceInputControl.svelte";
+    import { GameFrames } from "../../stores/playStores";
 
     let drawTiles;
     let drawBG;
@@ -69,7 +69,7 @@
             height={12 * 8}
             updateBuffer={(a) => drawTileData(a, 32 * 8)}
             mouseMove={onMouseMoveOnTiles}
-            frameStore={DebugFrames}
+            frameStore={GameFrames}
             bind:draw={drawTiles}
             bind:autodraw
             bind:pixelSize

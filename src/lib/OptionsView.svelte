@@ -4,19 +4,16 @@
         frameDelay,
         playerPixelSize,
     } from "../stores/optionsStore";
-    import { DebugSessionStarted } from "../stores/debugStores";
+    import { EmulatorInitialized } from "../stores/playStores";
 </script>
 
 <div class="options-view debug-tool-container">
     <h3>Options</h3>
     <div class="options">
-        <label for="useBoot">Use Boot</label>
-        <input
-            id="useBoot"
-            type="checkbox"
-            bind:checked={$useBoot}
-            disabled={$DebugSessionStarted}
-        />
+        <label for="useBoot"
+            >Use Boot Rom{$EmulatorInitialized ? "" : " (on next run)"}</label
+        >
+        <input id="useBoot" type="checkbox" bind:checked={$useBoot} />
 
         <label for="frameDelay">Frame delay</label>
         <input

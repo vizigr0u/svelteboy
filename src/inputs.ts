@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { KeyPressMap } from "./stores/playStores";
+import { EmulatorPaused, KeyPressMap } from "./stores/playStores";
 import { InputType } from "./types";
 
 export const defaultKeybinds: { [k: string]: InputType } = {
@@ -35,12 +35,12 @@ function keydownHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
         return;
 
-    if (!(event.key in defaultKeybinds)) {
+    if (get(EmulatorPaused) || !(event.key in defaultKeybinds)) {
         return;
     }
 
     updateInput(defaultKeybinds[event.key], true);
-    // event.preventDefault();
+    event.preventDefault();
 }
 
 function keyupHandler(event: KeyboardEvent) {
@@ -51,7 +51,7 @@ function keyupHandler(event: KeyboardEvent) {
         return;
 
     updateInput(defaultKeybinds[event.key], false);
-    // event.preventDefault();
+    event.preventDefault();
 }
 
 export function EnableKeyBoardInput() {
