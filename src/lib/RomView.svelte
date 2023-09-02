@@ -14,6 +14,9 @@
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
+    const artDir = "https://static.vizigrou.com/svelteboy/";
+    const gbArtDir = artDir + "gb_art/";
+    const gbcArtDir = artDir + "gbc_art/";
 
     export let rom: StoredRom;
 
@@ -45,7 +48,7 @@
         let alt = defaultAltText;
         if (rom.sha1.toUpperCase() in names) {
             alt = names[rom.sha1.toUpperCase()];
-            src = (isGbc ? "./gbc_art/" : "./gb_art/") + alt + ".png";
+            src = (isGbc ? gbcArtDir : gbArtDir) + alt + ".png";
         }
         return { src, alt };
     }
