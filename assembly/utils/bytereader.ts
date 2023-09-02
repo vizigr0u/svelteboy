@@ -1,3 +1,9 @@
+import { Logger } from "../debug/logger";
+
+function log(s: string): void {
+    Logger.Log("ROM: " + s);
+}
+
 @final
 export class ByteReader {
     index: u32;
@@ -9,17 +15,26 @@ export class ByteReader {
     }
 
     readBytes(numBytes: u32): Uint8ClampedArray {
+        if (Logger.verbose >= 4) {
+            log(`Read ${numBytes} bytes at ${this.index}`);
+        }
         let result = this.buffer.slice(this.index, this.index + numBytes);
         this.index += numBytes;
         return result;
     }
 
     read<T>(): T {
-        this.index += offsetof<T>();
+        if (Logger.verbose >= 4) {
+            log(`Read ${sizeof<T>()} bytes at ${this.index}`);
+        }
+        this.index += sizeof<T>();
         return load<T>(this.buffer.dataStart + this.index);
     }
 
     readString(numBytes: u32): string {
+        if (Logger.verbose >= 4) {
+            log(`Read string of ${numBytes}B at ${this.index}`);
+        }
         return String.UTF8.decode(this.readBytes(numBytes).buffer, true);
     }
 

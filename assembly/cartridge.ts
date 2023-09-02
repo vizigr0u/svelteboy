@@ -1,7 +1,7 @@
 import { MemoryMap, loadRom } from "./cpu/memoryMap";
 import { CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE } from "./cpu/memoryConstants";
 import { Logger } from "./debug/logger";
-import { CGBModeNames, CartridgeTypeNames } from "./debug/symbols";
+import { CGBModeNames, CartridgeTypeNames, getCartridgeTypeName } from "./debug/symbols";
 import { CGBMode, CartridgeType, Metadata } from "./metadata";
 import { uToHex } from "./utils/stringUtils";
 
@@ -27,7 +27,7 @@ export class Cartridge {
 
         const metadata = Metadata.read(cartridgeRom);
         if (Logger.verbose >= 2) {
-            log(`Cartridge title: ${metadata.title}, type ${CartridgeTypeNames[metadata.cartridgeType]} - tech: ${CGBModeNames.get(metadata.getCGBMode()).toString()} (${uToHex(metadata.cgbFlag)})`);
+            log(`Cartridge title: ${metadata.title}, type ${getCartridgeTypeName(metadata.cartridgeType)} - tech: ${CGBModeNames.get(metadata.getCGBMode()).toString()} (${uToHex(metadata.cgbFlag)})`);
         }
 
         if (metadata.cgbFlag == CGBMode.CGBOnly) {
@@ -37,7 +37,7 @@ export class Cartridge {
         }
 
         if (!supportedTypes.includes(metadata.cartridgeType) && Logger.verbose >= 1)
-            log(`Warning: cartridge rom type ${CartridgeTypeNames[metadata.cartridgeType]} not supported yet`);
+            log(`Warning: cartridge rom type ${getCartridgeTypeName(metadata.cartridgeType)} not supported yet`);
 
         if (Logger.verbose >= 3)
             log('Cartridge loaded');
