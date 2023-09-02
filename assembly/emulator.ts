@@ -1,7 +1,7 @@
 import { Cpu } from "./cpu/cpu";
 import { IO } from "./io/io";
 import { Logger } from "./debug/logger";
-import { MemoryMap } from "./cpu/memoryMap";
+import { MemoryMap } from "./memory/memoryMap";
 import { Timer } from "./io/timer";
 import { Dma } from "./io/video/dma";
 import { Ppu, PpuMode } from "./io/video/ppu";

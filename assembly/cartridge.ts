@@ -1,5 +1,5 @@
-import { MemoryMap, loadRom } from "./cpu/memoryMap";
-import { CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE } from "./cpu/memoryConstants";
+import { MemoryMap, loadRom } from "./memory/memoryMap";
+import { CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE } from "./memory/memoryConstants";
 import { Logger } from "./debug/logger";
 import { CGBModeNames, CartridgeTypeNames, getCartridgeTypeName } from "./debug/symbols";
 import { CGBMode, CartridgeType, Metadata } from "./metadata";

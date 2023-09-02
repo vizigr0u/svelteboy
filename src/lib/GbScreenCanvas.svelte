@@ -1,11 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import {
-    getGameboyTileExampleData,
-    getPokemonTileExampleData,
-    getLetterTileExampleData,
-    getTestExampleData,
-  } from "../../build/release";
 
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;

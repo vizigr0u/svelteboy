@@ -1,4 +1,4 @@
-import { TEST_SPACE_START } from "../cpu/memoryConstants";
+import { TEST_SPACE_START } from "../memory/memoryConstants";
 import { InlinedArray } from "../utils/inlinedArray";
 
 @unmanaged

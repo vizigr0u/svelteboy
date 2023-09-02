@@ -1,7 +1,7 @@
 import { Interrupt } from "../cpu/interrupts";
 import { Logger } from "../debug/logger";
-import { MemoryMap } from "../cpu/memoryMap";
-import { GB_IO_START } from "../cpu/memoryConstants";
+import { MemoryMap } from "../memory/memoryMap";
+import { GB_IO_START } from "../memory/memoryConstants";
 import { Serial } from "./serial";
 import { uToHex } from "../utils/stringUtils";
 import { Timer } from "./timer";

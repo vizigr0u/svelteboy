@@ -1,7 +1,7 @@
 import { IntType, Interrupt } from "../../cpu/interrupts";
 import { IO } from "../io";
 import { Logger } from "../../debug/logger";
-import { GB_IO_START } from "../../cpu/memoryConstants";
+import { GB_IO_START } from "../../memory/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 import { Dma } from "./dma";

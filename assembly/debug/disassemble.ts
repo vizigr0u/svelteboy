@@ -1,5 +1,5 @@
-import { BOOT_ROM_START, CARTRIDGE_ROM_START } from "../cpu/memoryConstants";
-import { MemoryMap } from "../cpu/memoryMap";
+import { BOOT_ROM_START, CARTRIDGE_ROM_START } from "../memory/memoryConstants";
+import { MemoryMap } from "../memory/memoryMap";
 import { Op, OpTarget, OpCondition, Operand, Instruction, unprefixedOpCodes, prefixedOpCodes, getTotalInstructionSize } from "../cpu/opcodes";
 import { opNames, targetNames, conditionNames } from "../debug/symbols";
 

@@ -1,5 +1,5 @@
 import { Cpu } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function RunSet(opCode: u8, b: u8, setB: (a: u8) => void, expectedCycles: u32 = 8): void {
