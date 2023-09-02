@@ -107,9 +107,9 @@ export class PpuOamFifo {
             PpuOamFifo.head++;
         }
         for (let i = 0; numValidSprites < 3 && i + PpuOamFifo.head < PpuOamFifo.size; i++) {
-            const spriteX: i16 = <i16>PpuOamFifo.Peek(i).xPos - 8 + Lcd.data.scrollX % 8;
+            const spriteX: i16 = <i16>PpuOamFifo.Peek(i).xPos - 8;
             if (Logger.verbose >= 4)
-                log(`Looking at #${i}: xPos = ${PpuOamFifo.Peek(i).xPos} - spriteX = ${spriteX}`)
+                log(`Looking at #${i} (sprite #${PpuOamFifo.Peek(i).tileIndex}): xPos = ${PpuOamFifo.Peek(i).xPos} - spriteX = ${spriteX}`)
             if (spriteX >= <i16>x && spriteX < <i16>x + 8
                 || spriteX < <i16>x && spriteX + 8 >= <i16>x)
                 numValidSprites++;

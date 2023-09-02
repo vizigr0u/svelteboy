@@ -35,10 +35,16 @@ export class Debugger {
 }
 
 export function attachDebugger(): void {
+    if (Logger.verbose >= 1) {
+        log('Debugger attached');
+    }
     Debugger.attached = true;
 }
 
 export function detachDebugger(): void {
+    if (Logger.verbose >= 1) {
+        log('Debugger detached');
+    }
     Debugger.attached = false;
 }
 
