@@ -184,7 +184,7 @@ function fetcherEnqueuePixel(): void {
                     if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
                         continue;
 
-                    const spriteX: i16 = <i16>oam.xPos - 8 + Lcd.data.scrollX % 8;
+                    const spriteX: i16 = <i16><u8>oam.xPos - 8 + (Lcd.data.scrollX % 8);
                     const offset: i16 = spriteX - (x + <i16>i); // [-7, 0] if sprite is [x - 7, x]
                     if (Logger.verbose >= 4) {
                         log(`Fetching pixel ${x + i} on ${oam.tileIndex}: spriteX=${spriteX}, offset=${offset}`)
