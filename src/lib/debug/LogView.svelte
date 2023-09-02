@@ -1,5 +1,6 @@
 <script lang="ts">
     import { setVerbose } from "../../../build/release";
+    import { fetchLogs } from "../../debug";
     import {
         DebugLines,
         MutedCategories,
@@ -107,6 +108,11 @@
             on:click={onClearClick}
             disabled={!$DebugLines || $DebugLines.length == 0}
             class="log-clear-button">Clear</button
+        >
+        <button
+            on:click={fetchLogs}
+            disabled={$EmulatorBusy}
+            class="log-clear-button">Fetch now</button
         >
         <button
             on:click={() => downloadLog([])}
