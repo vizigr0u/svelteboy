@@ -125,6 +125,12 @@ export class MemoryMap {
     }
 
     static GBstore<T>(gbAddress: u16, value: T): void {
+        if (gbAddress < 0x8000) {
+            if (Logger.verbose >= 1) {
+                log(`Ignoring write to ROM: ${uToHex<T>(value)} to ${uToHex<u16>(gbAddress)}. TODO: support MBC`)
+            }
+            return;
+        }
         if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
             if (Logger.verbose >= 2) {
                 log(`Trying to write to ${uToHex<u16>(gbAddress)} during DMA, ignored.`);
