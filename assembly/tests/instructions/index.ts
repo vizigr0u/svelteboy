@@ -14,7 +14,7 @@ import { testJr } from './jrTests';
 import { testPush } from './pushTests';
 import { testPop } from './popTests';
 import { Cpu } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { testRl } from './rlTests';
 import { testRr } from './rrTests';
 

@@ -1,5 +1,5 @@
 import { Cpu } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function setLoadReg(opcode: u8, value: u8, setSource: (a: u8) => void, expectedCycles: u32 = 4): void {

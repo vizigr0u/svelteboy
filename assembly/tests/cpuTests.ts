@@ -1,7 +1,7 @@
 import { Cpu } from "../cpu/cpu";
 import { Interrupt } from "../cpu/interrupts";
-import { MemoryMap } from "../cpu/memoryMap";
-import { BOOT_ROM_START } from "../cpu/memoryConstants";
+import { MemoryMap } from "../memory/memoryMap";
+import { BOOT_ROM_START } from "../memory/memoryConstants";
 import { Op, Instruction, unprefixedOpCodes, prefixedOpCodes } from "../cpu/opcodes";
 import { getMnemonicName } from "../debug/disassemble";
 import { Emulator } from "../emulator";

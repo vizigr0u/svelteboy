@@ -13,11 +13,15 @@ export const GB_VIDEO_SIZE: u32 = 2 * GB_VIDEO_BANK_SIZE; // 1 + 1 bank (CGB)
 export const GB_OAM_START: u32 = GB_VIDEO_START + GB_VIDEO_SIZE;
 export const GB_OAM_SIZE: u32 = 0x00a0;
 
-export const GB_RAM_START: u32 = GB_OAM_START + GB_OAM_SIZE;
-export const GB_RAM_BANK_SIZE: u32 = 0x1000;
-export const GB_RAM_SIZE: u32 = 8 * GB_RAM_BANK_SIZE; // 1 + up to 7 additional banks (CGB)
+export const GB_EXT_RAM_START: u32 = GB_OAM_START + GB_OAM_SIZE;
+export const GB_EXT_RAM_BANK_SIZE: u32 = 0x2000;
+export const GB_EXT_RAM_SIZE: u32 = GB_EXT_RAM_START + 16 * GB_EXT_RAM_BANK_SIZE;
 
-export const GB_IO_START: u32 = GB_RAM_START + GB_RAM_SIZE;
+export const GB_WRAM_START: u32 = GB_EXT_RAM_START + GB_EXT_RAM_SIZE;
+export const GB_WRAM_BANK_SIZE: u32 = 0x1000;
+export const GB_WRAM_SIZE: u32 = 8 * GB_WRAM_BANK_SIZE; // 1 + up to 7 additional banks (CGB)
+
+export const GB_IO_START: u32 = GB_WRAM_START + GB_WRAM_SIZE;
 export const GB_IO_SIZE: u32 = 0x0080;
 
 export const GB_HIGH_RAM_START: u32 = GB_IO_START + GB_IO_SIZE;

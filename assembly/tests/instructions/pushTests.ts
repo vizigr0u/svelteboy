@@ -1,5 +1,5 @@
 import { Cpu } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { AF, BC, DE, HL, SP, SetAF, SetBC, SetDE, SetHL, setTestRom } from "../cpuTests";
 
 function RunPush(opCode: u8, sp: u16, source: u16, setSource: (v: u16) => void): void {

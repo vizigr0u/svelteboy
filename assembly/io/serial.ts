@@ -1,4 +1,4 @@
-import { MemoryMap } from "../cpu/memoryMap";
+import { MemoryMap } from "../memory/memoryMap";
 import { Logger } from "../debug/logger";
 import { IO } from "./io";
 

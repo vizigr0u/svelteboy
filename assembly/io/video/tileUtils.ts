@@ -1,4 +1,4 @@
-import { GB_OAM_START, GB_VIDEO_START } from '../../cpu/memoryConstants';
+import { GB_OAM_START, GB_VIDEO_START } from '../../memory/memoryConstants';
 import { LCD_HEIGHT, LCD_WIDTH } from './constants';
 import { Lcd, LcdControlBit } from './lcd';
 import { MAX_OAM_COUNT, OamData } from './oam';
