@@ -1,9 +1,8 @@
 import { get } from "svelte/store";
 import { setJoypad, runOneFrame, getDebugInfo, debugStep, initEmulator } from "../build/release";
 import { fetchLogs } from "./debug";
-import { getInputForEmu } from "./inputs";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "./stores/debugStores";
-import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames } from "./stores/playStores";
+import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap } from "./stores/playStores";
 import { DebugStopReason, type GbDebugInfo } from "./types";
 import { frameDelay, useBoot } from "./stores/optionsStore";
 
@@ -62,6 +61,14 @@ function postRun(): void {
     if (get(DebuggerAttached))
         GbDebugInfoStore.set(getDebugInfo() as GbDebugInfo);
     EmulatorBusy.set(false);
+}
+
+function getInputForEmu(): number {
+    let res = 0;
+    for (let k of get(KeyPressMap)) {
+        res |= Number(k)
+    }
+    return res;
 }
 
 export function pauseEmulator(): void {

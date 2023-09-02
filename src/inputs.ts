@@ -23,14 +23,6 @@ function updateInput(input: InputType, pressed: boolean) {
     })
 }
 
-export function getInputForEmu(): number {
-    let res = 0;
-    for (let k of get(KeyPressMap)) {
-        res |= Number(k)
-    }
-    return res;
-}
-
 function keydownHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
         return;

@@ -9,7 +9,7 @@
   import PpuBreakControl from "./PPUBreakControl.svelte";
 
   DebuggerAttached.subscribe((attach) => {
-    attach ? attachDebugger : detachDebugger();
+    attach ? attachDebugger() : detachDebugger();
   });
 </script>
 
