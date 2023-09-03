@@ -1,4 +1,5 @@
 import { Logger } from "./debug/logger";
+import { getCartridgeTypeName } from "./debug/symbols";
 import { ByteReader } from "./utils/bytereader";
 import { uToHex } from "./utils/stringUtils";
 
@@ -43,19 +44,66 @@ function log(s: string): void {
     Logger.Log("ROM: " + s);
 }
 
+function getRomBankCount(headerRomSizeValue: u8): u16 {
+    return 1 << headerRomSizeValue;
+}
+
+function getRamBankCount(headerRamSizeValue: u8): u16 {
+    switch (headerRamSizeValue) {
+        case 0x00:
+            return 0;
+        case 0x01:
+            return 0;
+        case 0x02:
+            return 1;
+        case 0x03:
+            return 4;
+        case 0x04:
+            return 16;
+        case 0x05:
+            return 8;
+        default:
+            assert(false, 'Unexpected Header RAM Size value: ' + uToHex<u8>(headerRamSizeValue));
+            unreachable();
+            return 0;
+    }
+}
+
+function cartridgeHasBattery(t: CartridgeType): boolean {
+    switch (t) {
+        case CartridgeType.MBC1_RAM_BATTERY:
+        case CartridgeType.MBC2_BATTERY:
+        case CartridgeType.ROM_RAM_BATTERY_1:
+        case CartridgeType.MMM01_RAM_BATTERY:
+        case CartridgeType.MBC3_TIMER_BATTERY:
+        case CartridgeType.MBC3_TIMER_RAM_BATTERY_2:
+        case CartridgeType.MBC3_RAM_BATTERY_2:
+        case CartridgeType.MBC5_RAM_BATTERY:
+        case CartridgeType.MBC5_RUMBLE_RAM_BATTERY:
+        case CartridgeType.MBC7_SENSOR_RUMBLE_RAM_BATTERY:
+        case CartridgeType.HuC1_RAM_BATTERY:
+            return true;
+    }
+    return false;
+}
+
 export class Metadata {
     title: string = "";
     cgbFlag: u8 = 0;
     newLicenseeCode: u16 = 0;
     sgbFlag: u8 = 0;
-    cartridgeType: u8 = 0;
-    romSize: u8 = 0;
-    ramSize: u8 = 0;
+    cartridgeType: CartridgeType = 0;
+    romSizeByte: u8 = 0;
+    ramSizeByte: u8 = 0;
     destinationFlag: u8 = 0;
     oldLicenseeCode: u8 = 0;
     maskRomVersionNumber: u8 = 0;
     headerChecksum: u8 = 0;
     globalChecksum: u16 = 0;
+
+    get RomBankCount(): u16 { return getRomBankCount(this.romSizeByte) }
+    get RamBankCount(): u16 { return getRamBankCount(this.ramSizeByte) }
+    get HasBattery(): boolean { return cartridgeHasBattery(this.cartridgeType); }
 
     getCGBMode(): CGBMode { return (this.cgbFlag == CGBMode.CGBOnly || this.cgbFlag == CGBMode.PartialCGB) ? this.cgbFlag : CGBMode.NonCGB };
 
@@ -66,12 +114,12 @@ export class Metadata {
         reader.seek(0x134);
         let mt = new Metadata();
         mt.title = reader.readString(16);
-        if (Logger.verbose >= 4)
+        if (Logger.verbose >= 3)
             log('title: ' + mt.title);
-        mt.cgbFlag = reader.buffer[0x143];
-        if (Logger.verbose >= 4)
+        reader.seek(0x143);
+        mt.cgbFlag = reader.read<u8>();
+        if (Logger.verbose >= 3)
             log('cgbFlag: ' + uToHex<u8>(mt.cgbFlag));
-        reader.seek(0x144);
         mt.newLicenseeCode = reader.read<u16>();
         if (Logger.verbose >= 4)
             log('newLicenseeCode: ' + uToHex<u16>(mt.newLicenseeCode));
@@ -79,14 +127,14 @@ export class Metadata {
         if (Logger.verbose >= 4)
             log('sgbFlag: ' + uToHex<u8>(mt.sgbFlag));
         mt.cartridgeType = reader.read<u8>();
-        if (Logger.verbose >= 4)
-            log('cartridgeType: ' + uToHex<u8>(mt.cartridgeType));
-        mt.romSize = reader.read<u8>();
-        if (Logger.verbose >= 4)
-            log('romSize: ' + uToHex<u8>(mt.romSize));
-        mt.ramSize = reader.read<u8>();
-        if (Logger.verbose >= 4)
-            log('ramSize: ' + uToHex<u8>(mt.ramSize));
+        if (Logger.verbose >= 3)
+            log('cartridgeType: ' + getCartridgeTypeName(mt.cartridgeType));
+        mt.romSizeByte = reader.read<u8>();
+        if (Logger.verbose >= 3)
+            log('ROM: ' + mt.RomBankCount.toString() + ' bank(s)');
+        mt.ramSizeByte = reader.read<u8>();
+        if (Logger.verbose >= 3)
+            log('RAM: ' + mt.RamBankCount.toString() + ' bank(s)');
         mt.destinationFlag = reader.read<u8>();
         if (Logger.verbose >= 4)
             log('destinationFlag: ' + uToHex<u8>(mt.destinationFlag));

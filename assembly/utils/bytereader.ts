@@ -28,8 +28,9 @@ export class ByteReader {
         if (Logger.verbose >= 4) {
             log(`Read ${sizeof<T>()} bytes at ${uToHex<u16>(<u16>this.index)}`);
         }
+        const res = load<T>(this.buffer.dataStart + this.index);
         this.index += sizeof<T>();
-        return load<T>(this.buffer.dataStart + this.index);
+        return res;
     }
 
     readString(numBytes: u32): string {

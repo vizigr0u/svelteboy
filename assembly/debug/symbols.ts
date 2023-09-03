@@ -1,6 +1,6 @@
 import { IntType } from "../cpu/interrupts";
 import { Op, OpCondition, OpTarget } from "../cpu/opcodes";
-import { CGBMode } from "../metadata";
+import { CGBMode, CartridgeType } from "../metadata";
 import { uToHex } from "../utils/stringUtils";
 
 export const conditionNames: Map<OpCondition, string> = new Map<OpCondition, string>();
@@ -9,13 +9,13 @@ conditionNames.set(OpCondition.Zero, "Z");
 conditionNames.set(OpCondition.NonCarry, "NC");
 conditionNames.set(OpCondition.Carry, "C");
 
-export function getCartridgeTypeName(type: u8): string {
+export function getCartridgeTypeName(type: CartridgeType): string {
     if (!CartridgeTypeNames.has(type))
-        return 'Unknown: ' + uToHex<u8>(type);
+        return 'Unknown: ' + uToHex<u8>(<u8>type);
     return CartridgeTypeNames.get(type);
 }
 
-export const CartridgeTypeNames: Map<u8, string> = new Map<u8, string>();
+export const CartridgeTypeNames: Map<CartridgeType, string> = new Map<CartridgeType, string>();
 CartridgeTypeNames.set(0x00, 'ROM_ONLY');
 CartridgeTypeNames.set(0x01, 'MBC1');
 CartridgeTypeNames.set(0x02, 'MBC1_RAM');

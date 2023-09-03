@@ -9,27 +9,6 @@ export function log(s: string): void {
     Logger.Log("MBC: " + s);
 }
 
-function getRamBankCount(headerRamSizeValue: u8): u16 {
-    switch (headerRamSizeValue) {
-        case 0x00:
-            return 0;
-        case 0x01:
-            return 0;
-        case 0x02:
-            return 1;
-        case 0x03:
-            return 4;
-        case 0x04:
-            return 16;
-        case 0x05:
-            return 8;
-        default:
-            assert(false, 'Unexpected Header RAM Size value: ' + uToHex<u8>(headerRamSizeValue));
-            unreachable();
-            return 0;
-    }
-}
-
 type MBC_Handler = (gbAddress: u16, value: u8) => void;
 type MBC_Mapper = (gbAdress: u16) => u32;
 
@@ -91,9 +70,6 @@ export class MBC {
     // static currentType: CartridgeType = CartridgeType.ROM_ONLY;
     static ramEnabled: boolean = false;
 
-    static ramBankCount: u16;
-    static romBankCount: u16;
-
     // private static romBank: u16 = 1;
     // private static ramBank: u16 = 0;
     private static writeHandle: MBC_Handler = NOMBC_Handler;
@@ -104,9 +80,7 @@ export class MBC {
         MBC1.Init();
         const cartType = Cartridge.Data.cartridgeType;
         // MBC.currentType = cartType;
-        assert(Cartridge.Data.romSize <= 8, 'Unexpected Header ROM Size value: ' + Cartridge.Data.romSize.toString());
-        MBC.romBankCount = 1 << Cartridge.Data.romSize;
-        MBC.ramBankCount = getRamBankCount(Cartridge.Data.ramSize);
+        assert(Cartridge.Data.romSizeByte <= 8, 'Unexpected Header ROM Size value: ' + Cartridge.Data.romSizeByte.toString());
         MBC.ramEnabled = cartType == CartridgeType.ROM_ONLY ? true : false;
         MBC.writeHandle = getHandler(cartType);
         MBC.mapRom = getRomMapper(cartType);

@@ -27,7 +27,7 @@ export class Cartridge {
 
         const metadata = Metadata.read(cartridgeRom);
         if (Logger.verbose >= 2) {
-            log(`Cartridge title: ${metadata.title}, type ${getCartridgeTypeName(metadata.cartridgeType)} - tech: ${CGBModeNames.get(metadata.getCGBMode()).toString()} (${uToHex(metadata.cgbFlag)})`);
+            log(`Cartridge title: ${metadata.title}, type ${getCartridgeTypeName(metadata.cartridgeType)} - battery: ${metadata.HasBattery} - tech: ${CGBModeNames.get(metadata.getCGBMode()).toString()} (${uToHex(metadata.cgbFlag)})`);
         }
 
         if (metadata.cgbFlag == CGBMode.CGBOnly) {
