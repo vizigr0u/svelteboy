@@ -1,3 +1,4 @@
+import { Cartridge } from "../cartridge";
 import { Logger } from "../debug/logger";
 import { MBC, log } from "./mbc";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_START } from "./memoryConstants";
@@ -24,9 +25,9 @@ export class MBC1 {
             case 0x2:
             case 0x3:
                 const translated: u8 = (value & 0x1F) == 0 ? 1 : (value & 0x1F);
-                // MBC1 bug that makes it possible to map to Rom Bank #0 (if MBC.romBankCount - 1 < 0x1F)
-                assert(MBC.romBankCount <= 32, 'Unexpectedly high rom bank count in MBC1: ' + MBC.romBankCount.toString());
-                MBC1.LowRegister = translated % <u8>MBC.romBankCount;
+                // MBC1 bug that makes it possible to map to Rom Bank #0 (if Cartridge.Data.RomBankCount - 1 < 0x1F)
+                assert(Cartridge.Data.RomBankCount <= 32, 'Unexpectedly high rom bank count in MBC1: ' + Cartridge.Data.RomBankCount.toString());
+                MBC1.LowRegister = translated % <u8>Cartridge.Data.RomBankCount;
                 return;
             case 0x4:
             case 0x5:
@@ -34,7 +35,7 @@ export class MBC1 {
                 return;
             case 0x6:
             case 0x7:
-                if (MBC.ramBankCount <= 1 && MBC.ramBankCount <= 32) {
+                if (Cartridge.Data.RamBankCount <= 1 && Cartridge.Data.RamBankCount <= 32) {
                     if (Logger.verbose >= 1) {
                         log('Ignoring MBC write to range 0x6000-0x7FFF on smaller cartridge.')
                     }
