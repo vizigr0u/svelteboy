@@ -7,7 +7,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 export default defineConfig({
   plugins: [svelte(), nodePolyfills({
     exclude: [
-      'fs', // Excludes the polyfill for `fs` and `node:fs`.
+      'fs', 'process' // Excludes the polyfill for `fs` and `node:fs`.
     ],
     globals: {
       Buffer: true
