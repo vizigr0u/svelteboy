@@ -32,7 +32,7 @@ export class MemoryMap {
     static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized MemoryMap, using boot : ' + useBootRom.toString());
-        // MBC.Init();
+        MBC.Init();
         memory.fill(GB_VIDEO_START, 0, GB_VIDEO_SIZE);
         memory.fill(GB_OAM_START, 0, GB_OAM_SIZE);
         memory.fill(GB_WRAM_START, 0, GB_WRAM_SIZE);

@@ -40,9 +40,9 @@ export function testDec(): boolean {
     assert(SP() == 42, `SP = ${SP()}, expected ${42}`);
 
     // DEC [HL]
-    RunDec(0x35, 17, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 12);
-    assert(MemoryMap.GBload<u8>(0x42) == 16, `[0x42] = ${MemoryMap.GBload<u8>(0x42)}, expected 16`);
-    MemoryMap.GBstore(0x42, 0);
+    RunDec(0x35, 17, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 12);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 16, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82)}, expected 16`);
+    MemoryMap.GBstore(0xFF82, 0);
 
     RunDec(0x05, 43, Cpu.SetB) // DEC B
     assert(Cpu.B() == 42, `B = ${Cpu.B()}, expected ${42}`);

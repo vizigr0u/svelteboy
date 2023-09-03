@@ -42,9 +42,9 @@ export function testXor(): boolean {
     assert(Cpu.A() == <u8>((17 ^ 25) & 0xFF), `A = ${Cpu.A()}, expected ${(17 ^ 25) & 0xFF}`);
 
     // XOR A, [HL]
-    RunXor(0xAE, 17, 25, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 8);
+    RunXor(0xAE, 17, 25, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 8);
     assert(Cpu.A() == <u8>((17 ^ 25) & 0xFF), `A = ${Cpu.A()}, expected ${(17 ^ 25) & 0xFF}`);
-    MemoryMap.GBstore(0x42, 0);
+    MemoryMap.GBstore(0xFF82, 0);
 
     RunXor(0xAF, 17, 25, Cpu.SetB); // XOR A, A
     assert(Cpu.A() == 0, `A = ${Cpu.A()}, expected 0`);

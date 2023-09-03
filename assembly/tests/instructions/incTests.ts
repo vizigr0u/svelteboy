@@ -39,9 +39,9 @@ export function testInc(): boolean {
     assert(SP() == 42, `SP = ${SP()}, expected ${42}`);
 
     // INC [HL]
-    RunInc(0x34, 17, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 12);
-    assert(MemoryMap.GBload<u8>(0x42) == 18, `[0x42] = ${MemoryMap.GBload<u8>(0x42)}, expected 18`);
-    MemoryMap.GBstore(0x42, 0);
+    RunInc(0x34, 17, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 12);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 18, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82)}, expected 18`);
+    MemoryMap.GBstore(0xFF82, 0);
 
     RunInc(0x04, 41, Cpu.SetB) // INC B
     assert(Cpu.B() == 42, `B = ${Cpu.B()}, expected ${42}`);

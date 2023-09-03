@@ -71,6 +71,7 @@ export class Metadata {
         mt.cgbFlag = reader.buffer[0x143];
         if (Logger.verbose >= 4)
             log('cgbFlag: ' + uToHex<u8>(mt.cgbFlag));
+        reader.seek(0x144);
         mt.newLicenseeCode = reader.read<u16>();
         if (Logger.verbose >= 4)
             log('newLicenseeCode: ' + uToHex<u16>(mt.newLicenseeCode));

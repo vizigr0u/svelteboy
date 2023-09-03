@@ -1,4 +1,5 @@
 import { Logger } from "../debug/logger";
+import { uToHex } from "./stringUtils";
 
 function log(s: string): void {
     Logger.Log("ROM: " + s);
@@ -16,7 +17,7 @@ export class ByteReader {
 
     readBytes(numBytes: u32): Uint8ClampedArray {
         if (Logger.verbose >= 4) {
-            log(`Read ${numBytes} bytes at ${this.index}`);
+            log(`Read ${numBytes} bytes at ${uToHex<u16>(<u16>this.index)}`);
         }
         let result = this.buffer.slice(this.index, this.index + numBytes);
         this.index += numBytes;
@@ -25,7 +26,7 @@ export class ByteReader {
 
     read<T>(): T {
         if (Logger.verbose >= 4) {
-            log(`Read ${sizeof<T>()} bytes at ${this.index}`);
+            log(`Read ${sizeof<T>()} bytes at ${uToHex<u16>(<u16>this.index)}`);
         }
         this.index += sizeof<T>();
         return load<T>(this.buffer.dataStart + this.index);
@@ -33,7 +34,7 @@ export class ByteReader {
 
     readString(numBytes: u32): string {
         if (Logger.verbose >= 4) {
-            log(`Read string of ${numBytes}B at ${this.index}`);
+            log(`Read string of ${numBytes}B at ${uToHex<u16>(<u16>this.index)}`);
         }
         return String.UTF8.decode(this.readBytes(numBytes).buffer, true);
     }
