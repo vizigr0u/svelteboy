@@ -1,6 +1,6 @@
 import {
     testRegisters, testMemory, TOTAL_MEMORY_SIZE, testCpu, testInstructions, testNop, testPrograms,
-    resetCpuTestSession, getCpuTestSessionSummary, testVideo, testMisc, testFifo
+    resetCpuTestSession, getCpuTestSessionSummary, testVideo, testMisc, testFifo, dumpLogToConsole, setVerbose
 } from "../build/debug.js";
 
 
@@ -23,6 +23,8 @@ function test(testableFunc, ignored = false) {
     const result = testableFunc();
     console.log((result ? okString : failString) + ' ' + colorString(testableFunc.name, result ? 32 : 31));
 }
+
+dumpLogToConsole();
 
 resetCpuTestSession();
 

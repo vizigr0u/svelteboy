@@ -40,11 +40,11 @@ export function testBit(): boolean {
     assert(!Cpu.HasFlag(Flag.Z_Zero));
 
     // BIT 4, [HL]
-    RunBit(0x66, 0b00111, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 12);
+    RunBit(0x66, 0b00111, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 12);
     assert(Cpu.HasFlag(Flag.Z_Zero));
 
     // BIT 5, [HL]
-    RunBit(0x6E, 0b111111, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 12);
+    RunBit(0x6E, 0b111111, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 12);
     assert(!Cpu.HasFlag(Flag.Z_Zero));
 
     RunBit(0x73, 0b0011010, Cpu.SetE); // BIT 6, E

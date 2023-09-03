@@ -35,7 +35,7 @@ function RunAddValue_0xC6(a: u8, b: u8): void {
 }
 
 function RunAddDerefHL_0x86(a: u8, b: u8): void {
-    const placeForB: u16 = 0x42;
+    const placeForB: u16 = 0xFF82;
     RunAddToA(0x86, a, b, (b) => {
         MemoryMap.GBstore<u8>(placeForB, b);
         Cpu.HL = placeForB;

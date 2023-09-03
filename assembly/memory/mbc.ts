@@ -33,9 +33,9 @@ function getRamBankCount(headerRamSizeValue: u8): u16 {
 type MBC_Handler = (gbAddress: u16, value: u8) => void;
 type MBC_Mapper = (gbAdress: u16) => u32;
 
-function NOMBC_Handler(_: u16, __: u8): void {
+function NOMBC_Handler(gbAddress: u16, value: u8): void {
     if (Logger.verbose >= 2) {
-        log('Ignoring writing to ROM with cartridge with no MBC')
+        log('Ignoring writing to ROM with cartridge with no MBC: ' + `${uToHex<u8>(value)} to ${uToHex<u16>(gbAddress)}`)
     }
 }
 
@@ -115,16 +115,16 @@ export class MBC {
 
     @inline
     static MapRom(gbAddress: u16): u32 {
-        assert(gbAddress >= 0xA000 && gbAddress < 0xC000, 'Invalid RAM address: ' + uToHex<u16>(gbAddress));
-        if (!MBC.ramEnabled && Logger.verbose >= 1) {
-            log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
-        }
+        assert(gbAddress < 0x8000, 'Invalid ROM address: ' + uToHex<u16>(gbAddress));
         return MBC.mapRom(gbAddress);
     }
 
     @inline
     static MapRam(gbAddress: u16): u32 {
-        assert(gbAddress < 0x8000, 'Invalid ROM address: ' + uToHex<u16>(gbAddress));
+        assert(gbAddress >= 0xA000 && gbAddress < 0xC000, 'Invalid RAM address: ' + uToHex<u16>(gbAddress));
+        if (!MBC.ramEnabled && Logger.verbose >= 1) {
+            log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
+        }
         return MBC.mapRam(gbAddress);
     }
 

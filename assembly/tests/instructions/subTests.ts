@@ -21,9 +21,10 @@ function RunSubValue(a: u8, b: u8): void {
 
 export function testSub(): boolean {
     // SUB A, [HL]
-    RunSub(0x96, 53, 11, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 8);
+    const addr: u16 = 0xFF82;
+    RunSub(0x96, 53, 11, v => { MemoryMap.GBstore(addr, v); Cpu.HL = addr }, 8);
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected ${42}`);
-    MemoryMap.GBstore(0x42, 0);
+    MemoryMap.GBstore(addr, 0);
 
     RunSub(0x90, 53, 11, Cpu.SetB) // SUB A, B
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected ${42}`);

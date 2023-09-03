@@ -19,8 +19,8 @@ import { testRl } from './rlTests';
 import { testRr } from './rrTests';
 
 export function SetHLDeref(value: u8): void {
-    MemoryMap.GBstore(0x42, value);
-    Cpu.HL = 0x42;
+    MemoryMap.GBstore(0xFF82, value);
+    Cpu.HL = 0xFF82;
 }
 
 export function HLDeref(): u16 {
@@ -28,7 +28,7 @@ export function HLDeref(): u16 {
 }
 
 export function ClearHLDerefTest(): void {
-    MemoryMap.GBstore(0x42, 0);
+    MemoryMap.GBstore(0xFF82, 0);
 }
 
 export function testInstructions(): boolean {
