@@ -139,8 +139,6 @@ export class Cpu {
             log('executing ' + uToHex<u16>(originalPc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(originalPc)));
 
         const nextPc: u16 = originalPc + totalInstructionSize;
-        if (Logger.verbose >= 3)
-            log(`PC ${originalPc.toString(16)} -> ${nextPc.toString(16)}`);
 
         Cpu.ProgramCounter = nextPc;
 
