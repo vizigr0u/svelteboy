@@ -6,6 +6,8 @@ import { Fifo } from "./fifo";
 import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
+import { PixelFifo } from "./pixelFifo";
+import { uToHex } from "../../utils/stringUtils";
 
 enum PpuFetchState {
     GetTile = 0,
@@ -19,17 +21,11 @@ function log(s: string): void {
     Logger.Log("PPU: " + s);
 }
 
-const PIXEL_FIFO_SIZE: u32 = 16;
-
-const MAP_BASE_LO: u32 = GB_VIDEO_START + <u32>0x1800;
-const MAP_BASE_HI: u32 = GB_VIDEO_START + <u32>0x1C00;
-
-const TILE_BASE_LO: u32 = GB_VIDEO_START;
-const TILE_BASE_HI: u32 = GB_VIDEO_START + <u32>0x800;
+// const PIXEL_FIFO_SIZE: u32 = 16;
 
 @final
 export class PpuTransfer {
-    static bgFifo: Fifo<u8> = new Fifo<u8>(PIXEL_FIFO_SIZE);
+    // static bgFifo: Fifo<u8> = new Fifo<u8>(PIXEL_FIFO_SIZE);
 
     static state: PpuFetchState = PpuFetchState.GetTile;
     static lineX: u8 = 0;
@@ -46,7 +42,7 @@ export class PpuTransfer {
     static fetchedSpriteBytes: StaticArray<u16> = new StaticArray<u16>(3);
 
     static Init(): void {
-        PpuTransfer.bgFifo.Clear();
+        PixelFifo.Clear();
         PpuTransfer.state = PpuFetchState.GetTile;
         PpuTransfer.lineX = 0;
         PpuTransfer.fetcherX = 0;
@@ -68,9 +64,8 @@ export class PpuTransfer {
 
     private static isInWindow(): boolean {
         const lcd = Lcd.data;
-        return Lcd.isWindowVisible()
-            && PpuTransfer.fetcherX + 7 >= lcd.windowX && PpuTransfer.fetcherX + 7 < lcd.windowX + LCD_WIDTH + 14
-            && lcd.lY >= lcd.windowY && lcd.lY < lcd.windowY + LCD_HEIGHT;
+        return Lcd.IsWindowVisible
+            && PpuTransfer.fetcherX + 7 >= lcd.windowX && PpuTransfer.fetcherX + 7 < lcd.windowX + LCD_WIDTH + 14;
     }
 
     private static TickFetcher(): void {
@@ -79,10 +74,9 @@ export class PpuTransfer {
             case PpuFetchState.GetTile:
                 PpuTransfer.spriteCount = 0;
 
-                if (lcd.hasControlBit(LcdControlBit.BGandWindowEnabled)) {
+                if (Lcd.BGandWindowVisible) {
                     const inWindow = PpuTransfer.isInWindow();
-                    const mapBaseIsHigh = lcd.hasControlBit(inWindow ? LcdControlBit.WindowTileMapArea : LcdControlBit.BGTileMapArea);
-                    const mapBase = mapBaseIsHigh ? MAP_BASE_HI : MAP_BASE_LO;
+                    const mapBase = inWindow ? Lcd.WindowTileMapBaseAddress : Lcd.BgTileMapBaseAddress;
                     const mapX: u8 = inWindow ? PpuTransfer.fetcherX + 7 - lcd.windowX : PpuTransfer.fetcherX + (lcd.scrollX);
                     const mapY: u8 = inWindow ? Lcd.WindowLineY : lcd.lY + lcd.scrollY;
 
@@ -93,7 +87,7 @@ export class PpuTransfer {
                         log(`currentDot: ${Ppu.currentDot}, fetcherX: ${PpuTransfer.fetcherX}, ly:${lcd.lY}, scroll:${lcd.scrollX},${lcd.scrollY}, map: ${mapX},${mapY}=>${(mapX >> 3) + (<u16>(mapY >> 3) << 5)}, tileIndex: ${dataIndex} (offset ${PpuTransfer.bgTileOffset}). tileY: ${PpuTransfer.tileY}`);
                 }
 
-                if (lcd.hasControlBit(LcdControlBit.ObjEnabled)) {
+                if (Lcd.SpritesVisible) {
                     PpuTransfer.numSpritesThisFetch = PpuOamFifo.GetSpriteIndicesFor(PpuTransfer.fetcherX);
                 } else {
                     PpuTransfer.numSpritesThisFetch = 0;
@@ -104,10 +98,10 @@ export class PpuTransfer {
                 PpuTransfer.fetcherX += 8;
                 break;
             case PpuFetchState.GetDataLo:
-                const tileByteAddress: u32 = getBGDataAddress() + (PpuTransfer.bgTileOffset * 16) + PpuTransfer.tileY;
+                const tileByteAddress: u32 = Lcd.TilesBaseAddress + (PpuTransfer.bgTileOffset * 16) + PpuTransfer.tileY;
                 if (tileByteAddress < GB_VIDEO_START || tileByteAddress >= (GB_VIDEO_START + GB_VIDEO_BANK_SIZE)) {
-                    const error = `Invalid pointer: ${tileByteAddress} (GB ${tileByteAddress + 0x8000 - GB_VIDEO_START})\n`
-                        + `getBGDataAddress() = ${getBGDataAddress()}, tileOffset = ${PpuTransfer.bgTileOffset}, *16 = ${(PpuTransfer.bgTileOffset * 16)}, tileY = ${PpuTransfer.tileY} \n`
+                    const error = `Invalid pointer: ${uToHex<u32>(tileByteAddress)} (GB ${uToHex<u32>(tileByteAddress - GB_VIDEO_START + 0x8000)})\n`
+                        + `TilesBaseAddress = ${uToHex<u32>(Lcd.TilesBaseAddress)}, tileOffset = ${PpuTransfer.bgTileOffset}, *16 = ${(PpuTransfer.bgTileOffset * 16)}, tileY = ${PpuTransfer.tileY} \n`
                         + Cpu.GetTrace();
                     log(error)
                     console.log(error)
@@ -124,7 +118,7 @@ export class PpuTransfer {
                 PpuTransfer.state = PpuFetchState.Push;
                 break;
             case PpuFetchState.Push:
-                if (PpuTransfer.bgFifo.length <= 8) {
+                if (!PixelFifo.HasEnoughPixels()) {
                     fetcherEnqueuePixel();
                     PpuTransfer.state = PpuFetchState.GetTile;
                 }
@@ -139,7 +133,7 @@ export class PpuTransfer {
             log(`FetchSpriteBytes() ${PpuTransfer.numSpritesThisFetch}`);
         }
         const ly = Lcd.data.lY;
-        const spriteHeight = Lcd.data.spriteHeight();
+        const spriteHeight = Lcd.SpriteHeight;
         for (let i = 0; i < <i32>PpuTransfer.numSpritesThisFetch; i++) {
             const oam = PpuOamFifo.Peek(i);
 
@@ -156,10 +150,6 @@ export class PpuTransfer {
     }
 }
 
-function getBGDataAddress(): u32 {
-    return Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
-}
-
 function getColorIndexFromBytes(b: u16, mask: u8): u8 {
     return (((b & mask) == mask) ? 1 : 0) | ((((b >> 8) & mask) == mask) ? 2 : 0);
 }
@@ -171,14 +161,17 @@ function applyPalette(colorId: u8, palette: u8): u8 {
 function fetcherEnqueuePixel(): void {
     const x: i16 = PpuTransfer.fetcherX - (8 - (Lcd.data.scrollX % 8));
     if (x >= 0) {
+        const bgEnabled = Lcd.BGandWindowVisible;
+        const spritesEnabled = Lcd.SpritesVisible;
+        const numSpritesToCheck: i32 = spritesEnabled ? <i32>PpuTransfer.numSpritesThisFetch : 0;
+        const BgPalette: u8 = Lcd.getBGPalette();
         for (let i = 0; i < 8; i++) {
             const mask: u8 = (1 << <u8>(7 - i));
             const bgColorId: u8 = getColorIndexFromBytes(PpuTransfer.fetchedBgBytes, mask);
-            const BgPalette: u8 = Lcd.getBGPalette();
-            let color = applyPalette(Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled) ? bgColorId : 0, BgPalette);
+            let color = applyPalette(bgEnabled ? bgColorId : 0, BgPalette);
 
-            if (Lcd.data.hasControlBit(LcdControlBit.ObjEnabled)) {
-                for (let j = 0; j < <i32>PpuTransfer.numSpritesThisFetch; j++) {
+            {
+                for (let j = 0; j < numSpritesToCheck; j++) {
                     const oam = PpuOamFifo.Peek(j);
 
                     if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
@@ -204,20 +197,20 @@ function fetcherEnqueuePixel(): void {
                     break;
                 }
             }
-            PpuTransfer.bgFifo.Enqueue(color);
+            PixelFifo.Enqueue(color);
         }
     }
 }
 
 function tickPushPixel(): void {
-    if (PpuTransfer.bgFifo.length >= 8) {
+    if (PixelFifo.HasEnoughPixels()) {
         if (PpuTransfer.lineX >= (Lcd.data.scrollX & 3)) {
             const bufferIndex = PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH;
             if (bufferIndex >= <u32>(Ppu.workingBuffer.length)) {
                 if (Logger.verbose >= 1)
                     log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.data.lY}`);
             } else {
-                const color = PpuTransfer.bgFifo.Dequeue();
+                const color = PixelFifo.Dequeue();
                 const color32 = Ppu.current32bitPalette[color];
                 // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.data.lY) * 255 / 144)) << 8;
                 Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32;

@@ -6,19 +6,29 @@
       "sourceMap": true,
       "debug": true
     },
-    "release": {
-      "outFile": "build/release.wasm",
-      "textFile": "build/release.wat",
+    "debugrelease": {
+      "outFile": "build/debugrelease.wasm",
+      "textFile": "build/debugrelease.wat",
       "sourceMap": true,
       "optimizeLevel": 3,
       "shrinkLevel": 0,
       "debug": true,
       "converge": false,
       "noAssert": false
+    },
+    "release": {
+      "outFile": "build/release.wasm",
+      "textFile": "build/release.wat",
+      "sourceMap": true,
+      "optimizeLevel": 3,
+      "shrinkLevel": 0,
+      "debug": false,
+      "converge": false,
+      "noAssert": true
     }
   },
   "options": {
     "bindings": "esm",
-    "memoryBase": 8491100
+    "memoryBase": 8491076
   }
 }
