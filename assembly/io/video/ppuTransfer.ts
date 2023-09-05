@@ -2,7 +2,6 @@ import { Cpu } from "../../cpu/cpu";
 import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { Logger } from "../../debug/logger";
 import { LCD_HEIGHT, LCD_WIDTH } from "./constants";
-import { Fifo } from "./fifo";
 import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
