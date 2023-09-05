@@ -1,14 +1,14 @@
 import { Cpu, Flag } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { BOOT_ROM_START } from "../../memory/memoryConstants";
 import { PC, SP, setTestRom } from "../cpuTests";
 
 function RunCall(opCode: u8, sp: u16, flags: u8, dest: u16, expectedCycles: u32): void {
     setTestRom([opCode]);
     Cpu.StackPointer = sp;
-    MemoryMap.GBstore<u16>(0x1, dest);
+    store<u16>(BOOT_ROM_START + 0x1, dest);
     Cpu.SetF(flags);
     Cpu.Tick();
-    MemoryMap.GBstore<u16>(0x1, 0);
+    store<u16>(BOOT_ROM_START + 0x1, 0);
     assert(Cpu.CycleCount == expectedCycles, `CycleCount = ${Cpu.CycleCount}, expected ${expectedCycles} (opcode 0x${opCode.toString(16)})`);
 }
 

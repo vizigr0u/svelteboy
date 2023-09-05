@@ -3,7 +3,7 @@ import { CpuOps } from "./cpuOps";
 import { disassembleInstruction, getMnemonicName, getOperandTargetName } from "../debug/disassemble";
 import { Interrupt } from "./interrupts";
 import { Logger } from "../debug/logger";
-import { MemoryMap } from "./memoryMap";
+import { MemoryMap } from "../memory/memoryMap";
 import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
 

@@ -1,4 +1,4 @@
-import { MemoryMap } from "../cpu/memoryMap";
+import { MemoryMap } from "../memory/memoryMap";
 import { Emulator } from "../emulator";
 import { PpuMode } from "../io/video/ppu";
 import { Logger } from "./logger";

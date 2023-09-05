@@ -1,5 +1,5 @@
 import { Cpu } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function setLoadReg(opcode: u8, value: u8, setSource: (a: u8) => void, expectedCycles: u32 = 4): void {
@@ -32,8 +32,8 @@ function setLDValue16ToReg(opcode: u8, value: u16, moreSetup: () => void = () =>
 
 function setLDDerefToReg(opcode: u8, value: u8, setSource: (s: u16) => void, expectedCycles: u32 = 8): void {
     setTestRom([opcode]);
-    MemoryMap.GBstore<u8>(0x42, value);
-    setSource(0x42);
+    MemoryMap.GBstore<u8>(0xFF82, value);
+    setSource(0xFF82);
     Cpu.Tick();
     assert(Cpu.CycleCount == expectedCycles);
 }
@@ -113,69 +113,69 @@ function testLDValueToReg(): void {
     assert(Cpu.A() == 42, `A = ${Cpu.A()}`);
 
     setLDValueToReg(0x36, 42, // LD [HL], n8
-        () => { MemoryMap.GBstore<u8>(0x42, 0); Cpu.HL = 0x42; }, 12);
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+        () => { MemoryMap.GBstore<u8>(0xFF82, 0); Cpu.HL = 0xFF82; }, 12);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 }
 
 function testLDToDeref(): void {
-    setLDRegToAddress(0x02, 42, 0x42, v => { Cpu.SetA(v); Cpu.BC = 0x42 }); // LD [BC], A
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
+    setLDRegToAddress(0x02, 42, 0xFF82, v => { Cpu.SetA(v); Cpu.BC = 0xFF82 }); // LD [BC], A
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
 
-    setLDRegToAddress(0x12, 42, 0x42, v => { Cpu.SetA(v); Cpu.DE = 0x42 }); // LD [DE], A
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
+    setLDRegToAddress(0x12, 42, 0xFF82, v => { Cpu.SetA(v); Cpu.DE = 0xFF82 }); // LD [DE], A
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
 
-    setLDRegToAddress(0x22, 42, 0x42, v => { Cpu.SetA(v); Cpu.HL = 0x42 }); // LD [HL+], A
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    assert(Cpu.HL = 0x43, `HL = 0x${Cpu.HL.toString(16)} - expected 0x43`);
+    setLDRegToAddress(0x22, 42, 0xFF82, v => { Cpu.SetA(v); Cpu.HL = 0xFF82 }); // LD [HL+], A
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    assert(Cpu.HL = 0x43, `HL = 0x${Cpu.HL.toString(16)} - expected 0xFF83`);
 
-    setLDRegToAddress(0x32, 42, 0x42, v => { Cpu.SetA(v); Cpu.HL = 0x42 }); // LD [HL-], A
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    assert(Cpu.HL = 0x41, `HL = ${Cpu.HL.toString(16)} - expected 0x41`);
+    setLDRegToAddress(0x32, 42, 0xFF82, v => { Cpu.SetA(v); Cpu.HL = 0xFF82 }); // LD [HL-], A
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    assert(Cpu.HL = 0x41, `HL = ${Cpu.HL.toString(16)} - expected 0xFF81`);
 
-    setLDRegToAddress(0x70, 42, 0x42, v => { Cpu.SetB(v); Cpu.HL = 0x42 }); // LD [HL], B
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setLDRegToAddress(0x70, 42, 0xFF82, v => { Cpu.SetB(v); Cpu.HL = 0xFF82 }); // LD [HL], B
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 
-    setLDRegToAddress(0x71, 42, 0x42, v => { Cpu.SetC(v); Cpu.HL = 0x42 }); // LD [HL], C
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setLDRegToAddress(0x71, 42, 0xFF82, v => { Cpu.SetC(v); Cpu.HL = 0xFF82 }); // LD [HL], C
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 
-    setLDRegToAddress(0x72, 42, 0x42, v => { Cpu.SetD(v); Cpu.HL = 0x42 }); // LD [HL], D
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setLDRegToAddress(0x72, 42, 0xFF82, v => { Cpu.SetD(v); Cpu.HL = 0xFF82 }); // LD [HL], D
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 
-    setLDRegToAddress(0x73, 42, 0x42, v => { Cpu.SetE(v); Cpu.HL = 0x42 }); // LD [HL], E
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setLDRegToAddress(0x73, 42, 0xFF82, v => { Cpu.SetE(v); Cpu.HL = 0xFF82 }); // LD [HL], E
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 
     // /!\ H is gonna be changed when we change HL
-    setLDRegToAddress(0x74, 42, 0x4228, _ => { Cpu.HL = 0x4228 }); // LD [HL], H
-    assert(MemoryMap.GBload<u8>(0x4228) == 0x42, `[0x4228] = ${MemoryMap.GBload<u8>(0x4228).toString(16)} - expected 0x42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setLDRegToAddress(0x74, 42, 0xC042, _ => { Cpu.HL = 0xC042 }); // LD [HL], H
+    assert(MemoryMap.GBload<u8>(0xC042) == 0xC0, `[0xC042] = ${MemoryMap.GBload<u8>(0xC042).toString(16)} - expected 0xC0`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 
     // /!\ L is gonna be changed when we change HL
-    setLDRegToAddress(0x75, 42, 0x2842, _ => { Cpu.HL = 0x2842 }); // LD [HL], L
-    assert(MemoryMap.GBload<u8>(0x2842) == 0x42, `[0x2842] = ${MemoryMap.GBload<u8>(0x2842).toString(16)} - expected 0x42`);
+    setLDRegToAddress(0x75, 42, 0xc842, _ => { Cpu.HL = 0xc842 }); // LD [HL], L
+    assert(MemoryMap.GBload<u8>(0xc842) == 0x42, `[0xc842] = ${MemoryMap.GBload<u8>(0xc842).toString(16)} - expected 0x42`);
 
-    setLDRegToAddress(0x77, 42, 0x42, v => { Cpu.SetA(v); Cpu.HL = 0x42 }); // LD [HL], A
-    assert(MemoryMap.GBload<u8>(0x42) == 42, `[0x42] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setLDRegToAddress(0x77, 42, 0xFF82, v => { Cpu.SetA(v); Cpu.HL = 0xFF82 }); // LD [HL], A
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 
     setLDRegToAddress(0xE2, 42, 0xFF42, v => { Cpu.SetA(v); Cpu.SetC(0x42) }); // LD [C] A = LD [C + 0xFF00] A
     assert(MemoryMap.GBload<u8>(0xFF42) == 42, `[0xFF42] = ${MemoryMap.GBload<u8>(0xFF42).toString()} - expected 42`);
     MemoryMap.GBstore<u8>(0xFF42, 0);
 
     // 0xEA: LD [a16], A
-    setTestRom([0xEA, 0x42, 0x00]); // Little Endian: a16 will be read 0x0042
-    MemoryMap.GBstore<u8>(0x42, 0);
+    setTestRom([0xEA, 0x82, 0xFF]); // Little Endian: a16 will be read 0xFF82
+    MemoryMap.GBstore<u8>(0xFF82, 0);
     Cpu.SetA(42);
     Cpu.Tick();
     assert(Cpu.CycleCount == 16);
-    assert(MemoryMap.GBload<u8>(0x0042) == 42, `[0x0042] = ${MemoryMap.GBload<u8>(0x42).toString()} - expected 42`);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 42, `[0xFF82] = ${MemoryMap.GBload<u8>(0xFF82).toString()} - expected 42`);
 
     MemoryMap.GBstore<u8>(0xFF42, 0);
-    MemoryMap.GBstore<u8>(0x42, 0);
+    MemoryMap.GBstore<u8>(0xFF82, 0);
 }
 
 function testLDDerefToReg(): void {
@@ -208,11 +208,11 @@ function testLDDerefToReg(): void {
 
     setLDDerefToReg(0x2A, 42, v => Cpu.HL = v); // LD A, [HL+]
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected 42`);
-    assert(Cpu.HL = 0x43, `HL = 0x${Cpu.HL.toString(16)} - expected 0x43`);
+    assert(Cpu.HL = 0xFF83, `HL = 0x${Cpu.HL.toString(16)} - expected 0xFF83`);
 
     setLDDerefToReg(0x3A, 42, v => Cpu.HL = v); // LD A, [HL-]
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected 42`);
-    assert(Cpu.HL = 0x41, `HL = 0x${Cpu.HL.toString(16)} - expected 0x41`);
+    assert(Cpu.HL = 0xFF81, `HL = 0x${Cpu.HL.toString(16)} - expected 0xFF81`);
 
     // LD A, [C] => [0xFF00 + C]
     setTestRom([0xF2]);
@@ -225,10 +225,10 @@ function testLDDerefToReg(): void {
 
 function testLD16bits(): void {
     // 0xFA - LD A, [a16]
-    setLDValue16ToReg(0xFA, 0x20, () => MemoryMap.GBstore<u8>(0x20, <u8>(42)), 16);
+    setLDValue16ToReg(0xFA, 0xFF82, () => MemoryMap.GBstore<u8>(0xFF82, <u8>(42)), 16);
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected 42`);
 
-    setLDValue16ToReg(0xFA, 0x2000, () => MemoryMap.GBstore<u8>(0x2000, <u8>(63)), 16);
+    setLDValue16ToReg(0xFA, 0xC042, () => MemoryMap.GBstore<u8>(0xC042, <u8>(63)), 16);
     assert(Cpu.A() == 63, `A = ${Cpu.A()}, expected 63`);
 
     setLDValue16ToReg(0xFA, 0xFF84, () => MemoryMap.GBstore<u8>(0xFF84, <u8>(200)), 16);

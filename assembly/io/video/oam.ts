@@ -1,4 +1,4 @@
-import { GB_OAM_SIZE, GB_OAM_START } from "../../cpu/memoryConstants";
+import { GB_OAM_SIZE, GB_OAM_START } from "../../memory/memoryConstants";
 import { Logger } from "../../debug/logger";
 import { InlinedArray, InlinedReadonlyView } from "../../utils/inlinedArray";
 import { uToHex } from "../../utils/stringUtils";
@@ -40,11 +40,6 @@ export class OamData {
 
 @final
 export class Oam {
-    @inline
-    static Handles(gbAddress: u16): boolean {
-        return gbAddress >= 0xFE00 && gbAddress <= 0xFE9F;
-    }
-
     static view: InlinedReadonlyView<OamData> = new InlinedReadonlyView<OamData>(GB_OAM_START, 40);
 
     @inline

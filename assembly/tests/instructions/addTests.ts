@@ -1,5 +1,5 @@
 import { Cpu, Flag } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function RunAdd8(addInstruction: u8, a: u8, b: u8, setA: (a: u8) => void, setB: (a: u8) => void): void {
@@ -35,7 +35,7 @@ function RunAddValue_0xC6(a: u8, b: u8): void {
 }
 
 function RunAddDerefHL_0x86(a: u8, b: u8): void {
-    const placeForB: u16 = 0x42;
+    const placeForB: u16 = 0xFF82;
     RunAddToA(0x86, a, b, (b) => {
         MemoryMap.GBstore<u8>(placeForB, b);
         Cpu.HL = placeForB;
