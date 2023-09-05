@@ -45,7 +45,7 @@ function log(s: string): void {
 }
 
 function getRomBankCount(headerRomSizeValue: u8): u16 {
-    return 1 << headerRomSizeValue;
+    return 1 << (headerRomSizeValue + 1);
 }
 
 function getRamBankCount(headerRamSizeValue: u8): u16 {

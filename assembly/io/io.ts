@@ -28,11 +28,9 @@ export class IO {
         Dma.Init();
     }
 
-    static Handles(gbAddress: u16): boolean {
-        return (gbAddress >= 0xFF00 && gbAddress <= 0xFF7F);
-    }
-
     static Store(gbAddress: u16, value: u8): void {
+        if (Logger.verbose >= 4)
+            log(`IO [${uToHex<u16>(gbAddress)}] <- ${uToHex<u8>(value)} ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`)
         if (gbAddress == 0xFF50) {
             if (MemoryMap.useBootRom) {
                 if (Logger.verbose >= 1) {
@@ -45,8 +43,6 @@ export class IO {
             }
 
         }
-        if (Logger.verbose >= 4)
-            log(`IO [${uToHex<u16>(gbAddress)}] <- ${uToHex<u8>(value)} ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`)
         if (Serial.Handles(gbAddress)) {
             Serial.Store(gbAddress, value);
         } else if (Lcd.Handles(gbAddress)) {
