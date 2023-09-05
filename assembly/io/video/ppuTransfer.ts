@@ -1,5 +1,5 @@
 import { Cpu } from "../../cpu/cpu";
-import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../cpu/memoryConstants";
+import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { Logger } from "../../debug/logger";
 import { LCD_HEIGHT, LCD_WIDTH } from "./constants";
 import { Fifo } from "./fifo";

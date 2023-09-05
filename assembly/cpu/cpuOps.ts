@@ -1,6 +1,6 @@
 import { Cpu, Flag } from "./cpu";
 import { getOperandTargetName, getConditionName } from "../debug/disassemble";
-import { MemoryMap } from "./memoryMap";
+import { MemoryMap } from "../memory/memoryMap";
 import { Operand, Instruction, OpTarget, OpCondition } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
 import { Logger } from "../debug/logger";

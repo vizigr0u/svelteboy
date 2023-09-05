@@ -1,11 +1,15 @@
-import { MemoryMap, loadRom } from "./cpu/memoryMap";
-import { CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE } from "./cpu/memoryConstants";
+import { MemoryMap, loadRom } from "./memory/memoryMap";
+import { CARTRIDGE_ROM_START, CARTRIDGE_ROM_SIZE } from "./memory/memoryConstants";
 import { Logger } from "./debug/logger";
 import { CGBModeNames, CartridgeTypeNames, getCartridgeTypeName } from "./debug/symbols";
 import { CGBMode, CartridgeType, Metadata } from "./metadata";
 import { uToHex } from "./utils/stringUtils";
 
-const supportedTypes: CartridgeType[] = [CartridgeType.ROM_ONLY, CartridgeType.MBC1, CartridgeType.MBC1_RAM, CartridgeType.MBC1_RAM_BATTERY];
+const supportedTypes: CartridgeType[] = [CartridgeType.ROM_ONLY,
+CartridgeType.MBC1, CartridgeType.MBC1_RAM, /*CartridgeType.MBC1_RAM_BATTERY,*/
+CartridgeType.MBC2, /* CartridgeType.MBC2_BATTERY, */
+CartridgeType.MBC3, CartridgeType.MBC3_RAM_2, /*CartridgeType.MBC3_RAM_BATTERY_2, CartridgeType.MBC3_TIMER_BATTERY, CartridgeType.MBC3_TIMER_RAM_BATTERY_2,*/
+];
 
 function log(s: string): void {
     Logger.Log("ROM: " + s);
@@ -27,7 +31,7 @@ export class Cartridge {
 
         const metadata = Metadata.read(cartridgeRom);
         if (Logger.verbose >= 2) {
-            log(`Cartridge title: ${metadata.title}, type ${getCartridgeTypeName(metadata.cartridgeType)} - tech: ${CGBModeNames.get(metadata.getCGBMode()).toString()} (${uToHex(metadata.cgbFlag)})`);
+            log(`Cartridge title: ${metadata.title}, type ${getCartridgeTypeName(metadata.cartridgeType)} - battery: ${metadata.HasBattery} - tech: ${CGBModeNames.get(metadata.getCGBMode()).toString()} (${uToHex(metadata.cgbFlag)})`);
         }
 
         if (metadata.cgbFlag == CGBMode.CGBOnly) {

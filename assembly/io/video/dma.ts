@@ -1,5 +1,5 @@
-import { GB_OAM_START } from "../../cpu/memoryConstants";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { GB_OAM_START } from "../../memory/memoryConstants";
+import { MemoryMap } from "../../memory/memoryMap";
 import { Logger } from "../../debug/logger";
 import { uToHex } from "../../utils/stringUtils";
 

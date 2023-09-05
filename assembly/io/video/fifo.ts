@@ -1,4 +1,4 @@
-// import { FIFO_MAX_ELEMENTS } from "../../cpu/memoryMap";
+// import { FIFO_MAX_ELEMENTS } from "../../memory/memoryMap";
 
 const DEFAULT_FIFO_SIZE: u32 = 16;
 

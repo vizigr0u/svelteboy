@@ -1,5 +1,5 @@
 import { Cpu, Flag } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function RunCp(opCode: u8, a: u8, b: u8, setB: (a: u8) => void, expectedCycles: u32 = 4): void {

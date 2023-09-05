@@ -1,5 +1,5 @@
 import { Interrupt, IntType } from "../cpu/interrupts";
-import { MemoryMap } from "../cpu/memoryMap";
+import { MemoryMap } from "../memory/memoryMap";
 
 const DIV_ADDRESS: u16 = 0xFF04;
 const TIMA_ADDRESS: u16 = 0xFF05;

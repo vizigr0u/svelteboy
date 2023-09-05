@@ -1,5 +1,5 @@
 import { Cpu } from "../../cpu/cpu";
-import { MemoryMap } from "../../cpu/memoryMap";
+import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
 function RunSet(opCode: u8, b: u8, setB: (a: u8) => void, expectedCycles: u32 = 8): void {
@@ -36,14 +36,14 @@ export function testSet(): boolean {
     assert(Cpu.D() == 0b11000);
 
     // SET 4, [HL]
-    RunSet(0xE6, 0b01000, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 16);
-    assert(MemoryMap.GBload<u8>(0x42) == 0b11000);
-    MemoryMap.GBstore(0x42, 0);
+    RunSet(0xE6, 0b01000, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 16);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 0b11000);
+    MemoryMap.GBstore(0xFF82, 0);
 
     // SET 5, [HL]
-    RunSet(0xEE, 0b11111, v => { MemoryMap.GBstore(0x42, v); Cpu.HL = 0x42 }, 16);
-    assert(MemoryMap.GBload<u8>(0x42) == 0b111111);
-    MemoryMap.GBstore(0x42, 0);
+    RunSet(0xEE, 0b11111, v => { MemoryMap.GBstore(0xFF82, v); Cpu.HL = 0xFF82 }, 16);
+    assert(MemoryMap.GBload<u8>(0xFF82) == 0b111111);
+    MemoryMap.GBstore(0xFF82, 0);
 
     RunSet(0xF3, 0b0011010, Cpu.SetE); // SET 6, E
     assert(Cpu.E() == 0b1011010);

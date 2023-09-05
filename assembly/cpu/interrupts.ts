@@ -2,7 +2,7 @@ import { Logger } from "../debug/logger";
 import { IntNames } from "../debug/symbols";
 import { uToHex } from "../utils/stringUtils";
 import { Cpu } from "./cpu";
-import { GB_IO_START } from "./memoryConstants";
+import { GB_IO_START } from "../memory/memoryConstants";
 
 export enum IntType {
     VBlank = 0x1,

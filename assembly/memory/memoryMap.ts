@@ -3,22 +3,18 @@ import { IO } from "../io/io";
 import { Dma } from "../io/video/dma";
 import { Oam } from "../io/video/oam";
 import { uToHex } from "../utils/stringUtils";
+import { MBC } from "./mbc";
 import {
     BOOT_ROM_START,
-    CARTRIDGE_ROM_START,
-    ROM_BANK_SIZE,
     GB_VIDEO_START,
-    GB_VIDEO_BANK_SIZE,
-    GB_RAM_START,
-    GB_RAM_BANK_SIZE,
+    GB_WRAM_START,
     GB_IO_START,
     GB_HIGH_RAM_START,
     GB_RESTRICTED_AREA_ADDRESS,
     BOOT_ROM_SIZE,
     GB_VIDEO_SIZE,
-    GB_RAM_SIZE,
+    GB_WRAM_SIZE,
     GB_HIGH_RAM_SIZE,
-    GB_IO_SIZE,
     GB_OAM_SIZE,
     GB_OAM_START
 } from "./memoryConstants";
@@ -30,24 +26,19 @@ function log(s: string): void {
 @final
 export class MemoryMap {
     static useBootRom: boolean = false;
-    static currentRomBankIndex: u8 = 0;
-    static currentVideoBankIndex: u8 = 0; // CGB
-    static currentRamBankIndex: u8 = 0;
     static loadedBootRomSize: u32 = 0;
     static loadedCartridgeRomSize: u32 = 0;
 
     static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized MemoryMap, using boot : ' + useBootRom.toString());
+
+        MBC.Init();
         memory.fill(GB_VIDEO_START, 0, GB_VIDEO_SIZE);
         memory.fill(GB_OAM_START, 0, GB_OAM_SIZE);
-        memory.fill(GB_RAM_START, 0, GB_RAM_SIZE);
-        memory.fill(GB_IO_START, 0, GB_IO_SIZE);
+        memory.fill(GB_WRAM_START, 0, GB_WRAM_SIZE);
         memory.fill(GB_HIGH_RAM_START, 0, GB_HIGH_RAM_SIZE);
         MemoryMap.useBootRom = useBootRom;
-        MemoryMap.currentRomBankIndex = 0;
-        MemoryMap.currentRamBankIndex = 0;
-        MemoryMap.currentVideoBankIndex = 0; // CGB
     }
 
     static GBToMemory(gbAddress: u16): u32 {
@@ -59,21 +50,20 @@ export class MemoryMap {
             case 0x1:
             case 0x2:
             case 0x3:
-                return CARTRIDGE_ROM_START + gbAddress;
             case 0x4:
             case 0x5:
             case 0x6:
             case 0x7:
-                return CARTRIDGE_ROM_START + gbAddress + MemoryMap.currentRomBankIndex * ROM_BANK_SIZE;
+                return MBC.MapRom(gbAddress);
             case 0x8:
             case 0x9:
-                return GB_VIDEO_START + gbAddress - 0x8000 + MemoryMap.currentVideoBankIndex * GB_VIDEO_BANK_SIZE;
+                return GB_VIDEO_START + gbAddress - 0x8000;
             case 0xA:
             case 0xB:
-                return GB_RAM_START + gbAddress - 0xA000;
+                return MBC.MapRam(gbAddress);
             case 0xC:
             case 0xD:
-                return GB_RAM_START + gbAddress - 0xA000 + MemoryMap.currentRamBankIndex * GB_RAM_BANK_SIZE;
+                return GB_WRAM_START + gbAddress - 0xC000;
             case 0xE:
             case 0xF:
                 if (gbAddress >= 0xFF80)
@@ -104,65 +94,55 @@ export class MemoryMap {
     }
 
     static GBload<T>(gbAddress: u16): T {
-        if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
-            if (Logger.verbose >= 1) {
-                log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
-            }
-            // return <T>0xFF;
-        }
-        if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
-            if (Logger.verbose >= 3)
-                log(`Unexpected hit in echo RAM: ${uToHex<u16>(gbAddress)}`);
-            return <T>0;
-        }
-        if (Oam.Handles(gbAddress)) {
+        if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) // ROM and RAM
+            return load<T>(MemoryMap.GBToMemory(gbAddress));
+        if (gbAddress < 0xFEA0) // OAM
             return Oam.Load<T>(gbAddress);
-        }
-        if (gbAddress >= 0xFEA0 && gbAddress < 0xFF00) {
+        if (gbAddress < 0xFF00) { // Restricted Area
             if (Logger.verbose >= 3)
                 log('Unexpected read in restricted area');
             return <T>0;
         }
-        if (IO.Handles(gbAddress)) {
-            return <T>(IO.Load(gbAddress));
+        // IO
+        if (Dma.active) {
+            if (Logger.verbose >= 1) {
+                log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
+            }
+            return <T>0xFF;
         }
-        return load<T>(MemoryMap.GBToMemory(gbAddress));
+        return <T>(IO.Load(gbAddress));
     }
 
     static GBstore<T>(gbAddress: u16, value: T): void {
-        if (gbAddress < 0x8000) {
-            if (Logger.verbose >= 1) {
-                log(`Ignoring write to ROM: ${uToHex<T>(value)} to ${uToHex<u16>(gbAddress)}. TODO: support MBC`)
-            }
-            return;
-        }
-        if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
+        if (gbAddress < 0xFF80 && Dma.active) {
             if (Logger.verbose >= 2) {
                 log(`Trying to write to ${uToHex<u16>(gbAddress)} during DMA, ignored.`);
             }
-            // return;
+            return;
         }
-        if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
+        if (gbAddress < 0x8000) { // ROM
+            MBC.HandleWrite(gbAddress, <u8>value);
+            return;
+        }
+        if (gbAddress < 0xE000 || gbAddress >= 0xFF80) { // all types of RAM
+            store<T>(MemoryMap.GBToMemory(gbAddress), value);
+            return;
+        }
+        if (gbAddress < 0xFE00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in echo RAM');
             return;
         }
-        if (Oam.Handles(gbAddress)) {
+        if (gbAddress < 0xFEA0) {
             Oam.Store<T>(gbAddress, value);
             return;
         }
-        if (gbAddress >= 0xFEA0 && gbAddress < 0xFF00) {
+        if (gbAddress < 0xFF00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in restricted area');
             return;
         }
-        if (IO.Handles(gbAddress)) {
-            IO.Store(gbAddress, <u8>value);
-            return;
-        }
-        if (Logger.verbose >= 4)
-            log(`IO [${uToHex<u16>(gbAddress)}] <- ${uToHex<u8>(<u8>value)} ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`);
-        store<T>(MemoryMap.GBToMemory(gbAddress), value);
+        IO.Store(gbAddress, <u8>value);
     }
 
     @inline

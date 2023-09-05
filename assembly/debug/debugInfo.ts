@@ -1,6 +1,6 @@
 import { Cpu } from "../cpu/cpu";
 import { Interrupt } from "../cpu/interrupts";
-import { MemoryMap } from "../cpu/memoryMap";
+import { MemoryMap } from "../memory/memoryMap";
 import { Serial } from "../io/serial";
 import { Timer } from "../io/timer";
 import { Lcd } from "../io/video/lcd";
