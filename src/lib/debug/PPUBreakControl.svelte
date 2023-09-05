@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { debugSetPPUBreak } from "../../../build/release";
+    import { Debug } from "../../emulator";
     import { PPUMode } from "../../types";
 
     const breakModes = [
@@ -19,7 +19,7 @@
                 <input
                     type="checkbox"
                     on:change={(ev) =>
-                        debugSetPPUBreak(mode, ev.currentTarget.checked)}
+                        Debug.SetPPUBreak(mode, ev.currentTarget.checked)}
                 />
             </label>
         {/each}

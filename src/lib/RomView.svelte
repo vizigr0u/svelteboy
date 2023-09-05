@@ -1,16 +1,11 @@
 <script lang="ts">
-    import { loadBootRom, loadCartridgeRom } from "../../build/release";
     import type { StoredRom } from "../types";
-    import { RomType } from "../types";
-    import {
-        cartRomStore,
-        loadedCartridge,
-        loadedBootRom,
-    } from "../stores/romStores";
+    import { cartRomStore, loadedCartridge } from "../stores/romStores";
     import { humanReadableSize } from "../utils";
     import { fetchLogs } from "../debug";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Buffer } from "buffer";
+    import { Emulator } from "../emulator";
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
@@ -25,21 +20,12 @@
         alt: string;
     };
 
-    let loadedRom =
-        rom.romType == RomType.Boot ? loadedBootRom : loadedCartridge;
-
     let imagePromise;
 
-    $: imagePromise =
-        rom.romType == RomType.Cartridge
-            ? fetchImageAndAlt(rom)
-            : Promise.resolve({
-                  src: defaultThumbnailUri,
-                  alt: defaultAltText,
-              });
+    $: imagePromise = fetchImageAndAlt(rom);
 
     let isLoaded;
-    $: isLoaded = $loadedRom && $loadedRom.sha1 == rom.sha1;
+    $: isLoaded = $loadedCartridge && $loadedCartridge.sha1 == rom.sha1;
 
     async function fetchImageAndAlt(rom: StoredRom): Promise<RomImgData> {
         const isGbc = rom.filename.endsWith(".gbc");
@@ -55,12 +41,13 @@
 
     let isLoading: boolean = false;
 
-    const loadFunction: (a: ArrayBuffer) => boolean =
-        rom.romType == RomType.Boot ? loadBootRom : loadCartridgeRom;
-
     function tryLoadRom(): Promise<boolean> {
         return new Promise<boolean>((resolve) =>
-            resolve(loadFunction(Buffer.from(rom.contentBase64, "base64")))
+            resolve(
+                Emulator.LoadCartridgeRom(
+                    Buffer.from(rom.contentBase64, "base64")
+                )
+            )
         );
     }
 
@@ -71,14 +58,14 @@
             console.log(`Error loading ${rom.filename}`);
             return;
         }
-        $loadedRom = rom;
+        $loadedCartridge = rom;
     }
 
     function deleteRom() {
         cartRomStore.update((store) => {
             return store.filter((r) => r.sha1 !== rom.sha1);
         });
-        if (isLoaded) $loadedRom = undefined;
+        if (isLoaded) $loadedCartridge = undefined;
     }
 
     function onThumbnailError(ev) {

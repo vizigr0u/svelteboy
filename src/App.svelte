@@ -11,8 +11,6 @@
     <Player />
     <RomList romType={RomType.Cartridge} title="Cartridge roms" />
     <OptionsView />
-    <RomList romType={RomType.Boot} title="Boot roms" />
-    <div class="rom-loaders" />
   </main>
   <aside>
     <DebugSection />
@@ -30,11 +28,5 @@
     display: flex;
     justify-content: left;
     gap: 2em;
-  }
-
-  .rom-loaders {
-    display: flex;
-    gap: 2em;
-    flex-direction: column;
   }
 </style>

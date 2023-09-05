@@ -3,8 +3,6 @@ import {
     resetCpuTestSession, getCpuTestSessionSummary, testVideo, testMisc, testFifo, dumpLogToConsole, setVerbose
 } from "../build/debug.js";
 
-
-// import { testRegisters, testMemory } from "../build/release.js";
 console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
 
 function colorString(str, colorCode) {

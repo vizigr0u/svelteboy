@@ -1,41 +1,72 @@
 import { get } from "svelte/store";
-import { setJoypad, runOneFrame, getDebugInfo, debugStep, initEmulator } from "../build/release";
+import {
+    setJoypad,
+    runOneFrame,
+    getDebugInfo,
+    debugStep,
+    initEmulator,
+    getGameFrame,
+    loadCartridgeRom,
+    drawTileData,
+    drawBackgroundMap,
+    getBGTileMap,
+    debugSetBreakpoint,
+    debugSetPPUBreak,
+    attachDebugger,
+    detachDebugger,
+    setVerbose,
+    getOAMTiles
+} from "../build/debug";
 import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "./stores/debugStores";
 import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap } from "./stores/playStores";
 import { DebugStopReason, type GbDebugInfo } from "./types";
 import { frameDelay, useBoot } from "./stores/optionsStore";
 
-export function resetEmulator() {
-    EmulatorInitialized.set(false);
-    initEmulator(get(useBoot));
-    EmulatorInitialized.set(true);
-    postRun();
-    GameFrames.set(0)
-    if (get(DebuggerAttached))
+export const Emulator = {
+    Reset: () => {
+        EmulatorInitialized.set(false);
+        initEmulator(get(useBoot));
+        EmulatorInitialized.set(true);
+        postRun();
+        GameFrames.set(0)
+        if (get(DebuggerAttached))
+            pauseEmulator();
+    },
+    RunUntilBreak: async () => {
+        do {
+            await runFrame();
+            if (!get(EmulatorPaused) && get(LastStopReason) == DebugStopReason.EndOfFrame)
+                await new Promise((r) => setTimeout(r, get(frameDelay)));
+        } while (!get(EmulatorPaused) && get(LastStopReason) == DebugStopReason.EndOfFrame
+        );
         pauseEmulator();
+    },
+    Pause: pauseEmulator,
+    GetGameFrame: getGameFrame,
+    LoadCartridgeRom: loadCartridgeRom
 }
 
-export async function runEmulatorFrame() {
-    await runFrame()
-    pauseEmulator();
-}
-
-export async function runUntilBreak() {
-    do {
-        await runFrame();
-        if (!get(EmulatorPaused) && get(LastStopReason) == DebugStopReason.EndOfFrame)
-            await new Promise((r) => setTimeout(r, get(frameDelay)));
-    } while (!get(EmulatorPaused) && get(LastStopReason) == DebugStopReason.EndOfFrame
-    );
-    pauseEmulator();
-}
-
-export async function runEmulatorStep() {
-    preRun();
-    await new Promise<void>((r) => { debugStep(); r(); });
-    postRun();
-    pauseEmulator();
+export const Debug = {
+    SetVerbose: setVerbose,
+    RunFrame: async () => {
+        await runFrame()
+        pauseEmulator();
+    },
+    Step: async () => {
+        preRun();
+        await new Promise<void>((r) => { debugStep(); r(); });
+        postRun();
+        pauseEmulator();
+    },
+    SetBreakpoint: debugSetBreakpoint,
+    SetPPUBreak: debugSetPPUBreak,
+    DrawBackgroundMap: drawBackgroundMap,
+    DrawTileData: drawTileData,
+    GetBGTileMap: getBGTileMap,
+    GetOAMTiles: getOAMTiles,
+    AttachDebugger: attachDebugger,
+    DetachDebugger: detachDebugger,
 }
 
 async function runFrame() {
@@ -71,7 +102,7 @@ function getInputForEmu(): number {
     return res;
 }
 
-export function pauseEmulator(): void {
+function pauseEmulator(): void {
     EmulatorPaused.set(true);
 }
 

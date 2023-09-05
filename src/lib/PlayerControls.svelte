@@ -2,11 +2,11 @@
     import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 
     import { EmulatorPaused } from "../stores/playStores";
-    import { pauseEmulator, runUntilBreak } from "../emulator";
+    import { Emulator } from "../emulator";
 
     async function onPlayPauseClick() {
-        if ($EmulatorPaused) await runUntilBreak();
-        else pauseEmulator();
+        if ($EmulatorPaused) await Emulator.RunUntilBreak();
+        else Emulator.Pause();
     }
 </script>
 

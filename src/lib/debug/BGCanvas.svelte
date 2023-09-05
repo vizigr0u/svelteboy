@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { drawBackgroundMap, getBGTileMap } from "../../../build/release";
+    import { Debug } from "../../emulator";
     import { GbDebugInfoStore } from "../../stores/debugStores";
     import { GameFrames } from "../../stores/playStores";
     import LcdCanvas from "../LcdCanvas.svelte";
@@ -62,7 +62,7 @@
     }
 
     function postProcess(ctx: CanvasRenderingContext2D): void {
-        tileMap = getBGTileMap(tileMap);
+        tileMap = Debug.GetBGTileMap(tileMap);
         drawBGLines(ctx);
     }
 
@@ -92,7 +92,7 @@
 <LcdCanvas
     width={32 * 8}
     height={32 * 8}
-    updateBuffer={drawBackgroundMap}
+    updateBuffer={Debug.DrawBackgroundMap}
     {postProcess}
     mouseMove={onMouseMove}
     frameStore={GameFrames}

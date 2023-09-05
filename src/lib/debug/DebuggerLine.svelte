@@ -1,7 +1,7 @@
 <script lang="ts">
+    import { Debug } from "../../emulator";
     import { Breakpoints } from "../../stores/debugStores";
     import type { ProgramLine } from "../../types";
-    import { debugSetBreakpoint } from "../../../build/release";
 
     export let line: ProgramLine;
     export let highlighted: boolean = false;
@@ -11,7 +11,7 @@
     function toggleBreakpoint() {
         if ($Breakpoints.has(line.pc)) $Breakpoints.delete(line.pc);
         else $Breakpoints.add(line.pc);
-        debugSetBreakpoint(line.pc, $Breakpoints.has(line.pc));
+        Debug.SetBreakpoint(line.pc, $Breakpoints.has(line.pc));
         $Breakpoints = $Breakpoints;
         breakpoint = $Breakpoints.has(line.pc);
     }

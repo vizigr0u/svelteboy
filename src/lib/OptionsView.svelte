@@ -32,6 +32,7 @@
             max="10"
             bind:value={$playerPixelSize}
         />
+        <span>Todo: boot rom?</span>
     </div>
 </div>
 
