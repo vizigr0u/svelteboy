@@ -32,6 +32,7 @@ export class MemoryMap {
     static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized MemoryMap, using boot : ' + useBootRom.toString());
+
         MBC.Init();
         memory.fill(GB_VIDEO_START, 0, GB_VIDEO_SIZE);
         memory.fill(GB_OAM_START, 0, GB_OAM_SIZE);
@@ -93,63 +94,55 @@ export class MemoryMap {
     }
 
     static GBload<T>(gbAddress: u16): T {
-        if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
+        if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) // ROM and RAM
+            return load<T>(MemoryMap.GBToMemory(gbAddress));
+        if (gbAddress < 0xFEA0) // OAM
+            return Oam.Load<T>(gbAddress);
+        if (gbAddress < 0xFF00) { // Restricted Area
+            if (Logger.verbose >= 3)
+                log('Unexpected read in restricted area');
+            return <T>0;
+        }
+        // IO
+        if (Dma.active) {
             if (Logger.verbose >= 1) {
                 log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
             }
             return <T>0xFF;
         }
-        if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
-            if (Logger.verbose >= 3)
-                log(`Unexpected hit in echo RAM: ${uToHex<u16>(gbAddress)}`);
-            return <T>0;
-        }
-        if (Oam.Handles(gbAddress)) {
-            return Oam.Load<T>(gbAddress);
-        }
-        if (gbAddress >= 0xFEA0 && gbAddress < 0xFF00) {
-            if (Logger.verbose >= 3)
-                log('Unexpected read in restricted area');
-            return <T>0;
-        }
-        if (IO.Handles(gbAddress)) {
-            return <T>(IO.Load(gbAddress));
-        }
-        return load<T>(MemoryMap.GBToMemory(gbAddress));
+        return <T>(IO.Load(gbAddress));
     }
 
     static GBstore<T>(gbAddress: u16, value: T): void {
-        if (gbAddress < 0x8000) {
-            MBC.HandleWrite(gbAddress, <u8>value);
-            return;
-        }
-        if (gbAddress >= 0xFF00 && gbAddress < 0xFF80 && Dma.active) {
+        if (gbAddress < 0xFF80 && Dma.active) {
             if (Logger.verbose >= 2) {
                 log(`Trying to write to ${uToHex<u16>(gbAddress)} during DMA, ignored.`);
             }
-            // return;
+            return;
         }
-        if (gbAddress >= 0xE000 && gbAddress < 0xFE00) {
+        if (gbAddress < 0x8000) { // ROM
+            MBC.HandleWrite(gbAddress, <u8>value);
+            return;
+        }
+        if (gbAddress < 0xE000 || gbAddress >= 0xFF80) { // all types of RAM
+            store<T>(MemoryMap.GBToMemory(gbAddress), value);
+            return;
+        }
+        if (gbAddress < 0xFE00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in echo RAM');
             return;
         }
-        if (Oam.Handles(gbAddress)) {
+        if (gbAddress < 0xFEA0) {
             Oam.Store<T>(gbAddress, value);
             return;
         }
-        if (gbAddress >= 0xFEA0 && gbAddress < 0xFF00) {
+        if (gbAddress < 0xFF00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in restricted area');
             return;
         }
-        if (IO.Handles(gbAddress)) {
-            IO.Store(gbAddress, <u8>value);
-            return;
-        }
-        if (Logger.verbose >= 4)
-            log(`IO [${uToHex<u16>(gbAddress)}] <- ${uToHex<u8>(<u8>value)} ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`);
-        store<T>(MemoryMap.GBToMemory(gbAddress), value);
+        IO.Store(gbAddress, <u8>value);
     }
 
     @inline

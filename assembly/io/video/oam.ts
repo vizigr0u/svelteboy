@@ -40,11 +40,6 @@ export class OamData {
 
 @final
 export class Oam {
-    @inline
-    static Handles(gbAddress: u16): boolean {
-        return gbAddress >= 0xFE00 && gbAddress <= 0xFE9F;
-    }
-
     static view: InlinedReadonlyView<OamData> = new InlinedReadonlyView<OamData>(GB_OAM_START, 40);
 
     @inline
