@@ -3,6 +3,7 @@ import { Logger } from "../../debug/logger";
 import { DefaultPaletteColors, LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd } from "./lcd";
 import { Oam, OamData } from "./oam";
+import { PixelFifo } from "./pixelFifo";
 import { PpuTransfer } from "./ppuTransfer";
 
 export enum PpuMode {
@@ -65,16 +66,15 @@ export class PpuOamFifo {
     static FetchCurrentLine(): void {
         PpuOamFifo.Reset();
         const ly = Lcd.data.lY;
-        const spriteHeight: u8 = Lcd.data.spriteHeight();
         const oams = Oam.view;
         for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
             const oam = unchecked(oams[i]);
             if (oam.xPos == 0)
                 continue;
             if (Logger.verbose >= 5) {
-                log(`OAM #${i}: yPos = ${oam.yPos}, ly = ${ly}, spriteHeight = ${spriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) >= oam.yPos}. < (oam.yPos + spriteHeight) ? ${(ly + 16) < (oam.yPos + spriteHeight)}`);
+                log(`OAM #${i}: yPos = ${oam.yPos}, ly = ${ly}, spriteHeight = ${Lcd.SpriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) >= oam.yPos}. < (oam.yPos + spriteHeight) ? ${(ly + 16) < (oam.yPos + Lcd.SpriteHeight)}`);
             }
-            if ((ly + 16) >= oam.yPos && (ly + 16) < (oam.yPos + spriteHeight)) {
+            if ((ly + 16) >= oam.yPos && (ly + 16) < (oam.yPos + Lcd.SpriteHeight)) {
                 PpuOamFifo.Enqueue(<u8>i);
                 if (Logger.verbose >= 5) {
                     let s = '';
@@ -171,7 +171,7 @@ export class Ppu {
     }
 
     static Tick(): void {
-        // if (!Lcd.data.hasControlBit(LcdControlBit.LCDandPPUenabled))
+        // if (!Lcd.PPUenabled))
         //     return;
         if (Logger.verbose >= 4)
             log('PPU TICK');
@@ -202,7 +202,7 @@ function enterMode(mode: PpuMode): void {
     Ppu.currentMode = mode;
     switch (mode) {
         case PpuMode.HBlank:
-            PpuTransfer.bgFifo.Clear();
+            PixelFifo.Clear();
             if (Lcd.data.hasStatMode(PpuMode.HBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }

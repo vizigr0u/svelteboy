@@ -55,7 +55,7 @@ export class Oam {
             }
             return;
         }
-        if (Lcd.data.hasControlBit(LcdControlBit.LCDandPPUenabled) && Ppu.currentMode != PpuMode.HBlank && Ppu.currentMode != PpuMode.VBlank) {
+        if (Lcd.IsPpuEnabled && Ppu.currentMode != PpuMode.HBlank && Ppu.currentMode != PpuMode.VBlank) {
             if (Logger.verbose >= 2) {
                 log('Ignoring writing to OAM outside of VBlank and HBlank: ' + uToHex<u16>(gbAddress) + ` (current mode: ${Ppu.currentMode})`)
             }

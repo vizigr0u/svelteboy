@@ -1,6 +1,19 @@
 import {
-    testRegisters, testMemory, TOTAL_MEMORY_SIZE, testCpu, testInstructions, testNop, testPrograms,
-    resetCpuTestSession, getCpuTestSessionSummary, testVideo, testMisc, testFifo, dumpLogToConsole, setVerbose
+    testRegisters,
+    testMemory,
+    TOTAL_MEMORY_SIZE,
+    testCpu,
+    testInstructions,
+    testNop,
+    testPrograms,
+    resetCpuTestSession,
+    getCpuTestSessionSummary,
+    testVideo,
+    testMisc,
+    testFifo,
+    dumpLogToConsole,
+    setVerbose,
+    testPixelFifo
 } from "../build/debug.js";
 
 console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
@@ -43,5 +56,7 @@ test(testPrograms);
 test(testMisc);
 
 test(testFifo);
+
+test(testPixelFifo);
 
 console.log(getCpuTestSessionSummary());
