@@ -16,7 +16,7 @@ import {
     detachDebugger,
     setVerbose,
     getOAMTiles
-} from "../build/release";
+} from "../build/release/backend";
 import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "./stores/debugStores";
 import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap } from "./stores/playStores";

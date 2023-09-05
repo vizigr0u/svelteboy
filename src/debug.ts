@@ -1,7 +1,7 @@
 import { RomType, type ProgramLine, type RomReference, MemoryRegion } from "./types";
 
 import { appendLog, disassembledRomsStore } from "./stores/debugStores";
-import { getBootLines, getCartLines, hexDump, runOneFrame, initEmulator, setVerbose, spliceLogs } from "../build/release";
+import { getBootLines, getCartLines, hexDump, runOneFrame, initEmulator, setVerbose, spliceLogs } from "../build/release/backend";
 
 function getLines(
     rom: RomReference,
