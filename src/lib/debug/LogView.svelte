@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { setVerbose } from "../../../build/release";
     import { fetchLogs } from "../../debug";
+    import { Debug } from "../../emulator";
     import {
         DebugLines,
         MutedCategories,
@@ -82,7 +82,7 @@
                 type="number"
                 class="verbose-input"
                 bind:value={$Verbose}
-                on:change={() => setVerbose($Verbose)}
+                on:change={() => Debug.SetVerbose($Verbose)}
                 min="0"
                 max="10"
             />

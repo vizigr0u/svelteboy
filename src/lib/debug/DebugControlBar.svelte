@@ -2,13 +2,7 @@
     import { DebuggerAttached } from "../../stores/debugStores";
     import { loadedCartridge, loadedBootRom } from "../../stores/romStores";
 
-    import {
-        pauseEmulator,
-        resetEmulator,
-        runEmulatorFrame,
-        runEmulatorStep,
-        runUntilBreak,
-    } from "../../emulator";
+    import { Emulator, Debug } from "../../emulator";
     import { EmulatorPaused } from "../../stores/playStores";
 
     let breakSkipCount: number = 1;
@@ -19,15 +13,15 @@
 
     async function onIgnoreBreakClick() {
         for (let i = 0; i < breakSkipCount + 1; i++) {
-            await runUntilBreak();
+            await Emulator.RunUntilBreak();
         }
     }
 
     async function onRunPauseClick() {
         if (!$EmulatorPaused) {
-            pauseEmulator();
+            Emulator.Pause();
         } else {
-            await runUntilBreak();
+            await Emulator.RunUntilBreak();
         }
     }
 </script>
@@ -39,11 +33,11 @@
         >{$EmulatorPaused ? "Run Debug" : "Pause"}</button
     >
     <button
-        on:click={runEmulatorStep}
+        on:click={Debug.Step}
         disabled={!$DebuggerAttached || !hasRomToDebug}>Step</button
     >
     <button
-        on:click={runEmulatorFrame}
+        on:click={Debug.RunFrame}
         disabled={!$DebuggerAttached || !hasRomToDebug}
     >
         Next Frame
@@ -62,7 +56,7 @@
             >
         </div>
     </div>
-    <button on:click={resetEmulator} disabled={!hasRomToDebug}>Reset</button>
+    <button on:click={Emulator.Reset} disabled={!hasRomToDebug}>Reset</button>
 </div>
 
 <style>

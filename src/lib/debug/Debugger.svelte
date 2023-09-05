@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { attachDebugger, detachDebugger } from "../../../build/release";
+  import { Debug } from "../../emulator";
   import { DebuggerAttached, GbDebugInfoStore } from "../../stores/debugStores";
   import BreakpointsControl from "./BreakpointsControl.svelte";
   import CpuDebugInfo from "./CpuDebugInfo.svelte";
@@ -9,7 +9,7 @@
   import PpuBreakControl from "./PPUBreakControl.svelte";
 
   DebuggerAttached.subscribe((attach) => {
-    attach ? attachDebugger() : detachDebugger();
+    attach ? Debug.AttachDebugger() : Debug.DetachDebugger();
   });
 </script>
 

@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { getGameFrame } from "../../build/release";
     import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
     import LcdCanvas from "./LcdCanvas.svelte";
@@ -7,6 +6,7 @@
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { onMount } from "svelte";
     import { DisableKeyBoardInput, EnableKeyBoardInput } from "../inputs";
+    import { Emulator } from "../emulator";
 
     onMount(() => {
         EnableKeyBoardInput();
@@ -17,7 +17,7 @@
 <div class="console">
     <div class="screen">
         <LcdCanvas
-            updateBuffer={(_) => getGameFrame()}
+            updateBuffer={(_) => Emulator.GetGameFrame()}
             width={160}
             height={144}
             bind:pixelSize={$playerPixelSize}

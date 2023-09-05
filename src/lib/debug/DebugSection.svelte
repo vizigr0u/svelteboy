@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { drawTileData } from "../../../build/release";
-
     import BenchmarkControl from "./BenchmarkControl.svelte";
     import HexDumpControl from "./HexDumpControl.svelte";
     import LogView from "./LogView.svelte";
@@ -11,6 +9,7 @@
     import Debugger from "./Debugger.svelte";
     import ForceInputControl from "./ForceInputControl.svelte";
     import { GameFrames } from "../../stores/playStores";
+    import { Debug } from "../../emulator";
 
     let drawTiles;
     let drawBG;
@@ -67,7 +66,7 @@
         <LcdCanvas
             width={32 * 8}
             height={12 * 8}
-            updateBuffer={(a) => drawTileData(a, 32 * 8)}
+            updateBuffer={(a) => Debug.DrawTileData(a, 32 * 8)}
             mouseMove={onMouseMoveOnTiles}
             frameStore={GameFrames}
             bind:draw={drawTiles}

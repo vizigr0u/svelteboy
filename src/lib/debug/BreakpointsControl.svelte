@@ -1,6 +1,6 @@
 <script lang="ts">
+    import { Debug } from "../../emulator";
     import { Breakpoints } from "../../stores/debugStores";
-    import { debugSetBreakpoint } from "../../../build/release";
     import { uToHex16 } from "../../utils";
 
     let breakpointToAdd: string;
@@ -19,7 +19,7 @@
             return;
         }
         if (!$Breakpoints.has(breakpoint)) {
-            debugSetBreakpoint(breakpoint);
+            Debug.SetBreakpoint(breakpoint);
             $Breakpoints.add(breakpoint);
             $Breakpoints = $Breakpoints;
             breakpointToAdd = "";
@@ -28,7 +28,7 @@
 
     function onRemoveClick(breakpoint: number) {
         if ($Breakpoints.has(breakpoint)) {
-            debugSetBreakpoint(breakpoint, false);
+            Debug.SetBreakpoint(breakpoint, false);
             $Breakpoints.delete(breakpoint);
             $Breakpoints = $Breakpoints;
         }
