@@ -22,7 +22,7 @@ class MBC2 {
             enableRam(value == 0xA);
         } else {
             const newRomBank = value == 0 ? 1 : value;
-            if (newRomBank != MBC2.romBank && Logger.verbose >= 1)
+            if (newRomBank != MBC2.romBank && Logger.verbose >= 2)
                 log(`Switching ROM bank(1) from #${MBC2.romBank} to ${newRomBank}`)
             MBC2.romBank = newRomBank;
         }
@@ -35,7 +35,7 @@ class MBC2 {
     }
 
     static MapRam(gbAddress: u16): u32 {
-        if (!MBC2.ramEnabled && Logger.verbose >= 1) {
+        if (!MBC2.ramEnabled && Logger.verbose >= 2) {
             log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
         }
         return GB_EXT_RAM_START + gbAddress - 0xA000;

@@ -36,7 +36,7 @@ class MBC3 {
             case 0x3:
                 const newRomBank = value == 0 ? 1 : value;
                 if (newRomBank != MBC3.romBank) {
-                    if (Logger.verbose >= 1)
+                    if (Logger.verbose >= 2)
                         log(`Switching ROM bank(1) from #${MBC3.romBank} to ${newRomBank}`)
                 }
                 MBC3.romBank = newRomBank;
@@ -45,27 +45,27 @@ class MBC3 {
             case 0x5:
                 if (value <= 3) {
                     const newRamBank = value & 0x3;
-                    if (newRamBank != MBC3.ramBank && Logger.verbose >= 1)
+                    if (newRamBank != MBC3.ramBank && Logger.verbose >= 2)
                         log(`Switching RAM bank from #${MBC3.ramBank} to ${newRamBank}`)
                     MBC3.ramBank = newRamBank;
                 }
                 else if (value >= 0x8 && value <= 0xC) {
-                    if (Logger.verbose >= 1) {
+                    if (Logger.verbose >= 2) {
                         log('RTC not supported. Ignoring this write to ' + uToHex<u16>(gbAddress));
                     }
-                } else if (Logger.verbose >= 1) {
+                } else if (Logger.verbose >= 2) {
                     log('Ignoring unhandled value write to ' + uToHex<u16>(gbAddress))
                 }
                 break;
             case 0x6:
             case 0x7:
-                if (Logger.verbose >= 1) {
+                if (Logger.verbose >= 2) {
                     log('RTC not supported. Ignoring this write to ' + uToHex<u16>(gbAddress));
                 }
                 break;
             case 0xA:
             case 0xB:
-                if (Logger.verbose >= 1) {
+                if (Logger.verbose >= 2) {
                     log('RTC not supported. Ignoring this write to ' + uToHex<u16>(gbAddress));
                 }
                 break;
@@ -85,7 +85,7 @@ class MBC3 {
     }
 
     static MapRam(gbAddress: u16): u32 {
-        if (!MBC3.ramEnabled && Logger.verbose >= 1) {
+        if (!MBC3.ramEnabled && Logger.verbose >= 2) {
             log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
         }
         return GB_EXT_RAM_START + gbAddress - 0xA000 + MBC3.ramBank * GB_EXT_RAM_BANK_SIZE;

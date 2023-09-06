@@ -79,13 +79,13 @@ class MBC1 {
         MBC1.rom0Bank = MBC1.advancedMode ? (MBC1.HighRegister << 5) & MBC1.romBankMask : 0;
         MBC1.rom1Bank = ((MBC1.HighRegister << 5) | MBC1.LowRegister) & MBC1.romBankMask;
         MBC1.ramBank = MBC1.advancedMode ? MBC1.HighRegister : 0;
-        if (oldRam != MBC1.ramBank && Logger.verbose >= 1) { // TODO: Tone down all 3
+        if (oldRam != MBC1.ramBank && Logger.verbose >= 2) {
             log(`Switching Ram bank from ${oldRam} to ${MBC1.ramBank} ([${uToHex<u16>(gbAddress)}] <- ${value})`)
         }
-        if (oldRom1 != MBC1.rom1Bank && Logger.verbose >= 1) {
+        if (oldRom1 != MBC1.rom1Bank && Logger.verbose >= 2) {
             log(`Switching Rom bank 1 from ${oldRom1} to ${MBC1.rom1Bank} ([${uToHex<u16>(gbAddress)}] <- ${value})`)
         }
-        if (oldRom0 != MBC1.rom0Bank && Logger.verbose >= 1) {
+        if (oldRom0 != MBC1.rom0Bank && Logger.verbose >= 2) {
             log(`Switching Rom bank 0 from ${oldRom0} to ${MBC1.rom0Bank} ([${uToHex<u16>(gbAddress)}] <- ${value})`)
         }
     }
@@ -94,12 +94,6 @@ class MBC1 {
         if (gbAddress < 0x4000)
             return CARTRIDGE_ROM_START + gbAddress + MBC1.rom0Bank * ROM_BANK_SIZE;
         return CARTRIDGE_ROM_START + gbAddress - 0x4000 + MBC1.rom1Bank * ROM_BANK_SIZE;
-
-        // const result: u32 = gbAddress < 0x4000 ? MBC1.rom0Base + gbAddress : MBC1.rom1Base + gbAddress - 0x4000;
-        // if (Logger.verbose >= 3) {
-        //     log(`MBC1 Mapping ${uToHex<u16>(gbAddress)} to ${uToHex<u32>(result)} (bankId: ${bankId})`)
-        // }
-        // return result;
     }
 
     static MapRam(gbAddress: u16): u32 {
