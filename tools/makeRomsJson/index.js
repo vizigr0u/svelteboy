@@ -1,6 +1,13 @@
 import fs from 'fs';
 import path from 'path'
+import crypto from 'crypto'
 import { argv0 } from 'process'
+
+function computeSHA1(file) {
+    const data = fs.readFileSync(file);
+    const sha1 = crypto.createHash('sha1').update(data).digest('hex');
+    return sha1;
+}
 
 function generateFileList(directory) {
     let fileList = [];
@@ -14,7 +21,8 @@ function generateFileList(directory) {
             } else {
                 fileList.push({
                     filename: path.basename(name),
-                    location: relativePath  // This will now provide only the directory path, excluding the filename
+                    location: relativePath,
+                    sha1: computeSHA1(name)
                 });
             }
         }
