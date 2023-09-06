@@ -130,5 +130,6 @@ export enum InputType {
 
 export type SaveGameData = {
     buffer: Uint8Array,
-    filename: string
+    gameSha1: string,
+    name: string
 }

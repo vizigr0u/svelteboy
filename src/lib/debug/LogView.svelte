@@ -89,7 +89,9 @@
             />
         </label>
         <div class="log-category-dropdown">
-            <button class="log-category-toggle">Filter... </button>
+            <button class="log-category-toggle"
+                ><i class="fa-solid fa-filter" />...
+            </button>
             <div class="log-category-dropdown-content">
                 {#each LogCategories as cat}
                     <button
@@ -109,17 +111,18 @@
         <button
             on:click={onClearClick}
             disabled={!$DebugLines || $DebugLines.length == 0}
-            class="log-clear-button">Clear</button
+            class="log-clear-button"><i class="fa-solid fa-trash" /></button
         >
         <button
             on:click={fetchLogs}
             disabled={$EmulatorBusy}
-            class="log-clear-button">Fetch now</button
+            class="log-clear-button"><i class="fa-solid fa-rotate" /></button
         >
         <button
             on:click={() => downloadLog([])}
             disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
-            class="log-clear-button">Download</button
+            class="log-clear-button"
+            ><i class="fa-solid fa-cloud-arrow-down" /></button
         >
         <button
             on:click={() => downloadLog($MutedCategories)}

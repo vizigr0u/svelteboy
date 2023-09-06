@@ -1,5 +1,6 @@
 <script lang="ts">
     import { InputType } from "../inputs";
+    import { HideKeyboardWarning } from "../stores/optionsStore";
     import { KeyPressMap } from "../stores/playStores";
 </script>
 
@@ -22,14 +23,22 @@
         <div class="B" class:pressed={$KeyPressMap.has(InputType.B)} />
         <div class="A" class:pressed={$KeyPressMap.has(InputType.A)} />
     </div>
-    <div class="keybinds-hint">
-        Currently, only inputs are keyboard keys:
-        <br />Up, Down, Left, Right, Shift(Select), Enter(Start), A and B.
-        <br />
-        I'll add something better later.
-        <br />
-        Maybe.
-    </div>
+    {#if !$HideKeyboardWarning}
+        <div class="keybinds-hint">
+            Currently, only inputs are keyboard keys:
+            <br />Up, Down, Left, Right, Shift(Select), Enter(Start), A and B.
+            <br />
+            I'll add something better later.
+            <br />
+            Maybe.
+            <button
+                class="dismiss-hint"
+                on:click={() => {
+                    $HideKeyboardWarning = true;
+                }}><i class="fa-solid fa-xmark" /></button
+            >
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -171,5 +180,10 @@
         border-radius: 0.5em;
         width: 90%;
         visibility: hidden;
+    }
+    .dismiss-hint {
+        position: absolute;
+        right: 0.5em;
+        top: 0.5em;
     }
 </style>
