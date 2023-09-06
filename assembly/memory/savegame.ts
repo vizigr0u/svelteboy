@@ -43,7 +43,7 @@ function log(s: string): void {
         if (Logger.verbose >= 1) {
             log(`Loading save of size ${saveBuffer.byteLength}B...`);
         }
-        memory.copy(SaveGame.adjustedBuffer.dataStart, saveBuffer.dataStart, saveBuffer.byteLength);
+        memory.copy(GB_EXT_RAM_START, saveBuffer.dataStart, saveBuffer.byteLength);
     }
 
     static Save(): void {

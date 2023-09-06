@@ -1,3 +1,4 @@
+import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { IO } from "../io/io";
 import { Dma } from "../io/video/dma";
@@ -94,8 +95,12 @@ export class MemoryMap {
     }
 
     static GBload<T>(gbAddress: u16): T {
-        if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) // ROM and RAM
+        if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) { // ROM and RAM
+            if (Logger.verbose >= 2 && gbAddress >= 0xA000 && gbAddress < 0xC000) {
+                log('Reading EXT RAM ' + Cpu.GetTrace())
+            }
             return load<T>(MemoryMap.GBToMemory(gbAddress));
+        }
         if (gbAddress < 0xFEA0) // OAM
             return Oam.Load<T>(gbAddress);
         if (gbAddress < 0xFF00) { // Restricted Area
@@ -125,6 +130,9 @@ export class MemoryMap {
             return;
         }
         if (gbAddress < 0xE000 || gbAddress >= 0xFF80) { // all types of RAM
+            if (Logger.verbose >= 2 && gbAddress >= 0xA000 && gbAddress < 0xC000) {
+                log('Writing to EXT RAM ' + Cpu.GetTrace())
+            }
             store<T>(MemoryMap.GBToMemory(gbAddress), value);
             return;
         }
