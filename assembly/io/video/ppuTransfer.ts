@@ -158,16 +158,14 @@ function applyPalette(colorId: u8, palette: u8): u8 {
 }
 
 function fetcherEnqueuePixel(): void {
-    const x: i16 = PpuTransfer.fetcherX - (8 - (Lcd.data.scrollX % 8));
+    const x: i16 = PpuTransfer.fetcherX - 8 + (Lcd.data.scrollX % 8);
     if (x >= 0) {
-        const bgEnabled = Lcd.BGandWindowVisible;
-        const spritesEnabled = Lcd.SpritesVisible;
-        const numSpritesToCheck: i32 = spritesEnabled ? <i32>PpuTransfer.numSpritesThisFetch : 0;
+        const numSpritesToCheck: i32 = Lcd.SpritesVisible ? <i32>PpuTransfer.numSpritesThisFetch : 0;
         const BgPalette: u8 = Lcd.getBGPalette();
         for (let i = 0; i < 8; i++) {
             const mask: u8 = (1 << <u8>(7 - i));
             const bgColorId: u8 = getColorIndexFromBytes(PpuTransfer.fetchedBgBytes, mask);
-            let color = applyPalette(bgEnabled ? bgColorId : 0, BgPalette);
+            let color = applyPalette(Lcd.BGandWindowVisible ? bgColorId : 0, BgPalette);
 
             {
                 for (let j = 0; j < numSpritesToCheck; j++) {

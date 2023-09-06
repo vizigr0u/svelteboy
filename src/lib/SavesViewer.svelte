@@ -32,6 +32,7 @@
             };
             $SaveGames = [saveData, ...$SaveGames];
         }
+        files = [];
     }
 
     function onDeleteClick(save: SaveGameData) {

@@ -1,3 +1,4 @@
+import { Cartridge } from "../cartridge";
 import { Logger } from "../debug/logger";
 import { SaveGame } from "./savegame";
 
@@ -21,7 +22,7 @@ export function log(s: string): void {
 export function enableRam(enabled: boolean = true): void {
     if (Logger.verbose >= 1)
         log(enabled ? 'Enabling RAM' : 'disabling RAM');
-    if (!enabled && ramEnabled) {
+    if (!enabled && ramEnabled && Cartridge.Data.HasBattery) {
         SaveGame.Save();
     }
     ramEnabled = enabled;
