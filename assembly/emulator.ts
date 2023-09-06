@@ -6,6 +6,7 @@ import { Timer } from "./io/timer";
 import { Dma } from "./io/video/dma";
 import { Ppu, PpuMode } from "./io/video/ppu";
 import { Debugger } from "./debug/debugger";
+import { SaveGame } from "./memory/savegame";
 
 const OFFICIAL_CYCLES_PER_SECOND: u32 = 4194304;
 const CYCLES_PER_SECOND: u32 = 4194162; // measured on real GBs in a small survey
@@ -33,6 +34,7 @@ enum EmulatorStopReason {
     private static startFrame: u32;
 
     static Init(useBootRom: boolean = true): void {
+        SaveGame.Init();
         Logger.Init()
         MemoryMap.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
         IO.Init();
