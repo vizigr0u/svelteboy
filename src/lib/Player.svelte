@@ -2,7 +2,7 @@
     import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
     import LcdCanvas from "./LcdCanvas.svelte";
-    import { playerPixelSize } from "../stores/optionsStore";
+    import { playerPixelSize, showFPS } from "../stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { onMount } from "svelte";
     import { DisableKeyBoardInput, EnableKeyBoardInput } from "../inputs";
@@ -23,12 +23,16 @@
             height={144}
             bind:pixelSize={$playerPixelSize}
         />
+        {#if $showFPS}
+            <div class="fps-wrapper">
+                <FpsCounter />
+            </div>
+        {/if}
     </div>
     <span class="console-name">Svelte BOY</span>
     <LocalInputViewer />
 </div>
 <PlayerControls />
-<FpsCounter />
 <SavesViewer />
 
 <style>
@@ -54,9 +58,14 @@
     }
 
     .screen {
+        position: relative;
         padding: 2em 5em;
         background-color: #68717a;
         margin: 0.5em;
         border-radius: 1em 1em 4em 1em;
+    }
+
+    .fps-wrapper {
+        position: absolute;
     }
 </style>

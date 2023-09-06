@@ -3,8 +3,10 @@
     import { SaveGames } from "../stores/playStores";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
+    import { loadedCartridge } from "../stores/romStores";
 
     let files;
+    let relevantSaves = [];
 
     function onLoadClick(save: SaveGameData) {
         Emulator.LoadSave(save);
@@ -14,7 +16,7 @@
         const link = document.createElement("a");
         const file = new Blob([save.buffer]);
         link.href = URL.createObjectURL(file);
-        link.download = save.filename;
+        link.download = $loadedCartridge.filename + ".sav";
         link.click();
         URL.revokeObjectURL(link.href);
     }
@@ -28,7 +30,8 @@
             );
             const saveData: SaveGameData = {
                 buffer: new Uint8Array(buffer),
-                filename: file.name,
+                name: file.name,
+                gameSha1: $loadedCartridge.sha1,
             };
             $SaveGames = [saveData, ...$SaveGames];
         }
@@ -41,32 +44,49 @@
             return saves;
         });
     }
+
+    function updateRelevantSaves() {
+        if ($loadedCartridge == undefined) {
+            relevantSaves = [];
+            return;
+        }
+        const currentSha1 = $loadedCartridge.sha1;
+        relevantSaves = $SaveGames.filter((s) => s.gameSha1 == currentSha1);
+    }
+
+    loadedCartridge.subscribe(updateRelevantSaves);
+    SaveGames.subscribe(updateRelevantSaves);
 </script>
 
-<div class="savegame-section">
-    <h3>Saves ({$SaveGames.length})</h3>
-    <div class="savegames">
-        {#each $SaveGames as save}
-            <div class="savegame">
-                <div>
-                    {save.filename} ({humanReadableSize(
-                        save.buffer.byteLength
-                    )})
+{#if $loadedCartridge !== undefined}
+    <div class="savegame-section">
+        <h3>Saves ({relevantSaves.length})</h3>
+        <div class="savegames">
+            {#each relevantSaves as save}
+                <div class="savegame">
+                    <div>
+                        {save.name} ({humanReadableSize(
+                            save.buffer.byteLength
+                        )})
+                    </div>
+                    <button on:click={() => onLoadClick(save)}>Load</button>
+                    <button on:click={() => onDownloadClick(save)}
+                        ><i class="fa-solid fa-cloud-arrow-down" /></button
+                    >
+                    <button
+                        class="delete-button"
+                        on:click={() => onDeleteClick(save)}
+                        ><i class="fa-solid fa-trash" /></button
+                    >
                 </div>
-                <button on:click={() => onLoadClick(save)}>Load</button>
-                <button on:click={() => onDownloadClick(save)}>Download</button>
-                <button
-                    class="delete-button"
-                    on:click={() => onDeleteClick(save)}>X</button
-                >
-            </div>
-        {/each}
-        <input type="file" bind:files />
-        {#if files}
-            <button on:click={onClickUpload}>Add...</button>
-        {/if}
+            {/each}
+            <input type="file" bind:files />
+            {#if files}
+                <button on:click={onClickUpload}>Add...</button>
+            {/if}
+        </div>
     </div>
-</div>
+{/if}
 
 <style>
     .savegame-section {

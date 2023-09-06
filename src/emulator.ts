@@ -105,21 +105,23 @@ function postRun(): void {
     if (latestSaveFrame > lastSaveFrame) {
         console.log("New Save Game to get! Saving...")
         const currentGame: RomReference = get(loadedCartridge);
+        const timeStamp = new Date().toISOString();
         const newSave: SaveGameData = {
             buffer: getLastSave(),
-            filename: `${currentGame.filename}-${Date.now()}.sav`
+            name: `autosave-${timeStamp}`,
+            gameSha1: currentGame.sha1
         };
         SaveGames.update(saves => {
             saves.push(newSave);
             return saves;
         });
-        console.log(`Saved: game: '${newSave.filename}'`);
+        console.log(`Saved: game: '${newSave.name}'`);
         lastSaveFrame = latestSaveFrame;
     }
 }
 
 function loadSaveGame(savegame: SaveGameData): boolean {
-    console.log(`Loading savegame '${savegame.filename}' of size ${humanReadableSize(savegame.buffer.byteLength)}...`)
+    console.log(`Loading savegame '${savegame.name}' of size ${humanReadableSize(savegame.buffer.byteLength)}...`)
     emuLoadSave(savegame.buffer);
     return false;
 }
