@@ -15,13 +15,20 @@ import {
     attachDebugger,
     detachDebugger,
     setVerbose,
-    getOAMTiles
+    getOAMTiles,
+    loadSaveGame as emuLoadSave,
+    getLastSave,
+    getLastSaveFrame
 } from "../build/release/backend";
 import { fetchLogs } from "./debug";
-import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "./stores/debugStores";
-import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap } from "./stores/playStores";
-import { DebugStopReason, type GbDebugInfo } from "./types";
+import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "./stores/debugStores";
+import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "./stores/playStores";
+import { DebugStopReason, type GbDebugInfo, type RomReference, type SaveGameData } from "./types";
 import { frameDelay, useBoot } from "./stores/optionsStore";
+import { loadedCartridge } from "./stores/romStores";
+import { humanReadableSize } from "./utils";
+
+let lastSaveFrame = 0;
 
 export const Emulator = {
     Reset: () => {
@@ -44,7 +51,8 @@ export const Emulator = {
     },
     Pause: pauseEmulator,
     GetGameFrame: getGameFrame,
-    LoadCartridgeRom: loadCartridgeRom
+    LoadCartridgeRom: loadCartridgeRom,
+    LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
 }
 
 export const Debug = {
@@ -77,6 +85,7 @@ async function runFrame() {
 }
 
 function preRun(): void {
+    setVerbose(get(Verbose));
     unPauseEmulator();
     EmulatorBusy.set(true);
     if (!get(EmulatorInitialized)) {
@@ -92,6 +101,27 @@ function postRun(): void {
     if (get(DebuggerAttached))
         GbDebugInfoStore.set(getDebugInfo() as GbDebugInfo);
     EmulatorBusy.set(false);
+    const latestSaveFrame = getLastSaveFrame();
+    if (latestSaveFrame > lastSaveFrame) {
+        console.log("New Save Game to get! Saving...")
+        const currentGame: RomReference = get(loadedCartridge);
+        const newSave: SaveGameData = {
+            buffer: getLastSave(),
+            filename: `${currentGame.filename}-${Date.now()}.sav`
+        };
+        SaveGames.update(saves => {
+            saves.push(newSave);
+            return saves;
+        });
+        console.log(`Saved: game: '${newSave.filename}'`);
+        lastSaveFrame = latestSaveFrame;
+    }
+}
+
+function loadSaveGame(savegame: SaveGameData): boolean {
+    console.log(`Loading savegame '${savegame.filename}' of size ${humanReadableSize(savegame.buffer.byteLength)}...`)
+    emuLoadSave(savegame.buffer);
+    return false;
 }
 
 function getInputForEmu(): number {

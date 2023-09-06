@@ -60,3 +60,5 @@ export {
 } from "./debug/disassemble";
 
 export { setJoypad } from "./io/joypad";
+
+export { loadSaveGame, getLastSave, getLastSaveFrame } from './memory/savegame'

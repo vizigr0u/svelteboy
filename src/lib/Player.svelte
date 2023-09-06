@@ -7,6 +7,7 @@
     import { onMount } from "svelte";
     import { DisableKeyBoardInput, EnableKeyBoardInput } from "../inputs";
     import { Emulator } from "../emulator";
+    import SavesViewer from "./SavesViewer.svelte";
 
     onMount(() => {
         EnableKeyBoardInput();
@@ -28,6 +29,7 @@
 </div>
 <PlayerControls />
 <FpsCounter />
+<SavesViewer />
 
 <style>
     .console {

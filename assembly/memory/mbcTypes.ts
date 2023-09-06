@@ -1,4 +1,5 @@
 import { Logger } from "../debug/logger";
+import { SaveGame } from "./savegame";
 
 export type MBC_Write = (gbAddress: u16, value: u8) => void;
 export type MBC_Mapper = (gbAdress: u16) => u32;
@@ -13,7 +14,6 @@ export class MBC_Handler {
     // RamEnabled: () => boolean;
 }
 
-
 export function log(s: string): void {
     Logger.Log("MBC: " + s);
 }
@@ -21,5 +21,8 @@ export function log(s: string): void {
 export function enableRam(enabled: boolean = true): void {
     if (Logger.verbose >= 1)
         log(enabled ? 'Enabling RAM' : 'disabling RAM');
+    if (!enabled && ramEnabled) {
+        SaveGame.Save();
+    }
     ramEnabled = enabled;
 }

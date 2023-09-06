@@ -127,3 +127,8 @@ export enum InputType {
     Select = 1 << 6,
     Start = 1 << 7,
 }
+
+export type SaveGameData = {
+    buffer: Uint8Array,
+    filename: string
+}

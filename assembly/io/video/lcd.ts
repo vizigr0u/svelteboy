@@ -204,7 +204,6 @@ export class Lcd {
             Lcd._bgTileMapBaseAddress = Lcd.data.hasControlBit(LcdControlBit.BGTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
             Lcd._windowTileMapBaseAddress = Lcd.data.hasControlBit(LcdControlBit.WindowTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
             Lcd._TilesBaseAddress = Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
-
         }
     }
 

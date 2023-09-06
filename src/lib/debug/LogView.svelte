@@ -23,6 +23,7 @@
         "SRL",
         "ROM",
         "MBC",
+        "SAV",
     ];
 
     function onClearClick() {
