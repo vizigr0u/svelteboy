@@ -1,13 +1,13 @@
 import { writable } from "svelte/store";
-import { DebugStopReason, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
+import { DebugStopReason, MemoryRegion, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
 import { MakeLocalStore } from "./localStorageStore";
 
-export const disassembledRomsStore = writable<DisassembledCode[]>([]);
+export const disassembledRomsStore = writable<DisassembledCode>(undefined);
 
 export function setDisassemlyForRom(rom: RomReference, isLoading: boolean, programLines: ProgramLine[]) {
     disassembledRomsStore.update(roms => {
-        roms[rom.romType].isLoading = isLoading;
-        roms[rom.romType].programLines = programLines;
+        roms.isLoading = isLoading;
+        roms.programLines = programLines;
         return roms;
     });
 }
