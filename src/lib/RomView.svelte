@@ -1,5 +1,15 @@
 <script lang="ts">
-    import type { StoredRom } from "../types";
+    import {
+        type RemoteRom,
+        type StoredRom,
+        type RomReference,
+        isStoredRom,
+        isLocalRom,
+        type LocalRom,
+        isRemoteRom,
+        RomReferenceType,
+        getRomReferenceType,
+    } from "../types";
     import { cartRomStore, loadedCartridge } from "../stores/romStores";
     import { humanReadableSize } from "../utils";
     import { fetchLogs } from "../debug";
@@ -13,22 +23,29 @@
     const gbArtDir = artDir + "gb_art/";
     const gbcArtDir = artDir + "gbc_art/";
 
-    export let rom: StoredRom;
+    export let rom: RomReference;
 
     type RomImgData = {
         src: string;
         alt: string;
     };
 
-    let imagePromise;
+    let imagePromise: Promise<RomImgData> = undefined;
+
+    let playRomPromise: Promise<void> = undefined;
+
+    let buffer: ArrayBuffer = undefined;
+
+    let loadingRomStatus = "";
 
     $: imagePromise = fetchImageAndAlt(rom);
 
-    let isLoaded;
-    $: isLoaded = $loadedCartridge && $loadedCartridge.sha1 == rom.sha1;
+    let isLoaded: boolean;
+    $: isLoaded =
+        $loadedCartridge != undefined && $loadedCartridge.sha1 == rom.sha1;
 
-    async function fetchImageAndAlt(rom: StoredRom): Promise<RomImgData> {
-        const isGbc = rom.filename.endsWith(".gbc");
+    async function fetchImageAndAlt(rom: RomReference): Promise<RomImgData> {
+        const isGbc = rom.name.endsWith(".gbc");
         const names = isGbc ? await getGbcNames() : await getGbNames();
         let src = defaultThumbnailUri;
         let alt = defaultAltText;
@@ -41,24 +58,42 @@
 
     let isLoading: boolean = false;
 
-    function tryLoadRom(): Promise<boolean> {
-        return new Promise<boolean>((resolve) =>
-            resolve(
-                Emulator.LoadCartridgeRom(
-                    Buffer.from(rom.contentBase64, "base64")
-                )
-            )
-        );
+    async function getRomBuffer(): Promise<ArrayBuffer> {
+        if (buffer == undefined || buffer.byteLength == 0) {
+            if (isStoredRom(rom)) {
+                const storedRom: StoredRom = rom;
+                buffer = Buffer.from(storedRom.contentBase64, "base64");
+            }
+            if (isLocalRom(rom)) {
+                const localRom: LocalRom = rom;
+                buffer = localRom.buffer;
+            }
+            if (isRemoteRom(rom)) {
+                const remoteRom: RemoteRom = rom;
+                const response = await fetch(remoteRom.uri);
+                buffer = await response.arrayBuffer();
+            }
+        }
+        return buffer;
     }
 
-    async function loadRom(): Promise<void> {
-        const loaded = await tryLoadRom();
+    async function playRom(): Promise<void> {
+        loadingRomStatus = "Downloading";
+        const buffer = await getRomBuffer();
+        loadingRomStatus = "Loading";
+        const loaded = await new Promise<boolean>((r) =>
+            r(Emulator.LoadCartridgeRom(buffer))
+        );
         fetchLogs();
         if (!loaded) {
-            console.log(`Error loading ${rom.filename}`);
+            console.log(`Error loading rom`);
             return;
         }
+        loadingRomStatus = "";
+        Emulator.Pause();
+        Emulator.Reset();
         $loadedCartridge = rom;
+        Emulator.RunUntilBreak();
     }
 
     function deleteRom() {
@@ -76,43 +111,54 @@
 </script>
 
 <div class="rom-container" class:rom-loaded={isLoaded}>
-    {#await imagePromise}
-        <img
-            class="rom-thumbnail"
-            src={defaultThumbnailUri}
-            alt={defaultAltText}
-        />
-    {:then imgData}
-        {#key rom.sha1}
+    <div class="image-wrapper">
+        {#await imagePromise}
             <img
                 class="rom-thumbnail"
-                on:error={onThumbnailError}
-                src={imgData.src}
-                alt={imgData.alt}
+                src={defaultThumbnailUri}
+                alt={defaultAltText}
+                loading="lazy"
             />
-        {/key}
-    {:catch}
-        <img
-            class="rom-thumbnail"
-            src={defaultThumbnailUri}
-            alt={defaultAltText}
-        />
-    {/await}
-    <div class="rom-info-container">
-        <div class="filename">
-            {rom.filename}<br />({humanReadableSize(rom.fileSize)})
+        {:then imgData}
+            {#key rom.sha1}
+                <img
+                    class="rom-thumbnail"
+                    on:error={onThumbnailError}
+                    src={imgData.src}
+                    alt={imgData.alt}
+                    loading="lazy"
+                />
+            {/key}
+        {:catch}name
+            <img
+                class="rom-thumbnail"
+                src={defaultThumbnailUri}
+                alt={defaultAltText}
+                loading="lazy"
+            />
+        {/await}
+        <div class="over-image-box">
+            {#await playRomPromise}
+                <div class="loading-rom-placeholder">
+                    Loading <i class="fas fa-spinner fa-spin" />
+                </div>
+                <div class="loading-rom-status">{loadingRomStatus}</div>
+            {:then imgData}
+                <button
+                    class="rom-play-button"
+                    on:click={() => {
+                        playRomPromise = playRom();
+                    }}
+                    disabled={isLoading || isLoaded}
+                    ><i class="fa-regular fa-circle-play" /></button
+                >
+            {/await}
         </div>
+    </div>
+    <div class="rom-info-container">
+        <div class="rom-name">{rom.name}</div>
+        {RomReferenceType[getRomReferenceType(rom)]}
         <div class="rom-action-buttons">
-            <button
-                class="rom-action-button"
-                on:click={() => loadRom()}
-                disabled={isLoading || isLoaded}
-                >{isLoaded
-                    ? isLoading
-                        ? "LOADING..."
-                        : "LOADED"
-                    : "LOAD"}</button
-            >
             <button
                 class="rom-action-button"
                 on:click={() => deleteRom()}
@@ -134,6 +180,36 @@
         flex-direction: row;
         justify-content: space-between;
     }
+    .image-wrapper {
+        position: relative;
+    }
+    .over-image-box {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 1.5em;
+        margin: auto;
+        width: 5em;
+        height: 6em;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .rom-play-button {
+        border: unset;
+        padding: 0;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.4);
+        background-color: unset;
+        font-size: 4rem;
+        line-height: 50%;
+        text-align: center;
+        vertical-align: middle;
+    }
+    .rom-play-button:hover {
+        color: var(--highlight-color);
+    }
     .rom-info-container {
         flex: 1;
         display: flex;
@@ -142,7 +218,7 @@
         align-items: center;
         padding: 0.5em 1em;
     }
-    .filename {
+    .rom-name {
         max-width: 21em;
         font-size: 1.1em;
         overflow: hidden;

@@ -46,7 +46,7 @@
     }
 
     function getLogFilename(): string {
-        return `${getCurrentDateTime()}_${$loadedCartridge?.filename}.txt`;
+        return `${getCurrentDateTime()}_${$loadedCartridge?.name}.txt`;
     }
 
     function filterLog(log: string[], mutedCategories: string[]): string[] {

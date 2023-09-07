@@ -1,7 +1,7 @@
 <script lang="ts">
   import DebuggerLine from "./DebuggerLine.svelte";
 
-  import { RomType, type GbDebugInfo, type RomReference } from "../../types";
+  import { type GbDebugInfo, type RomReference } from "../../types";
   import MyVirtualList from "../MyVirtualList.svelte";
   import {
     DebuggerAttached,
@@ -12,7 +12,6 @@
   import { fetchDisassembly } from "../../debug";
   import { EmulatorInitialized, EmulatorPaused } from "../../stores/playStores";
 
-  let romToShow: RomType = RomType.Boot;
   let scrollToIndex;
   let lastJumpTime: number = 0;
   const minJumpDelay: number = 200;
@@ -21,20 +20,16 @@
   $: currentPC =
     $GbDebugInfoStore == undefined ? 0 : $GbDebugInfoStore.registers.PC;
 
-  let lineMaps = [{}, {}];
+  let lineMap = {};
 
-  loadedCartridge.subscribe((rom) => disassembleRom(rom, RomType.Cartridge));
-  loadedBootRom.subscribe((rom) => disassembleRom(rom, RomType.Boot));
+  loadedCartridge.subscribe((rom) => disassembleRom(rom));
 
-  function disassembleRom(rom: RomReference, romType: RomType): void {
-    if (rom && $disassembledRomsStore[romType]?.sha1 != rom.sha1) {
-      console.log("detected new rom to disassemble: " + rom.filename);
+  function disassembleRom(rom: RomReference): void {
+    if (rom && $disassembledRomsStore?.sha1 != rom.sha1) {
+      console.log("detected new rom to disassemble: " + rom.name);
       fetchDisassembly(rom);
-      romToShow = romType;
     } else if (!rom) {
-      $disassembledRomsStore = $disassembledRomsStore.filter(
-        (d) => d.romType != romType
-      );
+      $disassembledRomsStore = undefined;
     }
   }
 
@@ -42,26 +37,28 @@
     if (
       $DebuggerAttached &&
       initialized &&
-      $disassembledRomsStore[romToShow] != undefined
+      $disassembledRomsStore != undefined
     ) {
       scrollToIndex(0);
     }
   });
 
-  disassembledRomsStore.subscribe((infoByRoms) => {
-    infoByRoms.forEach((romInfo) => {
-      const d = {};
-      romInfo.programLines.forEach((line, index) => {
-        d[line.pc] = index;
-      });
-      lineMaps[romInfo.romType] = d;
+  disassembledRomsStore.subscribe((info) => {
+    if (info == undefined) {
+      lineMap = {};
+      return;
+    }
+    const d = {};
+    info.programLines.forEach((line, index) => {
+      d[line.pc] = index;
     });
+    lineMap = d;
   });
 
   GbDebugInfoStore.subscribe((info: GbDebugInfo) => {
     if (!info) return;
     const t = performance.now();
-    const lineNumber = lineMaps[romToShow][info.registers.PC.toString()];
+    const lineNumber = lineMap[info.registers.PC.toString()];
     if (
       lineNumber !== undefined &&
       (lineNumber < firstLine || lineNumber > lastLine) &&
@@ -74,29 +71,18 @@
 
   let firstLine;
   let lastLine;
-
-  const allRomTypes = Object.keys(RomType).filter((v) => isNaN(Number(v)));
 </script>
 
 <div class="disassembly-container">
   <div class="container">
     <div class="title-bar">
       <div class="filename">
-        {$disassembledRomsStore[romToShow]?.filename ?? "No file loaded"}
-      </div>
-      <div class="tab-select-container">
-        {#each allRomTypes as romTypeName}
-          <button
-            disabled={romToShow == RomType[romTypeName]}
-            on:click={() => (romToShow = RomType[romTypeName])}
-            >{romTypeName}</button
-          >
-        {/each}
+        {$disassembledRomsStore?.name ?? "No file loaded"}
       </div>
     </div>
 
     <MyVirtualList
-      items={$disassembledRomsStore[romToShow]?.programLines ?? []}
+      items={$disassembledRomsStore?.programLines ?? []}
       bind:start={firstLine}
       bind:end={lastLine}
       bind:scrollToIndex

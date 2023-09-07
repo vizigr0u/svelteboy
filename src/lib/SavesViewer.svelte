@@ -16,7 +16,7 @@
         const link = document.createElement("a");
         const file = new Blob([save.buffer]);
         link.href = URL.createObjectURL(file);
-        link.download = $loadedCartridge.filename + ".sav";
+        link.download = $loadedCartridge.name + ".sav";
         link.click();
         URL.revokeObjectURL(link.href);
     }

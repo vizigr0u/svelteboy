@@ -8,21 +8,51 @@ export interface ProgramLine {
     parameters: string[];
 };
 
-export enum RomType {
-    Boot = 0,
-    Cartridge = 1
-}
-
 export interface RomReference {
-    filename: string,
-    sha1: string,
-    romType: RomType
+    name: string,
+    sha1: string
 };
 
-export type StoredRom = RomReference & {
+export interface StoredRom extends RomReference {
     contentBase64: string,
     fileSize: number
 };
+
+export interface LocalRom extends RomReference {
+    buffer: ArrayBuffer
+};
+
+export interface RemoteRom extends RomReference {
+    uri: string
+};
+
+export function isRemoteRom(rom: RomReference): rom is RemoteRom {
+    return (rom as RemoteRom).uri !== undefined;
+}
+
+export function isLocalRom(rom: RomReference): rom is LocalRom {
+    return (rom as LocalRom).buffer !== undefined;
+}
+
+export function isStoredRom(rom: RomReference): rom is StoredRom {
+    return (rom as StoredRom).contentBase64 !== undefined;
+}
+
+export enum RomReferenceType {
+    Stored,
+    Remote,
+    Local,
+}
+
+export function getRomReferenceType(rom: RomReference): RomReferenceType {
+    if (isRemoteRom(rom))
+        return RomReferenceType.Remote;
+    if (isLocalRom(rom))
+        return RomReferenceType.Local;
+    if (isStoredRom(rom))
+        return RomReferenceType.Stored;
+    throw new Error('Unexpected rom type');
+}
 
 export enum MemoryRegion {
     Rom,
@@ -132,4 +162,15 @@ export type SaveGameData = {
     buffer: Uint8Array,
     gameSha1: string,
     name: string
+}
+
+export type RemoteRomLocation = {
+    filename: string,
+    location: string,
+    sha1: string
+}
+
+export type RemoteRomsList = {
+    baseuri: string,
+    roms: RemoteRomLocation[]
 }

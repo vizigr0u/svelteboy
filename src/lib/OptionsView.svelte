@@ -4,6 +4,7 @@
         frameDelay,
         playerPixelSize,
         showFPS,
+        RemoteRomsListUri,
     } from "../stores/optionsStore";
     import { EmulatorInitialized } from "../stores/playStores";
 </script>
@@ -28,6 +29,9 @@
             max="10"
             bind:value={$playerPixelSize}
         />
+
+        <label for="remoteRomsUri">Remote Roms List URI: </label>
+        <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
 
         <label for="showfps"> Display FPS: </label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />

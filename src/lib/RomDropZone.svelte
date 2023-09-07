@@ -1,10 +1,8 @@
 <script lang="ts">
-  import { bootRomStore, cartRomStore } from "../stores/romStores";
-  import { RomType, type StoredRom } from "../types";
+  import { cartRomStore } from "../stores/romStores";
+  import { type StoredRom } from "../types";
   import { humanReadableSize } from "../utils";
   import { Buffer } from "buffer";
-
-  export let romType: RomType;
 
   enum DragState {
     Idle,
@@ -12,11 +10,8 @@
     Reject,
   }
 
-  const defaultDragText: string = `drop ${RomType[romType]} roms here`;
-  const validFileExtensions: string[] =
-    romType == RomType.Boot ? ["bin"] : ["gb", "gbc"];
-
-  let romStore = romType == RomType.Boot ? bootRomStore : cartRomStore;
+  const defaultDragText: string = `drop roms here`;
+  const validFileExtensions: string[] = ["gb", "gbc"];
 
   let dragState: DragState = DragState.Idle;
   let dragZone: HTMLDivElement;
@@ -42,13 +37,12 @@
     const hashArray = Array.from(new Uint8Array(sha1Buffer));
     const sha1 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
     const newRom: StoredRom = {
-      filename: file.name,
+      name: file.name,
       contentBase64: Buffer.from(buffer).toString("base64"),
       sha1: sha1,
-      romType,
       fileSize: file.size,
     };
-    romStore.update((store) => [newRom, ...store]);
+    cartRomStore.update((store) => [newRom, ...store]);
     dragState = DragState.Idle;
     dragZoneText = "";
   }
