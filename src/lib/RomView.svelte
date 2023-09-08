@@ -129,7 +129,7 @@
                     loading="lazy"
                 />
             {/key}
-        {:catch}name
+        {:catch}
             <img
                 class="rom-thumbnail"
                 src={defaultThumbnailUri}
