@@ -74,18 +74,21 @@
 
 <div class="debug-tool-container">
   <h3 class="roms-list-title">
-    {title}
+    {title} ({filteredRoms.length})
   </h3>
-  <input
-    type="text"
-    bind:value={filter}
-    on:input={filterRoms}
-    disabled={!init}
-  />
+  <label class="roms-filter-input"
+    >Search: <input
+      type="text"
+      bind:value={filter}
+      on:input={filterRoms}
+      disabled={!init}
+    />
+  </label>
   {#await cacheRomsPromise}
-    <span class="loading-list"
-      >{loadingListText}<i class="fas fa-spinner fa-spin" /></span
-    >
+    <div class="loading-list">
+      <i class="fas fa-spinner fa-spin" />
+      {loadingListText}
+    </div>
   {:then}
     {#if filteredRoms.length > 0}
       <span class="roms-count">{filteredRoms.length} roms found</span>
@@ -103,6 +106,17 @@
 </div>
 
 <style>
+  .loading-list {
+    text-align: center;
+    border: 1px solid #333;
+    padding: 0.8em;
+    font-size: 1.2em;
+  }
+  .roms-filter-input {
+    display: block;
+    margin-left: auto;
+    text-align: right;
+  }
   .roms-container {
     display: flex;
     flex-direction: column;
@@ -112,7 +126,8 @@
     min-height: 2em;
     max-height: 30em;
     overflow-y: auto;
-    width: 30em;
+    margin: auto;
+    max-width: 95%;
     text-align: center;
   }
 </style>

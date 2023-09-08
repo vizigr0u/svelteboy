@@ -4,7 +4,10 @@
     import LogView from "./LogView.svelte";
     import LcdCanvas from "../LcdCanvas.svelte";
     import BgCanvas from "./BGCanvas.svelte";
-    import { GbDebugInfoStore } from "../../stores/debugStores";
+    import {
+        DebuggerAttached,
+        GbDebugInfoStore,
+    } from "../../stores/debugStores";
     import OamView from "./OamView.svelte";
     import Debugger from "./Debugger.svelte";
     import ForceInputControl from "./ForceInputControl.svelte";
@@ -70,12 +73,16 @@
             mouseMove={onMouseMoveOnTiles}
             frameStore={GameFrames}
             bind:draw={drawTiles}
-            bind:autodraw
+            autodraw={autodraw && $DebuggerAttached}
             bind:pixelSize
         />
         <span class="tile-debug">{tileDebug}</span>
         <h4>Background</h4>
-        <BgCanvas bind:draw={drawBG} bind:autodraw bind:pixelSize />
+        <BgCanvas
+            bind:draw={drawBG}
+            autodraw={autodraw && $DebuggerAttached}
+            bind:pixelSize
+        />
         <OamView />
     </div>
 </div>

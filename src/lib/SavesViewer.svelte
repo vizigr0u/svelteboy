@@ -5,6 +5,8 @@
     import { humanReadableSize } from "../utils";
     import { loadedCartridge } from "../stores/romStores";
 
+    const maxToShow = 50;
+
     let files;
     let relevantSaves = [];
 
@@ -56,13 +58,26 @@
 
     loadedCartridge.subscribe(updateRelevantSaves);
     SaveGames.subscribe(updateRelevantSaves);
+
+    function onClearAllClick() {
+        SaveGames.update((saves) => {
+            return saves.filter((s) => s.gameSha1 != $loadedCartridge.sha1);
+        });
+    }
 </script>
 
 {#if $loadedCartridge !== undefined}
     <div class="savegame-section">
-        <h3>Saves ({relevantSaves.length})</h3>
+        <h3>
+            Saves ({relevantSaves.length <= maxToShow
+                ? relevantSaves.length.toString()
+                : ` showing ${maxToShow}/${relevantSaves.length}`})
+            {#if relevantSaves.length >= 3}
+                <button on:click={onClearAllClick}>Clear All!</button>
+            {/if}
+        </h3>
         <div class="savegames">
-            {#each relevantSaves as save}
+            {#each relevantSaves.slice(-50) as save}
                 <div class="savegame">
                     <div>
                         {save.name} ({humanReadableSize(
@@ -80,11 +95,11 @@
                     >
                 </div>
             {/each}
-            <input type="file" bind:files />
-            {#if files}
-                <button on:click={onClickUpload}>Add...</button>
-            {/if}
         </div>
+        <label>Add save: <input type="file" bind:files /></label>
+        {#if files}
+            <button on:click={onClickUpload}>Add...</button>
+        {/if}
     </div>
 {/if}
 
@@ -105,6 +120,8 @@
         flex-direction: column;
         justify-content: center;
         gap: 0.5em;
+        max-height: 20em;
+        overflow-y: auto;
     }
 
     .savegame {

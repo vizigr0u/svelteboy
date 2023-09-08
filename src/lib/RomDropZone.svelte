@@ -91,7 +91,7 @@
   .dragZone {
     margin: 0.5em;
     padding: 0.5em;
-    background-color: #1f1f1f;
+    background-color: #222;
     border: 2px solid #111;
     display: flex;
     flex-direction: column;
@@ -103,14 +103,6 @@
 
   .dragZone.disallowed {
     border-color: red;
-  }
-
-  .text {
-    font-family: "Courier New", Courier, monospace;
-    color: white;
-    text-align: left;
-    white-space: pre;
-    margin: 1em 0 0 0;
   }
 
   .drag-status {

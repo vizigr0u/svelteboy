@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Debug } from "../../emulator";
+    import { DebuggerAttached } from "../../stores/debugStores";
     import { GameFrames } from "../../stores/playStores";
     import type { OamEntry } from "../../types";
 
@@ -18,7 +19,7 @@
     }
 
     GameFrames.subscribe((frameNumber) => {
-        if (frameNumber == 0) return;
+        if (frameNumber == 0 || !$DebuggerAttached) return;
         buffer = Debug.GetOAMTiles(buffer);
         buffer.forEach((n, i) => {
             const flags = (n >> 24) & 0xff;

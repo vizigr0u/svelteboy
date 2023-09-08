@@ -159,11 +159,13 @@
         <div class="rom-name">{rom.name}</div>
         {RomReferenceType[getRomReferenceType(rom)]}
         <div class="rom-action-buttons">
-            <button
-                class="rom-action-button"
-                on:click={() => deleteRom()}
-                disabled={isLoading}>Delete</button
-            >
+            {#if isLocalRom(rom)}
+                <button
+                    class="rom-action-button"
+                    on:click={() => deleteRom()}
+                    disabled={isLoading}>Delete</button
+                >
+            {/if}
         </div>
     </div>
 </div>
