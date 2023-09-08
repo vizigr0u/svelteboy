@@ -4,18 +4,19 @@
     import LcdCanvas from "./LcdCanvas.svelte";
     import { playerPixelSize, showFPS } from "../stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
-    import { onMount } from "svelte";
-    import { DisableKeyBoardInput, EnableKeyBoardInput } from "../inputs";
+    import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { Emulator } from "../emulator";
-    import SavesViewer from "./SavesViewer.svelte";
-
-    onMount(() => {
-        EnableKeyBoardInput();
-        return DisableKeyBoardInput;
-    });
 </script>
 
-<div class="console">
+<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+<div
+    class="console"
+    role="main"
+    tabindex="0"
+    on:keydown={gameInputKeydownHandler}
+    on:keyup={gameInputKeyupHandler}
+>
     <div class="screen">
         <LcdCanvas
             updateBuffer={(_) => Emulator.GetGameFrame()}
@@ -33,10 +34,10 @@
     <LocalInputViewer />
 </div>
 <PlayerControls />
-<SavesViewer />
 
 <style>
     .console {
+        position: relative;
         padding-top: 1em;
         background-color: #bbb;
         display: flex;
@@ -44,6 +45,12 @@
         justify-content: center;
         align-items: center;
         border-radius: 1em 1em 7em 1em;
+        border: 4px solid transparent;
+    }
+
+    .console:focus,
+    .console:focus-within {
+        border-color: var(--highlight-color);
     }
 
     .console-name {

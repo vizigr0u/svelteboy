@@ -1,27 +1,60 @@
 <script lang="ts">
-    import { InputType } from "../inputs";
+    import { onMount } from "svelte";
+    import { InputType, updateInput } from "../inputs";
     import { HideKeyboardWarning } from "../stores/optionsStore";
     import { KeyPressMap } from "../stores/playStores";
+
+    let buttonContainer: HTMLElement;
+
+    function getInputTypeForButton(b: HTMLButtonElement): InputType {
+        return InputType[
+            b.getAttribute("data-input") as keyof typeof InputType
+        ];
+    }
+
+    onMount(() => {
+        const buttons = buttonContainer.querySelectorAll("button");
+        const InputsAndButtons = Array.from(buttons).map(
+            (b) =>
+                [b, getInputTypeForButton(b)] as [HTMLButtonElement, InputType]
+        );
+        const inputsByButton = new Map<HTMLButtonElement, InputType>(
+            InputsAndButtons
+        );
+        buttons.forEach((button) => {
+            const input = inputsByButton.get(button);
+            button.onmousedown = () => {
+                updateInput(input, true);
+            };
+            button.onmouseup = () => updateInput(input, false);
+            button.onblur = () => updateInput(input, false);
+            button.onmouseleave = () => updateInput(input, false);
+        });
+        const unsub = KeyPressMap.subscribe((inputs) => {
+            buttons.forEach((button) => {
+                const input = inputsByButton.get(button);
+                button.classList.toggle("pressed", inputs.has(input));
+            });
+        });
+        return unsub;
+    });
 </script>
 
-<div class="input-viewer">
+<div class="input-viewer" bind:this={buttonContainer}>
     <div class="dir-viewer">
-        <div class="up" class:pressed={$KeyPressMap.has(InputType.Up)} />
-        <div class="left" class:pressed={$KeyPressMap.has(InputType.Left)} />
-        <div class="right" class:pressed={$KeyPressMap.has(InputType.Right)} />
-        <div class="down" class:pressed={$KeyPressMap.has(InputType.Down)} />
+        <button data-input="Up" />
+        <button data-input="Left" />
+        <button data-input="Right" />
+        <button data-input="Down" />
         <div class="center" />
     </div>
     <div class="special-key-viewer">
-        <div
-            class="select"
-            class:pressed={$KeyPressMap.has(InputType.Select)}
-        />
-        <div class="start" class:pressed={$KeyPressMap.has(InputType.Start)} />
+        <button data-input="Select" />
+        <button data-input="Start" />
     </div>
     <div class="action-key-viewer">
-        <div class="B" class:pressed={$KeyPressMap.has(InputType.B)} />
-        <div class="A" class:pressed={$KeyPressMap.has(InputType.A)} />
+        <button data-input="B" />
+        <button data-input="A" />
     </div>
     {#if !$HideKeyboardWarning}
         <div class="keybinds-hint">
@@ -50,11 +83,11 @@
         width: 100%;
     }
 
-    .input-viewer > div > div.pressed {
-        background-color: red;
+    .input-viewer button {
+        font-size: initial;
     }
 
-    .input-viewer > div > div::after {
+    .input-viewer button::after {
         position: absolute;
         font-family: "Courier New", Courier, monospace;
         color: #12153d;
@@ -62,10 +95,12 @@
         font-size: 1em;
         text-transform: uppercase;
         text-align: center;
+        content: attr(data-input);
+        left: 0;
     }
 
     .dir-viewer {
-        --size: 2em;
+        --size: 2.3em;
         align-self: flex-start;
         display: grid;
         background-color: #b2b2b2;
@@ -79,25 +114,30 @@
             ". D .";
     }
 
-    .dir-viewer > div {
+    .dir-viewer button::after {
+        content: none;
+    }
+
+    .dir-viewer > button,
+    .dir-viewer > .center {
         width: var(--size);
         height: var(--size);
         background-color: black;
     }
 
-    .up {
+    button[data-input="Up"] {
         grid-area: U;
     }
 
-    .down {
+    button[data-input="Down"] {
         grid-area: D;
     }
 
-    .left {
+    button[data-input="Left"] {
         grid-area: L;
     }
 
-    .right {
+    button[data-input="Right"] {
         grid-area: R;
     }
 
@@ -108,30 +148,23 @@
     .special-key-viewer {
         display: flex;
         align-self: flex-end;
-        gap: 1.5em;
+        gap: 2em;
         margin-top: 8em;
     }
 
-    .special-key-viewer > div {
+    .special-key-viewer > button {
         position: relative;
-        width: 3em;
+        --size: 3em;
+        width: var(--size);
         height: 0.8em;
         background-color: #555;
         border-radius: 8px;
         transform: rotate(-20deg);
     }
 
-    .special-key-viewer > div::after {
+    .special-key-viewer > button::after {
         top: 0.7em;
-        width: 3em;
-    }
-
-    .select::after {
-        content: "Select";
-    }
-
-    .start::after {
-        content: "Start";
+        width: var(--size);
     }
 
     .action-key-viewer {
@@ -146,7 +179,7 @@
         transform: rotate(-20deg);
     }
 
-    .action-key-viewer > div {
+    .action-key-viewer > button {
         --size: 2.5em;
         position: relative;
         width: var(--size);
@@ -155,17 +188,10 @@
         background-color: #5a1b36;
     }
 
-    .action-key-viewer > div::after {
+    .action-key-viewer > button::after {
+        font-size: 1.1em;
         top: calc(var(--size) + 0.3em);
-        width: var(--size);
-    }
-
-    .A::after {
-        content: "A";
-    }
-
-    .B::after {
-        content: "B";
+        width: calc(var(--size) + 0.3em);
     }
 
     .input-viewer:hover .keybinds-hint {
@@ -185,5 +211,9 @@
         position: absolute;
         right: 0.5em;
         top: 0.5em;
+    }
+
+    :global(.input-viewer button.pressed) {
+        background-color: red !important;
     }
 </style>

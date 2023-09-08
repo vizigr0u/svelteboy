@@ -184,6 +184,9 @@
     }
     .image-wrapper {
         position: relative;
+        width: 8em;
+        height: 8em;
+        display: flex;
     }
     .over-image-box {
         position: absolute;
