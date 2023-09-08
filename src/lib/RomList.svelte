@@ -46,7 +46,6 @@
         .toLowerCase()
         .split(" ")
         .filter(wordIsRelevant);
-      console.log(rom.name + "-> " + JSON.stringify(relevantWords));
       for (let k = 0; k < relevantWords.length; k++) {
         const word = relevantWords[k];
         const numChars = Math.min(maxChars, word.length);

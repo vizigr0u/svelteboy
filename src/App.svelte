@@ -4,6 +4,7 @@
   import Player from "./lib/Player.svelte";
   import RomDropZone from "./lib/RomDropZone.svelte";
   import RomList from "./lib/RomList.svelte";
+  import SavesViewer from "./lib/SavesViewer.svelte";
   import { RemoteRomsListUri } from "./stores/optionsStore";
   import { cartRomStore } from "./stores/romStores";
   import type { RemoteRom, RemoteRomsList, RomReference } from "./types";
@@ -41,6 +42,7 @@
 <div class="page-container">
   <main>
     <Player />
+    <SavesViewer />
     <RomList
       title="Hosted roms"
       romsPromise={remotePromise}

@@ -1,5 +1,4 @@
-import { get } from "svelte/store";
-import { EmulatorPaused, KeyPressMap } from "./stores/playStores";
+import { KeyPressMap } from "./stores/playStores";
 import { InputType } from "./types";
 
 export const defaultKeybinds: { [k: string]: InputType } = {
@@ -13,7 +12,7 @@ export const defaultKeybinds: { [k: string]: InputType } = {
     "Delete": InputType.Select
 }
 
-function updateInput(input: InputType, pressed: boolean) {
+export function updateInput(input: InputType, pressed: boolean) {
     KeyPressMap.update(m => {
         if (!pressed)
             m.delete(input);
@@ -23,11 +22,11 @@ function updateInput(input: InputType, pressed: boolean) {
     })
 }
 
-function keydownHandler(event: KeyboardEvent) {
+export function gameInputKeydownHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
         return;
 
-    if (get(EmulatorPaused) || !(event.key in defaultKeybinds)) {
+    if (!(event.key in defaultKeybinds)) {
         return;
     }
 
@@ -35,7 +34,7 @@ function keydownHandler(event: KeyboardEvent) {
     event.preventDefault();
 }
 
-function keyupHandler(event: KeyboardEvent) {
+export function gameInputKeyupHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
         return;
 
@@ -44,16 +43,6 @@ function keyupHandler(event: KeyboardEvent) {
 
     updateInput(defaultKeybinds[event.key], false);
     event.preventDefault();
-}
-
-export function EnableKeyBoardInput() {
-    window.addEventListener("keydown", keydownHandler, true);
-    window.addEventListener("keyup", keyupHandler, true);
-}
-
-export function DisableKeyBoardInput() {
-    window.removeEventListener("keydown", keydownHandler)
-    window.removeEventListener("keyup", keyupHandler);
 }
 
 export { InputType };
