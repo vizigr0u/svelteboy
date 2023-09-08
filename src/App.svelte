@@ -39,6 +39,11 @@
 <div class="page-container">
   <main>
     <Player />
+    <RomList
+      title="Hosted roms"
+      romsPromise={remotePromise}
+      loadingListText="Fetching {$RemoteRomsListUri}..."
+    />
     <RomDropZone>
       <RomList
         title="Local roms"
@@ -46,11 +51,6 @@
         loadingListText="Fetching local list..."
       />
     </RomDropZone>
-    <RomList
-      title="Remote roms"
-      romsPromise={remotePromise}
-      loadingListText="Fetching {$RemoteRomsListUri} ..."
-    />
     <OptionsView />
   </main>
   <aside>
