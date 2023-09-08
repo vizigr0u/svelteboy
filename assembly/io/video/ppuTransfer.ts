@@ -141,7 +141,7 @@ export class PpuTransfer {
                 spriteY = (spriteHeight - 1) - spriteY;
 
             const tileIndex: u16 = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
-            PpuTransfer.fetchedSpriteBytes[i] = load<u16>(GB_VIDEO_START + (<u16>tileIndex * 16) + spriteY * 2);
+            unchecked(PpuTransfer.fetchedSpriteBytes[i] = load<u16>(GB_VIDEO_START + (<u16>tileIndex * 16) + spriteY * 2));
             if (Logger.verbose >= 4) {
                 log(`Fetched bytes from tileIndex ${tileIndex} Y: ${spriteY} => ${load<u8>(changetype<usize>(PpuTransfer.fetchedSpriteBytes) + i).toString(2).padStart(8, '0')} and ${load<u8>(changetype<usize>(PpuTransfer.fetchedSpriteBytes) + i + 1).toString(2).padStart(8, '0')}`)
             }
@@ -185,7 +185,7 @@ function fetcherEnqueuePixel(): void {
                     const bit: u8 = <u8>(oam.hasAttr(OamAttribute.XFlip) ? -offset : offset + 7); // [7-0] or [0-7] when flipped
                     assert((bit & 7) == bit);
                     const spriteBitMask: u8 = (1 << bit);
-                    const spriteColorId = getColorIndexFromBytes(PpuTransfer.fetchedSpriteBytes[j], spriteBitMask)
+                    const spriteColorId = getColorIndexFromBytes(unchecked(PpuTransfer.fetchedSpriteBytes[j]), spriteBitMask)
                     if (spriteColorId == 0)
                         continue;
 
@@ -208,9 +208,9 @@ function tickPushPixel(): void {
                     log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.data.lY}`);
             } else {
                 const color = PixelFifo.Dequeue();
-                const color32 = Ppu.current32bitPalette[color];
+                const color32 = unchecked(Ppu.current32bitPalette[color]);
                 // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.data.lY) * 255 / 144)) << 8;
-                Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32;
+                unchecked(Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32);
             }
             PpuTransfer.pushedX++;
         }

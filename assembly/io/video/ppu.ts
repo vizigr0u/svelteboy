@@ -45,21 +45,21 @@ export class PpuOamFifo {
 
     @inline static IsEmpty(): boolean { return PpuOamFifo.head == PpuOamFifo.size };
 
-    @inline static Dequeue(): OamData { return Oam.view[PpuOamFifo.buffer[PpuOamFifo.head++]] }
+    @inline static Dequeue(): OamData { return unchecked(Oam.view[PpuOamFifo.buffer[PpuOamFifo.head++]]) }
 
-    @inline static Peek(offset: i32 = 0): OamData { return Oam.view[PpuOamFifo.buffer[PpuOamFifo.head + offset]] }
+    @inline static Peek(offset: i32 = 0): OamData { return unchecked(Oam.view[PpuOamFifo.buffer[PpuOamFifo.head + offset]]) }
 
     static Enqueue(oamIndex: u8): void {
         assert(PpuOamFifo.head == 0, 'Can only insert in this fifo ')
         assert(!PpuOamFifo.IsFull(), 'Trying to insert in full PpuOamFifo');
-        const x = Oam.view[oamIndex].xPos;
+        const x = unchecked(Oam.view[oamIndex].xPos);
         let i = 0;
         while (i < (PpuOamFifo.size) && x >= PpuOamFifo.Peek(i).xPos)
             i++;
         for (let j = PpuOamFifo.size; j > i; j--) {
-            PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1];
+            unchecked(PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1]);
         }
-        PpuOamFifo.buffer[i] = oamIndex;
+        unchecked(PpuOamFifo.buffer[i] = oamIndex);
         PpuOamFifo.size++;
     }
 
