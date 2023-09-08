@@ -12,7 +12,7 @@
 <div class="options-view debug-tool-container">
     <h3>Options</h3>
     <div class="options">
-        <label for="frameDelay">Frame delay</label>
+        <label for="frameDelay">Frame delay:</label>
         <input
             id="frameDelay"
             type="number"
@@ -30,14 +30,14 @@
             bind:value={$playerPixelSize}
         />
 
-        <label for="remoteRomsUri">Remote Roms List URI: </label>
+        <label for="remoteRomsUri">Remote Roms List: </label>
         <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
 
         <label for="showfps"> Display FPS: </label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />
 
         <label for="useBoot"
-            >Use Boot Rom{$EmulatorInitialized ? " (on next run)" : ""}</label
+            >Use Boot Rom{$EmulatorInitialized ? " (on next run)" : ""}:</label
         >
         <input id="useBoot" type="checkbox" bind:checked={$useBoot} disabled />
         <span>Todo: </span><span>Select boot rom</span>
@@ -47,7 +47,7 @@
 <style>
     .options {
         display: grid;
-        grid-template-columns: 10em auto;
+        grid-template-columns: 13em auto;
     }
     .options input[type="checkbox"] {
         margin-right: auto;
