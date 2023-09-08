@@ -3,8 +3,10 @@
   import RomView from "./RomView.svelte";
 
   export let title: string;
-  export let romsPromise: Promise<RomReference[]>;
-  export let loadingListText: string;
+  export let romsPromise: Promise<RomReference[]> = new Promise<RomReference[]>(
+    (r) => r([])
+  );
+  export let loadingListText: string = "Fetching local list...";
 
   let init = false;
   let roms: RomReference[] = [];
@@ -18,7 +20,8 @@
 
   const maxChars = 5;
 
-  let cacheRomsPromise: Promise<void> = cacheRoms();
+  let cacheRomsPromise: Promise<void>;
+  $: cacheRomsPromise = cacheRoms(romsPromise);
 
   function isLetterOrNumber(c: string): boolean {
     return (c >= "a" && c <= "z") || (c >= "0" && c <= "9");
@@ -32,9 +35,11 @@
     );
   }
 
-  async function cacheRoms(): Promise<void> {
-    console.log("Cache miss romsPromise");
-    roms = await romsPromise;
+  async function cacheRoms(
+    getRomsPromise: Promise<RomReference[]>
+  ): Promise<void> {
+    roms = [];
+    if (getRomsPromise) roms = await getRomsPromise;
     for (let j = 0; j < roms.length; j++) {
       const rom = roms[j];
       const relevantWords = rom.name
@@ -61,7 +66,7 @@
   }
 
   async function filterRoms() {
-    if (!filter || filter == "") {
+    if (!filter || filter == "" || roms.length == 0) {
       filteredRoms = roms;
       return;
     }
@@ -74,39 +79,47 @@
 
 <div class="debug-tool-container">
   <h3 class="roms-list-title">
-    {title} ({filteredRoms.length})
+    {title}
+    {#if roms.length > 0}
+      ({filteredRoms.length})
+    {/if}
   </h3>
-  <label class="roms-filter-input"
-    >Search: <input
-      type="text"
-      bind:value={filter}
-      on:input={filterRoms}
-      disabled={!init}
-    />
-  </label>
+  {#if roms.length > 3}
+    <label class="roms-filter-input"
+      >Search: <input
+        type="text"
+        bind:value={filter}
+        on:input={filterRoms}
+        disabled={!init}
+      />
+    </label>
+  {/if}
   {#await cacheRomsPromise}
-    <div class="loading-list">
+    <div class="status">
       <i class="fas fa-spinner fa-spin" />
       {loadingListText}
     </div>
   {:then}
     {#if filteredRoms.length > 0}
-      <span class="roms-count">{filteredRoms.length} roms found</span>
       <div class="roms-container">
         {#each filteredRoms as item}
           <RomView rom={item} />
         {/each}
       </div>
     {:else}
-      <span class="roms-count">(none)</span>
+      <div class="status">
+        <span class="roms-count">(none)</span>
+      </div>
     {/if}
   {:catch error}
-    <span class="errors">{error}</span>
+    <div class="status">
+      <span class="errors">{error}</span>
+    </div>
   {/await}
 </div>
 
 <style>
-  .loading-list {
+  .status {
     text-align: center;
     border: 1px solid #333;
     padding: 0.8em;
