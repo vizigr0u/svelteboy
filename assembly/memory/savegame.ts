@@ -49,7 +49,7 @@ function log(s: string): void {
     static Save(): void {
         memory.copy(SaveGame.adjustedBuffer.dataStart, GB_EXT_RAM_START, SaveGame.adjustedBuffer.byteLength);
         SaveGame.lastSaveFrame = Ppu.currentFrame;
-        if (Logger.verbose >= 1) {
+        if (Logger.verbose >= 2) {
             log(`Saving game of size ${SaveGame.adjustedBuffer.byteLength}B at frame ${SaveGame.lastSaveFrame}`)
         }
     }

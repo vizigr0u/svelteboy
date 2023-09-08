@@ -8,16 +8,18 @@
   import { cartRomStore } from "./stores/romStores";
   import type { RemoteRom, RemoteRomsList, RomReference } from "./types";
 
-  let remotePromise: Promise<RemoteRom[]> = undefined;
+  let remotePromise: Promise<RemoteRom[]> = new Promise<RemoteRom[]>((r) =>
+    r([])
+  );
   let localPromise = new Promise<RomReference[]>((r) => {
     r($cartRomStore);
   });
 
   RemoteRomsListUri.subscribe((uri) => {
-    if (uri && uri != "") {
+    if (uri && uri.startsWith("http")) {
       remotePromise = getList(uri);
     } else {
-      remotePromise = undefined;
+      remotePromise = new Promise<RemoteRom[]>((r) => r([]));
     }
   });
 

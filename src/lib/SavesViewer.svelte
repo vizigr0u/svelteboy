@@ -4,6 +4,7 @@
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
     import { loadedCartridge } from "../stores/romStores";
+    import { DismissSavesWarning } from "../stores/optionsStore";
 
     const maxToShow = 50;
 
@@ -71,11 +72,25 @@
         <h3>
             Saves ({relevantSaves.length <= maxToShow
                 ? relevantSaves.length.toString()
-                : ` showing ${maxToShow}/${relevantSaves.length}`})
-            {#if relevantSaves.length >= 3}
-                <button on:click={onClearAllClick}>Clear All!</button>
-            {/if}
+                : `showing last ${maxToShow}/${relevantSaves.length}`})
         </h3>
+        {#if !$DismissSavesWarning && relevantSaves.length > 0}
+            <div class="warning">
+                <i class="fa-solid fa-triangle-exclamation" /><span>
+                    Saves are NOT persistent (yet), they aren't stored! (Also
+                    not well tested)<br /> Don't forget to download the save
+                    files you want to keep.<br />
+                    Also note that as a convenience I provide every change as a save
+                    file, but some games are rather spammy with writing to their
+                    RAM.
+                </span>
+                <button
+                    on:click={() => {
+                        $DismissSavesWarning = true;
+                    }}><i class="fa-solid fa-xmark" /></button
+                >
+            </div>
+        {/if}
         <div class="savegames">
             {#each relevantSaves.slice(-50) as save}
                 <div class="savegame">
@@ -100,6 +115,11 @@
         {#if files}
             <button on:click={onClickUpload}>Add...</button>
         {/if}
+        {#if relevantSaves.length >= 3}
+            <button on:click={onClearAllClick}
+                ><i class="fa-solid fa-trash" /> Delete All Saves!</button
+            >
+        {/if}
     </div>
 {/if}
 
@@ -113,6 +133,47 @@
         font-size: 1.5em;
         text-align: center;
         margin-bottom: 0.5em;
+    }
+
+    .warning {
+        position: relative;
+        font-weight: 600;
+        background-color: #3f2c04;
+        display: flex;
+        gap: 1em;
+        justify-content: start;
+        align-items: center;
+        margin: 1em 0;
+        padding: 0.5em 0.3em;
+        --highlight-color: #6f500b;
+    }
+
+    .warning > i {
+        font-size: 1.9em;
+        border-radius: 50%;
+        padding: 0.4em;
+        background-color: var(--highlight-color);
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .warning > span {
+        max-width: 50em;
+    }
+
+    .warning > button {
+        position: absolute;
+        right: 1em;
+        top: 1em;
+        background-color: var(--highlight-color);
+        border: 0;
+        padding: 0.4em;
+        margin: 0;
+        line-height: 50%;
+    }
+
+    .warning > button:hover {
+        background-color: #9f7927;
     }
 
     .savegames {
