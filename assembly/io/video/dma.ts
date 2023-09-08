@@ -31,9 +31,6 @@ export class Dma {
     }
 
     static Tick(): void {
-        if (!Dma.active)
-            return;
-
         if (Dma.startDelay > 0) {
             Dma.startDelay--;
             return;
@@ -43,7 +40,7 @@ export class Dma {
         const value = load<u8>(MemoryMap.GBToMemory(srcAddress));
         if (Logger.verbose >= 3)
             log(`DMA transferring: ${uToHex<u8>(value)} ${uToHex<u16>(srcAddress)}->${uToHex(0xFE00 + Dma.offset)}`);
-        store<u8>(GB_OAM_START + Dma.offset, value);
+        unchecked(store<u8>(GB_OAM_START + Dma.offset, value));
 
         Dma.offset++;
         Dma.active = Dma.offset <= 0x9F;
