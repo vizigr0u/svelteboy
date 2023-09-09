@@ -134,7 +134,6 @@ export class Cpu {
             instr = prefixedOpCodes[opCode];
         }
 
-        // TODO  opCode != 0 -> log 2
         if (Logger.verbose >= (opCode == 0 ? 3 : 2))
             log('executing ' + uToHex<u16>(originalPc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(originalPc)));
 

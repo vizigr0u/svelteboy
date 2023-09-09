@@ -36,7 +36,7 @@ function isConditionFullfilled(cond: OpCondition): boolean {
 export class CpuOps {
     static RstOp(source: Operand): void {
         Cpu.PushToSP(Cpu.ProgramCounter);
-        Cpu.ProgramCounter = Cpu.get8bitSourceValue(0x00, source);
+        Cpu.ProgramCounter = <u16>source.value;
     }
 
     static JpOp(instr: Instruction, originalPc: u16): void {
