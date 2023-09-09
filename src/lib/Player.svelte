@@ -7,6 +7,9 @@
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
+    import { DragState } from "../types";
+
+    let dragState: DragState;
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
@@ -18,8 +21,12 @@
     on:keydown={gameInputKeydownHandler}
     on:keyup={gameInputKeyupHandler}
 >
-    <RomDropZone onRomReceived={Emulator.PlayRom}>
-        <div class="screen">
+    <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
+        <div
+            class="screen"
+            class:drop-allowed={dragState == DragState.Accept}
+            class:drop-disallowed={dragState == DragState.Reject}
+        >
             <LcdCanvas
                 updateBuffer={(_) => Emulator.GetGameFrame()}
                 width={160}
@@ -73,6 +80,14 @@
         background-color: #68717a;
         margin: 0.5em;
         border-radius: 1em 1em 4em 1em;
+    }
+
+    .screen.drop-allowed {
+        background-color: #608cb8;
+    }
+
+    .screen.drop-disallowed {
+        background-color: #7a6b68;
     }
 
     .fps-wrapper {
