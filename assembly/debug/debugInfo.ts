@@ -77,7 +77,7 @@ export function getDebugInfo(): DebugInfo {
             dma: Lcd.data.dma,
         },
         timer: {
-            div: Timer.Div(),
+            div: Timer.Div,
             tima: Timer.Tima,
             tma: Timer.Tma,
             tac: Timer.Tac,

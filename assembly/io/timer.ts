@@ -8,15 +8,18 @@ const TAC_ADDRESS: u16 = 0xFF07;
 
 @final
 export class Timer {
-    private static readonly InitialDiv: u16 = 0xAC00; // 0xABCC; // value found on boot in cgb emu
-    private static readonly InitialTac: u8 = 0; // 0xF8; // value found on boot in cgb emu
+    private static readonly InitialDiv: u16 = 0xAC00; // gb: 0xAC00, gbc: 0xABCC; // value found on boot in cgb emu
+    private static readonly InitialTac: u8 = 0; // gb: 0, gbc: 0xF8; // value found on boot in cgb emu
 
     static internalDiv: u16 = Timer.InitialDiv;
 
-    static Div(): u8 { return <u8>(Timer.internalDiv >> 8); }
+    static get Div(): u8 { return <u8>(Timer.internalDiv >> 8); }
     static Tima: u8 = 0;
     static Tma: u8 = 0;
     static Tac: u8 = Timer.InitialTac;
+
+    private static DivResetMask: u16 = 1 << 9;
+    private static Enabled: boolean = false;
 
     static Init(): void {
         Timer.internalDiv = Timer.InitialDiv;
@@ -26,26 +29,10 @@ export class Timer {
     }
 
     static Tick(): void {
-        const prevDiv: u16 = Timer.internalDiv;
         Timer.internalDiv++;
-        let update = false;
-        switch (Timer.Tac & 0b11) {
-            case 0b00:
-                update = (prevDiv & (1 << 9)) != 0 && (Timer.internalDiv & (1 << 9)) == 0;
-                break;
-            case 0b01:
-                update = (prevDiv & (1 << 3)) != 0 && (Timer.internalDiv & (1 << 3)) == 0;
-                break;
-            case 0b10:
-                update = (prevDiv & (1 << 5)) != 0 && (Timer.internalDiv & (1 << 5)) == 0;
-                break;
-            case 0b1:
-                update = (prevDiv & (1 << 7)) != 0 && (Timer.internalDiv & (1 << 7)) == 0;
-                break;
-        }
-        if (update && !!(Timer.Tac & 0b100)) {
-            Timer.Tima++;
 
+        if (Timer.Enabled && (Timer.internalDiv & Timer.DivResetMask) == 0) {
+            Timer.Tima++;
             if (Timer.Tima == 0xFF) {
                 Timer.Tima = Timer.Tma;
                 Interrupt.Request(IntType.Timer);
@@ -71,6 +58,8 @@ export class Timer {
                 break;
             case TAC_ADDRESS:
                 Timer.Tac = value;
+                Timer.Enabled = (value & 0b100) != 0;
+                Timer.DivResetMask = Timer.getDivResetMask(value);
                 break;
         }
     }
@@ -78,7 +67,7 @@ export class Timer {
     static Load(gbAddress: u16): u8 {
         switch (gbAddress) {
             case DIV_ADDRESS:
-                return Timer.Div();
+                return Timer.Div;
             case TIMA_ADDRESS:
                 return Timer.Tima;
             case TMA_ADDRESS:
@@ -87,5 +76,21 @@ export class Timer {
                 return Timer.Tac;
         }
         return 0;
+    }
+
+    private static getDivResetMask(tac: u8): u16 {
+        switch (tac & 0b11) {
+            case 0b00:
+                return 0b11111111;
+            case 0b01:
+                return 0b00000011;
+            case 0b10:
+                return 0b00001111;
+            case 0b11:
+                return 0b00111111;
+            default:
+                unreachable();
+                return 0;
+        }
     }
 }
