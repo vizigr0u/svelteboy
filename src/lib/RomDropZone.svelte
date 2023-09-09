@@ -59,6 +59,9 @@
     }
   }
   function onDragOver(e: DragEvent) {
+    dragState = getValidDroppedFileItem(e)
+      ? DragState.Accept
+      : DragState.Reject;
     e.preventDefault();
   }
   function onDragEnter(e: DragEvent) {
