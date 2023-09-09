@@ -19,11 +19,11 @@ import {
     loadSaveGame as emuLoadSave,
     getLastSave,
     getLastSaveFrame
-} from "../build/release/backend";
+} from "../build/debug/backend";
 import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "./stores/debugStores";
 import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "./stores/playStores";
-import { DebugStopReason, type GbDebugInfo, type RomReference, type SaveGameData } from "./types";
+import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
 import { frameDelay, useBoot } from "./stores/optionsStore";
 import { loadedCartridge } from "./stores/romStores";
 import { humanReadableSize } from "./utils";
@@ -53,6 +53,7 @@ export const Emulator = {
     GetGameFrame: getGameFrame,
     LoadCartridgeRom: loadCartridgeRom,
     LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
+    PlayRom: playRom
 }
 
 export const Debug = {
@@ -75,6 +76,38 @@ export const Debug = {
     GetOAMTiles: getOAMTiles,
     AttachDebugger: attachDebugger,
     DetachDebugger: detachDebugger,
+}
+
+async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer> {
+    if (isStoredRom(rom)) {
+        const storedRom: StoredRom = rom;
+        return Buffer.from(storedRom.contentBase64, "base64");
+    }
+    if (isLocalRom(rom)) {
+        const localRom: LocalRom = rom;
+        return localRom.buffer;
+    }
+    if (isRemoteRom(rom)) {
+        const remoteRom: RemoteRom = rom;
+        const response = await fetch(remoteRom.uri);
+        return await response.arrayBuffer();
+    }
+}
+
+async function playRom(rom: RomReference): Promise<void> {
+    const buffer = await getRomBuffer(rom);
+    const loaded = await new Promise<boolean>((r) =>
+        r(Emulator.LoadCartridgeRom(buffer))
+    );
+    fetchLogs();
+    if (!loaded) {
+        console.log(`Error loading rom`);
+        return;
+    }
+    Emulator.Pause();
+    Emulator.Reset();
+    loadedCartridge.set(rom);
+    Emulator.RunUntilBreak();
 }
 
 async function runFrame() {

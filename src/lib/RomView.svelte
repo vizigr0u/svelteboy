@@ -1,20 +1,12 @@
 <script lang="ts">
     import {
-        type RemoteRom,
-        type StoredRom,
         type RomReference,
         isStoredRom,
-        isLocalRom,
-        type LocalRom,
-        isRemoteRom,
         RomReferenceType,
         getRomReferenceType,
     } from "../types";
     import { cartRomStore, loadedCartridge } from "../stores/romStores";
-    import { humanReadableSize } from "../utils";
-    import { fetchLogs } from "../debug";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
-    import { Buffer } from "buffer";
     import { Emulator } from "../emulator";
 
     const defaultThumbnailUri = "./UnknownGame.png";
@@ -33,8 +25,6 @@
     let imagePromise: Promise<RomImgData> = undefined;
 
     let playRomPromise: Promise<void> = undefined;
-
-    let buffer: ArrayBuffer = undefined;
 
     let loadingRomStatus = "";
 
@@ -57,44 +47,6 @@
     }
 
     let isLoading: boolean = false;
-
-    async function getRomBuffer(): Promise<ArrayBuffer> {
-        if (buffer == undefined || buffer.byteLength == 0) {
-            if (isStoredRom(rom)) {
-                const storedRom: StoredRom = rom;
-                buffer = Buffer.from(storedRom.contentBase64, "base64");
-            }
-            if (isLocalRom(rom)) {
-                const localRom: LocalRom = rom;
-                buffer = localRom.buffer;
-            }
-            if (isRemoteRom(rom)) {
-                const remoteRom: RemoteRom = rom;
-                const response = await fetch(remoteRom.uri);
-                buffer = await response.arrayBuffer();
-            }
-        }
-        return buffer;
-    }
-
-    async function playRom(): Promise<void> {
-        loadingRomStatus = "Downloading";
-        const buffer = await getRomBuffer();
-        loadingRomStatus = "Loading";
-        const loaded = await new Promise<boolean>((r) =>
-            r(Emulator.LoadCartridgeRom(buffer))
-        );
-        fetchLogs();
-        if (!loaded) {
-            console.log(`Error loading rom`);
-            return;
-        }
-        loadingRomStatus = "";
-        Emulator.Pause();
-        Emulator.Reset();
-        $loadedCartridge = rom;
-        Emulator.RunUntilBreak();
-    }
 
     function deleteRom() {
         cartRomStore.update((store) => {
@@ -147,7 +99,7 @@
                 <button
                     class="rom-play-button"
                     on:click={() => {
-                        playRomPromise = playRom();
+                        playRomPromise = Emulator.PlayRom(rom);
                     }}
                     disabled={isLoading || isLoaded}
                     ><i class="fa-regular fa-circle-play" /></button
@@ -159,7 +111,7 @@
         <div class="rom-name">{rom.name}</div>
         {RomReferenceType[getRomReferenceType(rom)]}
         <div class="rom-action-buttons">
-            {#if isLocalRom(rom)}
+            {#if isStoredRom(rom)}
                 <button
                     class="rom-action-button"
                     on:click={() => deleteRom()}

@@ -1,3 +1,9 @@
+export enum DragState {
+    Idle,
+    Accept,
+    Reject,
+}
+
 export interface ProgramLine {
     pc: number;
     opCode: number;

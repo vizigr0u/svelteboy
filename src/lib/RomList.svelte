@@ -3,13 +3,9 @@
   import RomView from "./RomView.svelte";
 
   export let title: string;
-  export let romsPromise: Promise<RomReference[]> = new Promise<RomReference[]>(
-    (r) => r([])
-  );
-  export let loadingListText: string = "Fetching local list...";
+  export let roms: RomReference[] = [];
 
   let init = false;
-  let roms: RomReference[] = [];
   const romWordsMap: Map<string, RomReference[]> = new Map<
     string,
     RomReference[]
@@ -21,7 +17,7 @@
   const maxChars = 5;
 
   let cacheRomsPromise: Promise<void>;
-  $: cacheRomsPromise = cacheRoms(romsPromise);
+  $: cacheRomsPromise = cacheRoms();
 
   function isLetterOrNumber(c: string): boolean {
     return (c >= "a" && c <= "z") || (c >= "0" && c <= "9");
@@ -35,11 +31,7 @@
     );
   }
 
-  async function cacheRoms(
-    getRomsPromise: Promise<RomReference[]>
-  ): Promise<void> {
-    roms = [];
-    if (getRomsPromise) roms = await getRomsPromise;
+  async function cacheRoms(): Promise<void> {
     for (let j = 0; j < roms.length; j++) {
       const rom = roms[j];
       const relevantWords = rom.name
@@ -96,13 +88,15 @@
   {#await cacheRomsPromise}
     <div class="status">
       <i class="fas fa-spinner fa-spin" />
-      {loadingListText}
+      Caching roms...
     </div>
   {:then}
     {#if filteredRoms.length > 0}
       <div class="roms-container">
         {#each filteredRoms as item}
-          <RomView rom={item} />
+          {#key item.sha1}
+            <RomView rom={item} />
+          {/key}
         {/each}
       </div>
     {:else}
@@ -136,7 +130,7 @@
     border: 1px solid #424242;
     background-color: #222222;
     min-height: 2em;
-    max-height: 30em;
+    height: 30em;
     overflow-y: auto;
     margin: auto;
     max-width: 95%;

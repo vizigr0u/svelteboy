@@ -6,6 +6,7 @@
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { Emulator } from "../emulator";
+    import RomDropZone from "./RomDropZone.svelte";
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
@@ -17,19 +18,21 @@
     on:keydown={gameInputKeydownHandler}
     on:keyup={gameInputKeyupHandler}
 >
-    <div class="screen">
-        <LcdCanvas
-            updateBuffer={(_) => Emulator.GetGameFrame()}
-            width={160}
-            height={144}
-            bind:pixelSize={$playerPixelSize}
-        />
-        {#if $showFPS}
-            <div class="fps-wrapper">
-                <FpsCounter />
-            </div>
-        {/if}
-    </div>
+    <RomDropZone onRomReceived={Emulator.PlayRom}>
+        <div class="screen">
+            <LcdCanvas
+                updateBuffer={(_) => Emulator.GetGameFrame()}
+                width={160}
+                height={144}
+                bind:pixelSize={$playerPixelSize}
+            />
+            {#if $showFPS}
+                <div class="fps-wrapper">
+                    <FpsCounter />
+                </div>
+            {/if}
+        </div>
+    </RomDropZone>
     <span class="console-name">Svelte BOY</span>
     <LocalInputViewer />
 </div>
