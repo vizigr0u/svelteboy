@@ -5,55 +5,42 @@
   import RomDropZone from "./lib/RomDropZone.svelte";
   import RomList from "./lib/RomList.svelte";
   import SavesViewer from "./lib/SavesViewer.svelte";
-  import { RemoteRomsListUri } from "./stores/optionsStore";
+  import {
+    CachedRemoteRoms,
+    RemoteRomsListUri,
+    FetchingRemoteRoms,
+  } from "./stores/optionsStore";
   import { cartRomStore } from "./stores/romStores";
-  import type { RemoteRom, RemoteRomsList, RomReference } from "./types";
+  import { DragState, type RemoteRom, type RomReference } from "./types";
 
-  let remotePromise: Promise<RemoteRom[]> = new Promise<RemoteRom[]>((r) =>
-    r([])
-  );
-  let localPromise = new Promise<RomReference[]>((r) => {
-    r($cartRomStore);
-  });
-
-  RemoteRomsListUri.subscribe((uri) => {
-    if (uri && uri.startsWith("http")) {
-      remotePromise = getList(uri);
-    } else {
-      remotePromise = new Promise<RemoteRom[]>((r) => r([]));
-    }
-  });
-
-  async function getList(uri): Promise<RemoteRom[]> {
-    const res = await fetch(uri);
-    const list = (await res.json()) as RemoteRomsList;
-    const roms: RemoteRom[] = list.roms.map((r) => {
-      const a: RemoteRom = {
-        name: r.filename,
-        sha1: r.sha1,
-        uri: list.baseuri + r.location + "/" + r.filename,
-      };
-      return a;
-    });
-    return roms;
-  }
+  let dragState: DragState;
+  let dragStatus: string;
 </script>
 
 <div class="page-container">
   <main>
     <Player />
     <SavesViewer />
-    <RomList
-      title="Hosted roms"
-      romsPromise={remotePromise}
-      loadingListText="Fetching {$RemoteRomsListUri}..."
-    />
-    <RomDropZone>
-      <RomList
-        title="Local roms"
-        romsPromise={localPromise}
-        loadingListText="Fetching local list..."
-      />
+    {#if $FetchingRemoteRoms}
+      <span class="loading-roms-text"
+        ><i class="fas fa-spinner fa-spin" /> Fetching {$RemoteRomsListUri}...</span
+      >
+    {:else}
+      <RomList title="Hosted roms" roms={$CachedRemoteRoms} />
+    {/if}
+
+    <RomDropZone bind:dragState bind:dragStatus>
+      <div
+        class="dropzone-hint"
+        class:drop-allowed={dragState == DragState.Accept}
+        class:drop-disallowed={dragState == DragState.Reject}
+      >
+        <RomList title="Local roms" roms={$cartRomStore} />
+        <p>
+          Drop your rom files here
+          <span>{dragStatus}</span>
+        </p>
+      </div>
     </RomDropZone>
     <OptionsView />
   </main>
@@ -73,5 +60,21 @@
     display: flex;
     justify-content: left;
     gap: 2em;
+  }
+  .dropzone-hint {
+    margin: 0.5em;
+    padding: 0.5em;
+    background-color: #222;
+    border: 2px solid #111;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dropzone-hint.drop-allowed {
+    border-color: greenyellow;
+  }
+
+  .dropzone-hint.drop-disallowed {
+    border-color: red;
   }
 </style>
