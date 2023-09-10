@@ -5,6 +5,7 @@ import { Dma } from "../io/video/dma";
 import { Oam } from "../io/video/oam";
 import { uToHex } from "../utils/stringUtils";
 import { MBC } from "./mbc";
+import { isRamEnabled, setRamAltered } from "./mbcTypes";
 import {
     BOOT_ROM_START,
     GB_VIDEO_START,
@@ -96,8 +97,14 @@ export class MemoryMap {
 
     static GBload<T>(gbAddress: u16): T {
         if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) { // ROM and RAM
-            if (Logger.verbose >= 2 && gbAddress >= 0xA000 && gbAddress < 0xC000) {
-                log('Reading EXT RAM ' + Cpu.GetTrace())
+            if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
+                if (!isRamEnabled()) {
+                    if (Logger.verbose >= 2)
+                        log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
+                    return <T>-1;
+                }
+                if (Logger.verbose >= 2)
+                    log('Reading EXT RAM ' + Cpu.GetTrace())
             }
             return load<T>(MemoryMap.GBToMemory(gbAddress));
         }
@@ -106,14 +113,14 @@ export class MemoryMap {
         if (gbAddress < 0xFF00) { // Restricted Area
             if (Logger.verbose >= 3)
                 log('Unexpected read in restricted area');
-            return <T>0;
+            return <T>-1;
         }
         // IO
         if (Dma.active) {
             if (Logger.verbose >= 1) {
                 log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
             }
-            return <T>0xFF;
+            return <T>-1;
         }
         return <T>(IO.Load(gbAddress));
     }
@@ -130,8 +137,10 @@ export class MemoryMap {
             return;
         }
         if (gbAddress < 0xE000 || gbAddress >= 0xFF80) { // all types of RAM
-            if (Logger.verbose >= 2 && gbAddress >= 0xA000 && gbAddress < 0xC000) {
-                log('Writing to EXT RAM ' + Cpu.GetTrace())
+            if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
+                setRamAltered();
+                if (Logger.verbose >= 2)
+                    log('Writing to EXT RAM ' + Cpu.GetTrace())
             }
             store<T>(MemoryMap.GBToMemory(gbAddress), value);
             return;

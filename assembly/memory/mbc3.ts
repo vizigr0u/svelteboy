@@ -85,9 +85,6 @@ class MBC3 {
     }
 
     static MapRam(gbAddress: u16): u32 {
-        if (!MBC3.ramEnabled && Logger.verbose >= 2) {
-            log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
-        }
         return GB_EXT_RAM_START + gbAddress - 0xA000 + MBC3.ramBank * GB_EXT_RAM_BANK_SIZE;
     }
 }

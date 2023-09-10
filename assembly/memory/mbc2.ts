@@ -1,14 +1,11 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
-import { enableRam, log, MBC_Handler } from "./mbcTypes";
+import { enableRam, isRamEnabled, log, MBC_Handler } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
 @final
 class MBC2 {
     private static romBank: u32 = 1;
-    private static ramEnabled: boolean = false;
-
-    static get RamEnabled(): boolean { return MBC2.ramEnabled; }
 
     static Init(): void {
         if (Logger.verbose >= 1)
@@ -35,9 +32,6 @@ class MBC2 {
     }
 
     static MapRam(gbAddress: u16): u32 {
-        if (!MBC2.ramEnabled && Logger.verbose >= 2) {
-            log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
-        }
         return GB_EXT_RAM_START + gbAddress - 0xA000;
     }
 }
