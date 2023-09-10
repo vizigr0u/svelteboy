@@ -1,7 +1,14 @@
 import { type ProgramLine, type RomReference, MemoryRegion } from "./types";
 
 import { appendLog, disassembledRomsStore } from "./stores/debugStores";
-import { getBootLines, getCartLines, hexDump, runOneFrame, initEmulator, setVerbose, spliceLogs } from "../build/release/backend";
+import {
+    getCartLines,
+    hexDump,
+    runOneFrame,
+    initEmulator,
+    setVerbose,
+    spliceLogs
+} from "../build/debug/backend";
 
 function getLines(
     rom: RomReference,
@@ -83,6 +90,6 @@ export async function fetchLogs(): Promise<void> {
     do {
         const lines = await new Promise<string[]>(r => r(spliceLogs(maxLinePerFetch)));
         linesFetched = lines.length;
-        await new Promise<void>(r => { appendLog(lines); r() });;
+        await new Promise<void>(r => { appendLog(lines); r() });
     } while (linesFetched == maxLinePerFetch);
 }

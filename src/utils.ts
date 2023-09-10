@@ -16,7 +16,7 @@ export function humanReadableSize(size: number): string {
         prefixIndex++;
         size /= 1024;
     }
-    return `${size} ${bytePrefix[prefixIndex]}B`;
+    return `${size.toFixed(0)} ${bytePrefix[prefixIndex]}B`;
 }
 
 export function uToHex(n: number): string {
