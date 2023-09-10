@@ -9,7 +9,6 @@ export async function getGbNames(): Promise<any> {
         console.log('Fetching /gbRomNames.json...');
         const res = await fetch("./gbRomNames.json");
         gbNames = await res.json();
-        console.log('done');
         fetching = false;
     }
     return gbNames;
@@ -21,7 +20,6 @@ export async function getGbcNames(): Promise<any> {
         console.log('Fetching /gbcRomNames.json...');
         const res = await fetch("./gbcRomNames.json");
         gbcNames = await res.json();
-        console.log('done');
         fetching = false;
     }
     return gbcNames;

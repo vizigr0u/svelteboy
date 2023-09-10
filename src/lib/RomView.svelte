@@ -4,10 +4,12 @@
         isStoredRom,
         RomReferenceType,
         getRomReferenceType,
+        isRemoteRom,
     } from "../types";
     import { cartRomStore, loadedCartridge } from "../stores/romStores";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
+    import { humanReadableSize } from "../utils";
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
@@ -17,6 +19,8 @@
 
     export let rom: RomReference;
 
+    let romDescription: string;
+
     type RomImgData = {
         src: string;
         alt: string;
@@ -25,10 +29,11 @@
     let imagePromise: Promise<RomImgData> = undefined;
 
     let playRomPromise: Promise<void> = undefined;
-
-    let loadingRomStatus = "";
+    let isLoading: boolean = false;
 
     $: imagePromise = fetchImageAndAlt(rom);
+
+    $: romDescription = getRomDescription(rom);
 
     let isLoaded: boolean;
     $: isLoaded =
@@ -46,13 +51,21 @@
         return { src, alt };
     }
 
-    let isLoading: boolean = false;
-
     function deleteRom() {
         cartRomStore.update((store) => {
             return store.filter((r) => r.sha1 !== rom.sha1);
         });
         if (isLoaded) $loadedCartridge = undefined;
+    }
+
+    function getRomDescription(rom: RomReference): string {
+        if (isRemoteRom(rom)) {
+            return rom.uri;
+        }
+        if (isStoredRom(rom)) {
+            return humanReadableSize(rom.contentBase64.length);
+        }
+        return RomReferenceType[getRomReferenceType(rom)];
     }
 
     function onThumbnailError(ev) {
@@ -92,14 +105,14 @@
         <div class="over-image-box">
             {#await playRomPromise}
                 <div class="loading-rom-placeholder">
-                    Loading <i class="fas fa-spinner fa-spin" />
+                    <i class="fas fa-spinner fa-spin" />
                 </div>
-                <div class="loading-rom-status">{loadingRomStatus}</div>
-            {:then imgData}
+            {:then}
                 <button
                     class="rom-play-button"
                     on:click={() => {
                         playRomPromise = Emulator.PlayRom(rom);
+                        // playRomPromise = new Promise((r) => {});
                     }}
                     disabled={isLoading || isLoaded}
                     ><i class="fa-regular fa-circle-play" /></button
@@ -109,12 +122,12 @@
     </div>
     <div class="rom-info-container">
         <div class="rom-name">{rom.name}</div>
-        {RomReferenceType[getRomReferenceType(rom)]}
+        {romDescription}
         <div class="rom-action-buttons">
             {#if isStoredRom(rom)}
                 <button
                     class="rom-action-button"
-                    on:click={() => deleteRom()}
+                    on:click={deleteRom}
                     disabled={isLoading}>Delete</button
                 >
             {/if}
@@ -139,17 +152,18 @@
         width: 8em;
         height: 8em;
         display: flex;
+        background-color: white;
     }
     .over-image-box {
         position: absolute;
         left: 0;
         right: 0;
         top: 0;
-        bottom: 1.5em;
+        /* bottom: 1.5em; */
+        bottom: 0;
         margin: auto;
-        width: 5em;
-        height: 6em;
         display: flex;
+        flex: 1;
         justify-content: center;
         align-items: center;
     }
@@ -157,16 +171,25 @@
         border: unset;
         padding: 0;
         margin: 0;
-        color: rgba(255, 255, 255, 0.4);
         background-color: unset;
-        font-size: 4rem;
-        line-height: 50%;
+        flex: 1;
+    }
+
+    .over-image-box i {
         text-align: center;
         vertical-align: middle;
+        font-size: 3em;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.2em;
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 50%;
     }
-    .rom-play-button:hover {
+
+    .rom-play-button:hover > i {
         color: var(--highlight-color);
+        background-color: rgba(0, 0, 0, 0.5);
     }
+
     .rom-info-container {
         flex: 1;
         display: flex;

@@ -35,7 +35,7 @@
       buffer,
       sha1: sha1,
     };
-    if (saveRom) {
+    if (saveRom && !$cartRomStore.find((r) => r.sha1 == newRom.sha1)) {
       const newStoredRom: StoredRom = {
         name: newRom.name,
         sha1: newRom.sha1,
