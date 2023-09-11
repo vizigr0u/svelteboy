@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Debug } from "../../emulator";
-    import { Breakpoints } from "../../stores/debugStores";
+    import { Breakpoints } from "stores/debugStores";
     import { uToHex16 } from "../../utils";
 
     let breakpointToAdd: string;

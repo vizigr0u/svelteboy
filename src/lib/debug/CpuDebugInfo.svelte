@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { GbDebugInfoStore } from "../../stores/debugStores";
+    import { GbDebugInfoStore } from "stores/debugStores";
     import { PPUMode } from "../../types";
     import { uToHex, uToHex16 } from "../../utils";
     import CpuFlagsView from "./CpuFlagsView.svelte";

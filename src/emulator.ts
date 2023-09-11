@@ -19,13 +19,13 @@ import {
     loadSaveGame as emuLoadSave,
     getLastSave,
     getLastSaveFrame
-} from "../build/debug/backend";
+} from "../build/backend";
 import { fetchLogs } from "./debug";
-import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "./stores/debugStores";
-import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "./stores/playStores";
+import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
+import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
-import { frameDelay, useBoot } from "./stores/optionsStore";
-import { loadedCartridge } from "./stores/romStores";
+import { frameDelay, useBoot } from "stores/optionsStore";
+import { loadedCartridge } from "stores/romStores";
 import { humanReadableSize } from "./utils";
 
 let lastSaveFrame = 0;

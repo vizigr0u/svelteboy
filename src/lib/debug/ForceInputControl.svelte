@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { KeyPressMap } from "../../stores/playStores";
+    import { KeyPressMap } from "stores/playStores";
     import { InputType } from "../../types";
 
     const controls = [

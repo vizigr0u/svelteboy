@@ -1,4 +1,4 @@
-import { KeyPressMap } from "./stores/playStores";
+import { KeyPressMap } from "stores/playStores";
 import { InputType } from "./types";
 
 export const defaultKeybinds: { [k: string]: InputType } = {

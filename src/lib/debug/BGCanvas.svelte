@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Debug } from "../../emulator";
-    import { GbDebugInfoStore } from "../../stores/debugStores";
-    import { GameFrames } from "../../stores/playStores";
+    import { GbDebugInfoStore } from "stores/debugStores";
+    import { GameFrames } from "stores/playStores";
     import LcdCanvas from "../LcdCanvas.svelte";
 
     export let pixelSize = 2;

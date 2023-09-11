@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { SaveGameData } from "../types";
-    import { SaveGames } from "../stores/playStores";
+    import { SaveGames } from "stores/playStores";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
-    import { loadedCartridge } from "../stores/romStores";
-    import { DismissSavesWarning } from "../stores/optionsStore";
+    import { loadedCartridge } from "stores/romStores";
+    import { DismissSavesWarning } from "stores/optionsStore";
 
     const maxToShow = 50;
 

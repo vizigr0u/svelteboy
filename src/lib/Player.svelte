@@ -2,7 +2,7 @@
     import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
     import LcdCanvas from "./LcdCanvas.svelte";
-    import { playerPixelSize, showFPS } from "../stores/optionsStore";
+    import { playerPixelSize, showFPS } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { Emulator } from "../emulator";

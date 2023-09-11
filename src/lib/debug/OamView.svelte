@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Debug } from "../../emulator";
-    import { DebuggerAttached } from "../../stores/debugStores";
-    import { GameFrames } from "../../stores/playStores";
+    import { DebuggerAttached } from "stores/debugStores";
+    import { GameFrames } from "stores/playStores";
     import type { OamEntry } from "../../types";
 
     let objects: OamEntry[] = [];

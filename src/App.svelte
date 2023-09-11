@@ -9,8 +9,8 @@
     CachedRemoteRoms,
     RemoteRomsListUri,
     FetchingRemoteRoms,
-  } from "./stores/optionsStore";
-  import { cartRomStore } from "./stores/romStores";
+  } from "stores/optionsStore";
+  import { cartRomStore } from "stores/romStores";
   import { DragState, type RemoteRom, type RomReference } from "./types";
 
   let dragState: DragState;

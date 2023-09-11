@@ -14,7 +14,19 @@
      */
     "allowJs": true,
     "checkJs": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+      "components/*": [
+        "src/lib/*"
+      ],
+      "stores/*": [
+        "src/stores/*"
+      ]
+    },
   },
   "include": [
     "src/**/*.d.ts",

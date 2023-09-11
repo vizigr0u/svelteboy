@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { DebuggerAttached } from "../../stores/debugStores";
-    import { loadedCartridge, loadedBootRom } from "../../stores/romStores";
+    import { DebuggerAttached } from "stores/debugStores";
+    import { loadedCartridge, loadedBootRom } from "stores/romStores";
 
     import { Emulator, Debug } from "../../emulator";
-    import { EmulatorPaused } from "../../stores/playStores";
+    import { EmulatorPaused } from "stores/playStores";
 
     let breakSkipCount: number = 1;
     let hasRomToDebug = false;

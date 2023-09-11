@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cartRomStore } from "../stores/romStores";
+  import { cartRomStore } from "stores/romStores";
   import { DragState, type LocalRom, type StoredRom } from "../types";
   import { humanReadableSize } from "../utils";
   import { Buffer } from "buffer";
