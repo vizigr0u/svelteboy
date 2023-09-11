@@ -101,7 +101,7 @@ export class MemoryMap {
                 if (!isRamEnabled()) {
                     if (Logger.verbose >= 2)
                         log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
-                    return <T>-1;
+                    // return <T>-1;
                 }
                 if (Logger.verbose >= 2)
                     log('Reading EXT RAM ' + Cpu.GetTrace())
