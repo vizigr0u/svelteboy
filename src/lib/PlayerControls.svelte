@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { loadedCartridge, loadedBootRom } from "../stores/romStores";
+    import { loadedCartridge, loadedBootRom } from "stores/romStores";
 
-    import { EmulatorPaused } from "../stores/playStores";
+    import { EmulatorPaused } from "stores/playStores";
     import { Emulator } from "../emulator";
 
     async function onPlayPauseClick() {

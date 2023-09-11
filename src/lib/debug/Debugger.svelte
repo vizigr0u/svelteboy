@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Debug } from "../../emulator";
-  import { DebuggerAttached, GbDebugInfoStore } from "../../stores/debugStores";
+  import { DebuggerAttached, GbDebugInfoStore } from "stores/debugStores";
   import BreakpointsControl from "./BreakpointsControl.svelte";
   import CpuDebugInfo from "./CpuDebugInfo.svelte";
   import DebugControlBar from "./DebugControlBar.svelte";

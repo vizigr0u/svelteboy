@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { InputType, updateInput } from "../inputs";
-    import { HideKeyboardWarning } from "../stores/optionsStore";
-    import { KeyPressMap } from "../stores/playStores";
+    import { HideKeyboardWarning } from "stores/optionsStore";
+    import { KeyPressMap } from "stores/playStores";
 
     let buttonContainer: HTMLElement;
 

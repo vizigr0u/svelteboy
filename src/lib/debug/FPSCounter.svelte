@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { GameFrames } from "../../stores/playStores";
+    import { GameFrames } from "stores/playStores";
 
     let lastDrawTime: number = 0;
     let updateFreq: number = 20;

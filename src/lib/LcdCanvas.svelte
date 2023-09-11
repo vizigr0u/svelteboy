@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { GameFrames } from "../stores/playStores";
+  import { GameFrames } from "stores/playStores";
   import type { Writable } from "svelte/store";
 
   export let width: number = 42;

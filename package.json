@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "test": "npm run asbuild:debug && node tests",
-    "asbuild": "eval $(grep '^VITE_WASM_MODE' .env) && asc assembly/index.ts --target $VITE_WASM_MODE",
+    "asbuild:debug": "asc assembly/index.ts --target debug",
+    "asbuild:debugrelease": "asc assembly/index.ts --target debugrelease",
+    "asbuild:release": "asc assembly/index.ts --target release",
     "dev": "vite",
-    "build": "npm run asbuild && vite build",
+    "build": "npm run asbuild:release && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "start": "npx serve ."
+    "start": "npx serve dist"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.4.2",

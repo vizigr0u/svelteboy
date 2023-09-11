@@ -7,10 +7,10 @@
     DebuggerAttached,
     disassembledRomsStore,
     GbDebugInfoStore,
-  } from "../../stores/debugStores";
-  import { loadedBootRom, loadedCartridge } from "../../stores/romStores";
+  } from "stores/debugStores";
+  import { loadedBootRom, loadedCartridge } from "stores/romStores";
   import { fetchDisassembly } from "../../debug";
-  import { EmulatorInitialized, EmulatorPaused } from "../../stores/playStores";
+  import { EmulatorInitialized, EmulatorPaused } from "stores/playStores";
 
   let scrollToIndex;
   let lastJumpTime: number = 0;

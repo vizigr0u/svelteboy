@@ -6,7 +6,7 @@
         getRomReferenceType,
         isRemoteRom,
     } from "../types";
-    import { cartRomStore, loadedCartridge } from "../stores/romStores";
+    import { cartRomStore, loadedCartridge } from "stores/romStores";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";

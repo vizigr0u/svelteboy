@@ -5,8 +5,8 @@
         playerPixelSize,
         showFPS,
         RemoteRomsListUri,
-    } from "../stores/optionsStore";
-    import { EmulatorInitialized } from "../stores/playStores";
+    } from "stores/optionsStore";
+    import { EmulatorInitialized } from "stores/playStores";
 </script>
 
 <div class="options-view debug-tool-container">

@@ -4,14 +4,11 @@
     import LogView from "./LogView.svelte";
     import LcdCanvas from "../LcdCanvas.svelte";
     import BgCanvas from "./BGCanvas.svelte";
-    import {
-        DebuggerAttached,
-        GbDebugInfoStore,
-    } from "../../stores/debugStores";
+    import { DebuggerAttached, GbDebugInfoStore } from "stores/debugStores";
     import OamView from "./OamView.svelte";
     import Debugger from "./Debugger.svelte";
     import ForceInputControl from "./ForceInputControl.svelte";
-    import { GameFrames } from "../../stores/playStores";
+    import { GameFrames } from "stores/playStores";
     import { Debug } from "../../emulator";
 
     let drawTiles;

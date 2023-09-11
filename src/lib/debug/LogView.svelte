@@ -1,13 +1,9 @@
 <script lang="ts">
     import { fetchLogs } from "../../debug";
     import { Debug } from "../../emulator";
-    import {
-        DebugLines,
-        MutedCategories,
-        Verbose,
-    } from "../../stores/debugStores";
-    import { EmulatorBusy } from "../../stores/playStores";
-    import { loadedCartridge } from "../../stores/romStores";
+    import { DebugLines, MutedCategories, Verbose } from "stores/debugStores";
+    import { EmulatorBusy } from "stores/playStores";
+    import { loadedCartridge } from "stores/romStores";
     import { humanReadableNumber } from "../../utils";
 
     let maxLines = 500;
@@ -24,6 +20,7 @@
         "ROM",
         "MBC",
         "SAV",
+        "TIM",
     ];
 
     function onClearClick() {
@@ -50,7 +47,7 @@
     }
 
     function filterLog(log: string[], mutedCategories: string[]): string[] {
-        return log.filter((m) => !mutedCategories.includes(m.slice(0, 3)));
+        return log.filter((m) => m && !mutedCategories.includes(m.slice(0, 3)));
     }
 
     function downloadLog(mutedCategories: string[]) {
@@ -89,7 +86,7 @@
             />
         </label>
         <div class="log-category-dropdown">
-            <button class="log-category-toggle"
+            <button class="log-category-toggle" disabled
                 ><i class="fa-solid fa-filter" />...
             </button>
             <div class="log-category-dropdown-content">
@@ -111,27 +108,25 @@
         <button
             on:click={onClearClick}
             disabled={!$DebugLines || $DebugLines.length == 0}
-            class="log-clear-button"><i class="fa-solid fa-trash" /></button
+            ><i class="fa-solid fa-trash" /></button
         >
-        <button
-            on:click={fetchLogs}
-            disabled={$EmulatorBusy}
-            class="log-clear-button"><i class="fa-solid fa-rotate" /></button
+        <button on:click={fetchLogs} disabled={$EmulatorBusy}
+            ><i class="fa-solid fa-rotate" /></button
         >
         <button
             on:click={() => downloadLog([])}
             disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
-            class="log-clear-button"
             ><i class="fa-solid fa-cloud-arrow-down" /></button
         >
         <button
             on:click={() => downloadLog($MutedCategories)}
             disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
-            class="log-clear-button">Download Fitlered</button
+            >Download Fitlered</button
         >
     </div>
     <div class="log-container">
-        {#each filterLog($DebugLines, $MutedCategories).slice(-maxLines) as item}
+        <!-- {#each filterLog($DebugLines, $MutedCategories).slice(-maxLines) as item} -->
+        {#each $DebugLines.slice(-maxLines) as item}
             <span>{item}</span>
         {/each}
     </div>
