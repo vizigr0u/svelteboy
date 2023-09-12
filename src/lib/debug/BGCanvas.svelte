@@ -17,8 +17,8 @@
         if ($GbDebugInfoStore == undefined) return;
         const minX = $GbDebugInfoStore.lcd.scX;
         const minY = $GbDebugInfoStore.lcd.scY;
-        const maxX = (160 + minX) % ctx.canvas.width;
-        const maxY = (144 + minY) % ctx.canvas.height;
+        const maxX = (160 + minX) % 256; //ctx.canvas.width;
+        const maxY = (144 + minY) % 256; // ctx.canvas.height;
         ctx.strokeStyle = "red";
         ctx.beginPath();
         if (minX < maxX) {
@@ -30,11 +30,11 @@
             ctx.moveTo(0, minY);
             ctx.lineTo(maxX, minY);
             ctx.moveTo(minX, minY);
-            ctx.lineTo(159, minY);
+            ctx.lineTo(255, minY);
             ctx.moveTo(0, maxY);
             ctx.lineTo(maxX, maxY);
             ctx.moveTo(minX, maxY);
-            ctx.lineTo(159, maxY);
+            ctx.lineTo(255, maxY);
         }
         if (minY < maxY) {
             ctx.moveTo(minX, minY);
@@ -45,18 +45,26 @@
             ctx.moveTo(minX, 0);
             ctx.lineTo(minX, maxY);
             ctx.moveTo(minX, minY);
-            ctx.lineTo(minX, 143);
+            ctx.lineTo(minX, 255);
             ctx.moveTo(maxX, 0);
             ctx.lineTo(maxX, maxY);
             ctx.moveTo(maxX, minY);
-            ctx.lineTo(maxX, 143);
+            ctx.lineTo(maxX, 255);
         }
         ctx.stroke();
         const ly = $GbDebugInfoStore.lcd.lY;
         if (ly < 144) {
             ctx.strokeStyle = "rgba(80, 80, 80, 0.6)";
-            ctx.moveTo(minX, minY + ly);
-            ctx.lineTo(maxX, minY + ly);
+            if (minX < maxX) {
+                ctx.moveTo(minX, minY + ly);
+                ctx.lineTo(maxX, minY + ly);
+            } else {
+                const y = (minY + ly) % 256;
+                ctx.moveTo(0, y);
+                ctx.lineTo(maxX, y);
+                ctx.moveTo(minX, y);
+                ctx.lineTo(255, y);
+            }
             ctx.stroke();
         }
     }
