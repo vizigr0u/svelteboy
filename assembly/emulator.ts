@@ -74,7 +74,6 @@ enum EmulatorStopReason {
 
     static Run(timeMilliSec: f64): EmulatorStopReason {
         const maxCycles: u64 = <u64>Math.round((timeMilliSec * CYCLES_PER_SECOND) / 1000);
-        console.log('Running for ' + timeMilliSec.toString() + ' = ' + maxCycles.toString());
 
         Emulator.targetCycles = Cpu.CycleCount + maxCycles;
         Emulator.targetFrame = 0;
