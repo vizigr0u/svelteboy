@@ -17,6 +17,7 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.4.2",
     "@tsconfig/svelte": "^5.0.0",
+    "@types/node": "^20.6.0",
     "assemblyscript": "^0.27.8",
     "svelte": "^4.0.5",
     "svelte-check": "^3.4.6",
@@ -28,7 +29,6 @@
   },
   "dependencies": {
     "@csstools/convert-colors": "^2.0.0",
-    "@types/node": "^20.5.1",
     "buffer": "^6.0.3",
     "gzip": "^0.1.0",
     "pngjs": "^7.0.0",

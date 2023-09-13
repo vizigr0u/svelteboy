@@ -24,14 +24,16 @@ enum EmulatorStopReason {
     HitBreakMode = 2,
     CpuStop = 3,
     EndOfFrame = 4,
-    UserPause = 5
+    UserPause = 5,
+    TargetCyclesReached = 6,
 }
 
 @final export class Emulator {
     static wasInit: boolean = false;
 
     private static lastPPUMode: PpuMode;
-    private static startFrame: u32;
+    private static targetFrame: u32;
+    private static targetCycles: u64;
 
     static Init(useBootRom: boolean = true): void {
         SaveGame.Init();
@@ -40,6 +42,8 @@ enum EmulatorStopReason {
         IO.Init();
         Ppu.Init();
         Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
+        Emulator.targetCycles = 0;
+        Emulator.targetFrame = 0;
         Emulator.wasInit = true;
     }
 
@@ -68,8 +72,24 @@ enum EmulatorStopReason {
         }
     }
 
+    static Run(timeMilliSec: f64): EmulatorStopReason {
+        const maxCycles: u64 = <u64>Math.round((timeMilliSec * CYCLES_PER_SECOND) / 1000);
+        console.log('Running for ' + timeMilliSec.toString() + ' = ' + maxCycles.toString());
+
+        Emulator.targetCycles = Cpu.CycleCount + maxCycles;
+        Emulator.targetFrame = 0;
+        let stopReason = EmulatorStopReason.None;
+        do {
+            Emulator.lastPPUMode = Ppu.currentMode;
+            Emulator.Tick();
+            stopReason = Emulator.GetStopReason();
+        } while (stopReason == EmulatorStopReason.None)
+        return stopReason;
+    }
+
     static RunOneFrame(): EmulatorStopReason {
-        Emulator.startFrame = Ppu.currentFrame;
+        Emulator.targetFrame = Ppu.currentFrame + 1;
+        Emulator.targetCycles = 0;
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
@@ -80,6 +100,11 @@ enum EmulatorStopReason {
     }
 
     static GetStopReason(): EmulatorStopReason {
+        if (Emulator.targetCycles != 0 && Cpu.CycleCount >= Emulator.targetCycles) {
+            if (Logger.verbose >= 2)
+                log('Emulator stopped: Target cycles reached')
+            return EmulatorStopReason.TargetCyclesReached;
+        }
         if (Cpu.isStopped) {
             if (Logger.verbose >= 2)
                 log('Emulator stopped: Cpu was Stopped')
@@ -97,7 +122,7 @@ enum EmulatorStopReason {
                 return EmulatorStopReason.HitBreakMode;
             }
         }
-        if (Ppu.currentFrame != Emulator.startFrame) {
+        if (Emulator.targetFrame != 0 && Ppu.currentFrame == Emulator.targetFrame) {
             if (Logger.verbose >= 2)
                 log('Emulator stopped: End of frame')
             return EmulatorStopReason.EndOfFrame;
@@ -109,5 +134,7 @@ enum EmulatorStopReason {
 export function initEmulator(useBootRom: boolean = true): void { Emulator.Init(useBootRom); }
 
 export function runOneFrame(): EmulatorStopReason { return Emulator.RunOneFrame(); }
+
+export function runEmulator(timeMilliSec: f64): EmulatorStopReason { return Emulator.Run(timeMilliSec); }
 
 export function emulatorEndlessLoop(): void { Emulator.EndlessLoop(); }

@@ -16,7 +16,7 @@ export class DebugInfo {
     useBootRom: boolean;
     isHalted: boolean;
     isStopped: boolean;
-    cycleCount: u32;
+    cycleCount: u64;
     interruptsMaster: boolean;
     interruptFlags: u8;
     interruptEnabled: u8;

@@ -84,11 +84,6 @@
 </div>
 
 <style>
-  .tile-data-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-  }
   .tile-data-canvas {
     display: flex;
     flex-direction: column;
