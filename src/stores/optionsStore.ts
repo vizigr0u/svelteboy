@@ -3,7 +3,6 @@ import { MakeLocalStore } from "./localStorageStore";
 import type { RemoteRom, RemoteRomsList } from "../types";
 
 export const useBoot = writable<boolean>(false);
-export const frameDelay = MakeLocalStore<number>('option-frame-delay', 7);
 export const playerPixelSize = MakeLocalStore<number>('option-pixel-size', 3);
 export const showFPS = MakeLocalStore<boolean>('option-show-fps', false);
 export const HideKeyboardWarning = MakeLocalStore<boolean>('option-hide-keyboard-warning', false);
@@ -11,6 +10,7 @@ export const DismissSavesWarning = MakeLocalStore<boolean>('option-hide-saves-wa
 export const RemoteRomsListUri = MakeLocalStore<string>('option-remote-roms-list-uri', "");
 export const CachedRemoteRoms = MakeLocalStore<RemoteRom[]>('option-cached-remote-roms', []);
 export const FetchingRemoteRoms = writable<boolean>(false);
+export const ShowDebugger = MakeLocalStore<boolean>("option-show-debugger", false);
 
 RemoteRomsListUri.subscribe((uri) => {
     if (uri && uri.startsWith("http")) {

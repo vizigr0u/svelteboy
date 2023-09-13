@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { RomReference } from "../types";
+  import MyVirtualList from "./MyVirtualList.svelte";
   import RomView from "./RomView.svelte";
 
   export let title: string;
@@ -93,11 +94,15 @@
   {:then}
     {#if filteredRoms.length > 0}
       <div class="roms-container">
-        {#each filteredRoms as item}
-          {#key item.sha1}
+        {#if filteredRoms.length > 20}
+          <MyVirtualList items={filteredRoms} let:item>
             <RomView rom={item} />
-          {/key}
-        {/each}
+          </MyVirtualList>
+        {:else}
+          {#each filteredRoms as item}
+            <RomView rom={item} />
+          {/each}
+        {/if}
       </div>
     {:else}
       <div class="status">

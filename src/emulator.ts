@@ -23,7 +23,7 @@ import {
 } from "../build/backend";
 import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
-import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
+import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
 import { useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
@@ -44,7 +44,8 @@ export const Emulator = {
             pauseEmulator();
     },
     RunUntilBreak: () => {
-        lastRenderTime = 0;
+        lastRenderTime = -1;
+        window.cancelAnimationFrame(runningAnimationFrameHandle);
         runningAnimationFrameHandle = window.requestAnimationFrame(run)
     },
     Pause: pauseEmulator,
@@ -58,9 +59,11 @@ export const Emulator = {
 export const Debug = {
     SetVerbose: setVerbose,
     RunFrame: () => {
+        window.cancelAnimationFrame(runningAnimationFrameHandle);
         runningAnimationFrameHandle = window.requestAnimationFrame(runOneFrame)
     },
     Step: () => {
+        window.cancelAnimationFrame(runningAnimationFrameHandle);
         runningAnimationFrameHandle = window.requestAnimationFrame(step)
     },
     SetBreakpoint: debugSetBreakpoint,
@@ -105,10 +108,10 @@ async function playRom(rom: RomReference): Promise<void> {
     Emulator.RunUntilBreak();
 }
 
-let lastRenderTime: number = 0;
+let lastRenderTime: number = -1;
 
 function run(time: number) {
-    const dt = time - lastRenderTime;
+    const dt = lastRenderTime <= 0 ? 15 : time - lastRenderTime;
     {
         preRun();
         const stopReason = runEmulator(dt);
@@ -165,19 +168,13 @@ function postRun(): void {
     EmulatorBusy.set(false);
     const latestSaveFrame = getLastSaveFrame();
     if (latestSaveFrame > lastSaveFrame) {
-        console.log("New Save Game to get! Saving...")
         const currentGame: RomReference = get(loadedCartridge);
         const timeStamp = new Date().toISOString();
-        const newSave: SaveGameData = {
+        AutoSave.set({
             buffer: getLastSave(),
             name: `autosave-${timeStamp}`,
             gameSha1: currentGame.sha1
-        };
-        SaveGames.update(saves => {
-            saves.push(newSave);
-            return saves;
-        });
-        console.log(`Saved: game: '${newSave.name}'`);
+        })
         lastSaveFrame = latestSaveFrame;
     }
     for (let i = 0; i < postRunCallbacks.length; i++) {
@@ -206,4 +203,5 @@ function pauseEmulator(): void {
 
 function unPauseEmulator(): void {
     EmulatorPaused.set(false);
+    lastRenderTime = -1;
 }

@@ -10,6 +10,7 @@
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
+    import { onMount } from "svelte";
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
@@ -21,17 +22,37 @@
 
     let romDescription: string;
 
+    let src: string = defaultThumbnailUri;
+    let alt: string = defaultAltText;
+
     type RomImgData = {
         src: string;
         alt: string;
     };
 
-    let imagePromise: Promise<RomImgData> = undefined;
+    // let imagePromise: Promise<RomImgData> = new Promise<RomImgData>((r) =>
+    //     r({
+    //         src: defaultThumbnailUri,
+    //         alt: defaultAltText,
+    //     })
+    // );
+
+    onMount(() => {
+        fetchImageAndAlt(rom)
+            .then((data) => {
+                src = data.src;
+                alt = data.alt;
+            })
+            .catch(() => {
+                src = defaultThumbnailUri;
+                alt = defaultAltText;
+            });
+    });
 
     let playRomPromise: Promise<void> = undefined;
     let isLoading: boolean = false;
 
-    $: imagePromise = fetchImageAndAlt(rom);
+    // $: imagePromise = fetchImageAndAlt(rom);
 
     $: romDescription = getRomDescription(rom);
 
@@ -70,6 +91,7 @@
 
     function onThumbnailError(ev) {
         ev.target.src = defaultThumbnailUri;
+        ev.target.alt = defaultAltText;
         ev.onerror = null;
         ev.preventDefault();
     }
@@ -77,31 +99,13 @@
 
 <div class="rom-container" class:rom-loaded={isLoaded}>
     <div class="image-wrapper">
-        {#await imagePromise}
-            <img
-                class="rom-thumbnail"
-                src={defaultThumbnailUri}
-                alt={defaultAltText}
-                loading="lazy"
-            />
-        {:then imgData}
-            {#key rom.sha1}
-                <img
-                    class="rom-thumbnail"
-                    on:error={onThumbnailError}
-                    src={imgData.src}
-                    alt={imgData.alt}
-                    loading="lazy"
-                />
-            {/key}
-        {:catch}
-            <img
-                class="rom-thumbnail"
-                src={defaultThumbnailUri}
-                alt={defaultAltText}
-                loading="lazy"
-            />
-        {/await}
+        <img
+            class="rom-thumbnail"
+            on:error={onThumbnailError}
+            {src}
+            {alt}
+            loading="lazy"
+        />
         <div class="over-image-box">
             {#await playRomPromise}
                 <div class="loading-rom-placeholder">
@@ -197,6 +201,8 @@
         justify-content: space-around;
         align-items: center;
         padding: 0.5em 1em;
+        max-width: 40em;
+        overflow-x: auto;
     }
     .rom-name {
         max-width: 21em;
