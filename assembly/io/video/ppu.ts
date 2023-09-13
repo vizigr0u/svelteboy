@@ -5,6 +5,7 @@ import { Lcd } from "./lcd";
 import { Oam, OamData } from "./oam";
 import { PixelFifo } from "./pixelFifo";
 import { PpuTransfer } from "./ppuTransfer";
+import { ScanlineRenderer } from "./scanlineRenderer";
 
 export enum PpuMode {
     HBlank = 0,
@@ -125,6 +126,8 @@ export class PpuOamFifo {
 
 @final
 export class Ppu {
+    static useScanline: boolean = true;
+
     static currentMode: PpuMode = PpuMode.OAMScan;
     static currentDot: u16 = 0;
     static currentFrame: u32 = 0;
@@ -139,9 +142,15 @@ export class Ppu {
     static workingBufferIndex: u8 = 0;
     static workingBuffer: Uint32Array = new Uint32Array(0);
 
+    // static transferModeTick: () => boolean = accurateTransferTick;
+    // static transferModeInit: () => void = accurateTransferInit;
+
     @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
 
     static Init(): void {
+        // Ppu.transferModeInit = Ppu.useScanline ? scanlineTransferInit : accurateTransferInit;
+        // Ppu.transferModeTick = Ppu.useScanline ? scanlineTransferTick : accurateTransferTick;
+
         Ppu.currentMode = PpuMode.OAMScan;
         Ppu.currentDot = 0;
         Ppu.currentFrame = 0;
@@ -188,11 +197,23 @@ export class Ppu {
                 tickOAMScan();
                 break;
             case PpuMode.Transfer:
-                tickTransfer();
+                // if (!Ppu.transferModeTick())
+                if (!scanlineTransferTick())
+                    enterMode(PpuMode.HBlank);
                 break;
             default:
                 assert(false, 'PPU in wrong mode');
         }
+    }
+
+    @inline
+    static applyPalette(colorId: u8, palette: u8): u8 {
+        return (palette >> (colorId << 1)) & 0b11;
+    }
+
+
+    static getColorIndexFromBytes(b: u16, mask: u8): u8 {
+        return (((b & mask) == mask) ? 1 : 0) | ((((b >> 8) & mask) == mask) ? 2 : 0);
     }
 }
 
@@ -221,7 +242,8 @@ function enterMode(mode: PpuMode): void {
             PpuOamFifo.FetchCurrentLine();
             break;
         case PpuMode.Transfer:
-            PpuTransfer.Init();
+            // Ppu.transferModeInit();
+            scanlineTransferInit();
             break;
         default:
             break;
@@ -253,11 +275,21 @@ function tickOAMScan(): void {
     }
 }
 
-function tickTransfer(): void {
+function accurateTransferInit(): void {
+    PpuTransfer.Init();
+}
+
+function accurateTransferTick(): boolean {
     PpuTransfer.Tick();
-    if (PpuTransfer.pushedX == LCD_WIDTH) {
-        enterMode(PpuMode.HBlank);
-    }
+    return (PpuTransfer.pushedX < LCD_WIDTH);
+}
+
+function scanlineTransferInit(): void {
+    ScanlineRenderer.Render();
+}
+
+function scanlineTransferTick(): boolean {
+    return (Ppu.currentDot < TRANSFER_MIN_DOTS);
 }
 
 export function getGameFrame(): Uint8ClampedArray {

@@ -38,7 +38,7 @@ export class Timer {
 
     static Tick(tCycles: u8 = 4): void {
         if (Logger.verbose >= 2) {
-            log('Timer running 1 m-cycle')
+            log('Timer running ' + (tCycles >> 2).toString() + ' m-cycle(s)')
         }
         let prevDiv = Timer.internalDiv;
         Timer.internalDiv += tCycles;

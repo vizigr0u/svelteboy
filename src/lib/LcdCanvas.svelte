@@ -12,7 +12,6 @@
   export let pixelSize = 2;
   export let autodraw: boolean = true;
   export const draw = () => drawToCanvas();
-  export let showPerfReport: boolean = true;
   export let frameStore: Writable<number> = GameFrames;
 
   let canvas: HTMLCanvasElement;
@@ -71,11 +70,6 @@
 </script>
 
 <div class="tile-data-canvas">
-  <div class="tile-data-title">
-    {#if showPerfReport && timeReport}
-      <span>Draw time: {timeReport}ms</span>
-    {/if}
-  </div>
   <div class="tile-data-canvas-container">
     <!-- svelte-ignore a11y-mouse-events-have-key-events -->
     <canvas

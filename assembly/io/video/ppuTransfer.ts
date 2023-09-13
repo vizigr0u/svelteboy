@@ -1,7 +1,7 @@
 import { Cpu } from "../../cpu/cpu";
 import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { Logger } from "../../debug/logger";
-import { LCD_HEIGHT, LCD_WIDTH } from "./constants";
+import { LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
@@ -28,7 +28,7 @@ export class PpuTransfer {
 
     static state: PpuFetchState = PpuFetchState.GetTile;
     static lineX: u8 = 0;
-    static fetcherX: u8 = 0;
+    private static fetcherX: u8 = 0;
     static pushedX: u8 = 0;
     static tileY: u8 = 0;
     static bgTileOffset: i16 = 0;
@@ -58,7 +58,7 @@ export class PpuTransfer {
         if ((Ppu.currentDot % 2) == 0) {
             PpuTransfer.TickFetcher();
         }
-        tickPushPixel();
+        PpuTransfer.tickPushPixel();
     }
 
     private static isInWindow(): boolean {
@@ -118,7 +118,7 @@ export class PpuTransfer {
                 break;
             case PpuFetchState.Push:
                 if (!PixelFifo.HasEnoughPixels()) {
-                    fetcherEnqueuePixel();
+                    PpuTransfer.fetcherEnqueuePixel();
                     PpuTransfer.state = PpuFetchState.GetTile;
                 }
                 break;
@@ -147,73 +147,75 @@ export class PpuTransfer {
             }
         }
     }
-}
 
-function getColorIndexFromBytes(b: u16, mask: u8): u8 {
-    return (((b & mask) == mask) ? 1 : 0) | ((((b >> 8) & mask) == mask) ? 2 : 0);
-}
-
-function applyPalette(colorId: u8, palette: u8): u8 {
-    return (palette >> (colorId << 1)) & 0b11;
-}
-
-function fetcherEnqueuePixel(): void {
-    const x: i16 = PpuTransfer.fetcherX - 8 + (Lcd.data.scrollX % 8);
-    if (x >= 0) {
-        const numSpritesToCheck: i32 = Lcd.SpritesVisible ? <i32>PpuTransfer.numSpritesThisFetch : 0;
-        const BgPalette: u8 = Lcd.getBGPalette();
-        for (let i = 0; i < 8; i++) {
-            const mask: u8 = (1 << <u8>(7 - i));
-            const bgColorId: u8 = getColorIndexFromBytes(PpuTransfer.fetchedBgBytes, mask);
-            let color = applyPalette(Lcd.BGandWindowVisible ? bgColorId : 0, BgPalette);
-
-            {
-                for (let j = 0; j < numSpritesToCheck; j++) {
-                    const oam = PpuOamFifo.Peek(j);
-
-                    if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
-                        continue;
-
-                    const spriteX: i16 = <i16><u8>oam.xPos - 8 + (Lcd.data.scrollX % 8);
-                    const offset: i16 = spriteX - (x + <i16>i); // [-7, 0] if sprite is [x - 7, x]
-                    if (Logger.verbose >= 4) {
-                        log(`Fetching pixel ${x + i} on ${oam.tileIndex}: spriteX=${spriteX}, offset=${offset}`)
-                    }
-                    if (offset < -7 || offset > 0)
-                        continue;
-
-                    const bit: u8 = <u8>(oam.hasAttr(OamAttribute.XFlip) ? -offset : offset + 7); // [7-0] or [0-7] when flipped
-                    assert((bit & 7) == bit);
-                    const spriteBitMask: u8 = (1 << bit);
-                    const spriteColorId = getColorIndexFromBytes(unchecked(PpuTransfer.fetchedSpriteBytes[j]), spriteBitMask)
-                    if (spriteColorId == 0)
-                        continue;
-
-                    const spritePalette = oam.hasAttr(OamAttribute.PaletteNumber) ? Lcd.data.objPalette1 : Lcd.data.objPalette0;
-                    color = applyPalette(spriteColorId, spritePalette & 0b11111100); // lower 2 bits of palette ignored for transparency
-                    break;
+    private static fetcherEnqueuePixel(): void {
+        const scrollOffset: i8 = <i8>(Lcd.data.scrollX & 7);
+        const lcdStartX: i16 = PpuTransfer.fetcherX - scrollOffset;
+        {
+            const numSpritesToCheck: i32 = Lcd.SpritesVisible ? <i32>PpuTransfer.numSpritesThisFetch : 0;
+            const BgPalette: u8 = Lcd.getBGPalette();
+            for (let i: i16 = 0; i < 8; i++) {
+                const lcdX: i16 = lcdStartX + <i16>i;
+                if (Logger.verbose >= 4) {
+                    log(`BG: i ${i}, lcdX ${lcdX}`)
                 }
-            }
-            PixelFifo.Enqueue(color);
-        }
-    }
-}
+                if (lcdX < 0)
+                    continue;
+                const bgMask: u8 = (1 << <u8>(7 - i + scrollOffset));
+                const bgColorId: u8 = Ppu.getColorIndexFromBytes(PpuTransfer.fetchedBgBytes, bgMask);
+                let color = Ppu.applyPalette(Lcd.BGandWindowVisible ? bgColorId : 0, BgPalette);
+                if (Logger.verbose >= 4) {
+                    log(`BG pixel selected: mask ${bgMask.toString(2)}, colorId: ${bgColorId} with palette => ${color}`);
+                }
+                {
+                    for (let j = 0; j < numSpritesToCheck; j++) {
+                        const oam = PpuOamFifo.Peek(j);
 
-function tickPushPixel(): void {
-    if (PixelFifo.HasEnoughPixels()) {
-        if (PpuTransfer.lineX >= (Lcd.data.scrollX & 3)) {
-            const bufferIndex = PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH;
-            if (bufferIndex >= <u32>(Ppu.workingBuffer.length)) {
-                if (Logger.verbose >= 1)
-                    log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.data.lY}`);
-            } else {
-                const color = PixelFifo.Dequeue();
-                const color32 = unchecked(Ppu.current32bitPalette[color]);
-                // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.data.lY) * 255 / 144)) << 8;
-                unchecked(Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32);
+                        if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
+                            continue;
+
+                        const spriteX: i16 = <i16><u8>oam.xPos - 8;
+                        const offset: i16 = spriteX - lcdX; // [-7, 0] if sprite is [x - 7, x]
+                        if (Logger.verbose >= 4) {
+                            log(`Fetching pixel ${PpuTransfer.fetcherX + i} on ${oam.tileIndex}: spriteX=${spriteX}, offset=${offset}`)
+                        }
+                        if (offset < -7 || offset > 0)
+                            continue;
+
+                        const bit: u8 = <u8>(oam.hasAttr(OamAttribute.XFlip) ? -offset : offset + 7); // [7-0] or [0-7] when flipped
+                        assert((bit & 7) == bit);
+                        const spriteBitMask: u8 = (1 << bit);
+                        const spriteColorId = Ppu.getColorIndexFromBytes(unchecked(PpuTransfer.fetchedSpriteBytes[j]), spriteBitMask)
+                        if (spriteColorId == 0)
+                            continue;
+
+                        const spritePalette = oam.hasAttr(OamAttribute.PaletteNumber) ? Lcd.data.objPalette1 : Lcd.data.objPalette0;
+                        color = Ppu.applyPalette(spriteColorId, spritePalette & 0b11111100); // lower 2 bits of palette ignored for transparency
+                        break;
+                    }
+                }
+                PixelFifo.Enqueue(color);
             }
-            PpuTransfer.pushedX++;
         }
-        PpuTransfer.lineX++;
     }
+
+    private static tickPushPixel(): void {
+        if (PixelFifo.HasEnoughPixels()) {
+            if (PpuTransfer.lineX >= (Lcd.data.scrollX & 3)) {
+                const bufferIndex = PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH;
+                if (bufferIndex >= <u32>(Ppu.workingBuffer.length)) {
+                    if (Logger.verbose >= 1)
+                        log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.data.lY}`);
+                } else {
+                    const color = PixelFifo.Dequeue();
+                    const color32 = unchecked(Ppu.current32bitPalette[color]);
+                    // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.data.lY) * 255 / 144)) << 8;
+                    unchecked(Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32);
+                }
+                PpuTransfer.pushedX++;
+            }
+            PpuTransfer.lineX++;
+        }
+    }
+
 }
