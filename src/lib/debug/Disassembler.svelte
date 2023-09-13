@@ -26,7 +26,6 @@
 
   function disassembleRom(rom: RomReference): void {
     if (rom && $disassembledRomsStore?.sha1 != rom.sha1) {
-      console.log("detected new rom to disassemble: " + rom.name);
       fetchDisassembly(rom);
     } else if (!rom) {
       $disassembledRomsStore = undefined;

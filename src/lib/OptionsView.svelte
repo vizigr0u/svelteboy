@@ -1,10 +1,10 @@
 <script lang="ts">
     import {
         useBoot,
-        frameDelay,
         playerPixelSize,
         showFPS,
         RemoteRomsListUri,
+        ShowDebugger,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
 </script>
@@ -12,15 +12,6 @@
 <div class="options-view debug-tool-container">
     <h3>Options</h3>
     <div class="options">
-        <label for="frameDelay">Frame delay:</label>
-        <input
-            id="frameDelay"
-            type="number"
-            bind:value={$frameDelay}
-            min="0"
-            max="100"
-        />
-
         <label for="pixelSize"> Pixel size: </label>
         <input
             id="pixelSize"
@@ -32,6 +23,9 @@
 
         <label for="remoteRomsUri">Remote Roms List: </label>
         <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
+
+        <label for="showdebugger"> Show Debugger: </label>
+        <input id="showdebugger" type="checkbox" bind:checked={$ShowDebugger} />
 
         <label for="showfps"> Display FPS: </label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />

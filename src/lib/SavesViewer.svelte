@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { SaveGameData } from "../types";
-    import { SaveGames } from "stores/playStores";
+    import { AutoSave, SaveGames } from "stores/playStores";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
     import { loadedCartridge } from "stores/romStores";
@@ -42,6 +42,12 @@
     }
 
     function onDeleteClick(save: SaveGameData) {
+        if (
+            $AutoSave !== undefined &&
+            $AutoSave.gameSha1 == save.gameSha1 &&
+            $AutoSave.name == save.name
+        )
+            $AutoSave = undefined;
         SaveGames.update((saves) => {
             saves.splice(saves.indexOf(save), 1);
             return saves;
@@ -55,12 +61,16 @@
         }
         const currentSha1 = $loadedCartridge.sha1;
         relevantSaves = $SaveGames.filter((s) => s.gameSha1 == currentSha1);
+        if ($AutoSave !== undefined && $AutoSave.gameSha1 == currentSha1)
+            relevantSaves.push($AutoSave);
     }
 
     loadedCartridge.subscribe(updateRelevantSaves);
     SaveGames.subscribe(updateRelevantSaves);
+    AutoSave.subscribe(updateRelevantSaves);
 
     function onClearAllClick() {
+        $AutoSave = undefined;
         SaveGames.update((saves) => {
             return saves.filter((s) => s.gameSha1 != $loadedCartridge.sha1);
         });
