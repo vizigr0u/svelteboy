@@ -173,7 +173,7 @@ export function loadRom(rom: Uint8Array, start: usize, maxSize: usize): boolean 
         log(`trying to load rom of size ${rom.byteLength}B at 0x${start.toString(16)}`);
     if (<usize>rom.byteLength > maxSize) {
         if (Logger.verbose >= 1)
-            console.log("Unexpected size: " + rom.byteLength.toString());
+            log("Unexpected size: " + rom.byteLength.toString());
         return false;
     }
     memory.copy(start, rom.dataStart, rom.byteLength);
