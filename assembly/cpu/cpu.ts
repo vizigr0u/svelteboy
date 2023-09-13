@@ -106,7 +106,7 @@ export class Cpu {
 
     static GetStack(): string {
         let stack = "";
-        for (let sp = Cpu.StackPointer; sp > 0xFF80 && sp < 0xFFFD; sp += 2) {
+        for (let sp: u16 = Cpu.StackPointer; sp > 0xFF80 && sp < 0xFFFD; sp += 2) {
             const pc: u16 = MemoryMap.GBload<u16>(sp)
             stack += "\t\t" + uToHex(pc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(pc));
         }
