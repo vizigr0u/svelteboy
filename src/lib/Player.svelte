@@ -1,15 +1,20 @@
 <script lang="ts">
     import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
-    import LcdCanvas from "./LcdCanvas.svelte";
     import { playerPixelSize, showFPS } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
     import { DragState } from "../types";
+    import PlayCanvas from "./PlayCanvas.svelte";
 
     let dragState: DragState;
+    let drawToCanvas;
+
+    Emulator.AddPostRunCallback(() => {
+        drawToCanvas(Emulator.GetGameFrame());
+    });
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
@@ -27,11 +32,11 @@
             class:drop-allowed={dragState == DragState.Accept}
             class:drop-disallowed={dragState == DragState.Reject}
         >
-            <LcdCanvas
-                updateBuffer={(_) => Emulator.GetGameFrame()}
+            <PlayCanvas
                 width={160}
                 height={144}
-                bind:pixelSize={$playerPixelSize}
+                bind:draw={drawToCanvas}
+                pixelSize={$playerPixelSize}
             />
             {#if $showFPS}
                 <div class="fps-wrapper">

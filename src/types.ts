@@ -121,7 +121,7 @@ export type GbDebugInfo = {
     useBootRom: boolean,
     isHalted: boolean,
     isStopped: boolean,
-    cycleCount: number,
+    cycleCount: bigint,
     interruptsMaster: boolean,
     interruptFlags: number,
     interruptEnabled: number,
@@ -135,7 +135,8 @@ export enum DebugStopReason {
     HitBreakMode = 2,
     CpuStop = 3,
     EndOfFrame = 4,
-    UserPause = 5
+    UserPause = 5,
+    TargetCyclesReached = 6,
 }
 
 export type OamEntry = {

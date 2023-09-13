@@ -1,7 +1,8 @@
 import { get } from "svelte/store";
 import {
     setJoypad,
-    runOneFrame,
+    runOneFrame as backendRunOneFrame,
+    runEmulator,
     getDebugInfo,
     debugStep,
     initEmulator,
@@ -24,11 +25,14 @@ import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
 import { EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
-import { frameDelay, useBoot } from "stores/optionsStore";
+import { useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { humanReadableSize } from "./utils";
 
 let lastSaveFrame = 0;
+
+let postRunCallbacks: (() => void)[] = [];
+let runningAnimationFrameHandle = 0;
 
 export const Emulator = {
     Reset: () => {
@@ -36,37 +40,28 @@ export const Emulator = {
         initEmulator(get(useBoot));
         EmulatorInitialized.set(true);
         postRun();
-        GameFrames.set(0)
         if (get(DebuggerAttached))
             pauseEmulator();
     },
-    RunUntilBreak: async () => {
-        do {
-            await runFrame();
-            if (!get(EmulatorPaused) && get(LastStopReason) == DebugStopReason.EndOfFrame)
-                await new Promise((r) => setTimeout(r, get(frameDelay)));
-        } while (!get(EmulatorPaused) && get(LastStopReason) == DebugStopReason.EndOfFrame
-        );
-        pauseEmulator();
+    RunUntilBreak: () => {
+        lastRenderTime = 0;
+        runningAnimationFrameHandle = window.requestAnimationFrame(run)
     },
     Pause: pauseEmulator,
     GetGameFrame: getGameFrame,
     LoadCartridgeRom: loadCartridgeRom,
     LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
-    PlayRom: playRom
+    PlayRom: playRom,
+    AddPostRunCallback: (callback: () => void) => { postRunCallbacks.push(callback); }
 }
 
 export const Debug = {
     SetVerbose: setVerbose,
-    RunFrame: async () => {
-        await runFrame()
-        pauseEmulator();
+    RunFrame: () => {
+        runningAnimationFrameHandle = window.requestAnimationFrame(runOneFrame)
     },
-    Step: async () => {
-        preRun();
-        await new Promise<void>((r) => { debugStep(); r(); });
-        postRun();
-        pauseEmulator();
+    Step: () => {
+        runningAnimationFrameHandle = window.requestAnimationFrame(step)
     },
     SetBreakpoint: debugSetBreakpoint,
     SetPPUBreak: debugSetPPUBreak,
@@ -110,11 +105,37 @@ async function playRom(rom: RomReference): Promise<void> {
     Emulator.RunUntilBreak();
 }
 
-async function runFrame() {
+let lastRenderTime: number = 0;
+
+function run(time: number) {
+    const dt = time - lastRenderTime;
+    {
+        preRun();
+        const stopReason = runEmulator(dt);
+        LastStopReason.set(stopReason);
+        postRun();
+        if (stopReason != DebugStopReason.TargetCyclesReached) {
+            console.log('Stopped because ' + DebugStopReason[stopReason]);
+            return;
+        }
+        lastRenderTime = time;
+    }
+    if (!get(EmulatorPaused))
+        runningAnimationFrameHandle = window.requestAnimationFrame(run);
+}
+
+function runOneFrame() {
     preRun();
-    await new Promise<void>((r) => { LastStopReason.set(runOneFrame()); r(); });
-    GameFrames.update(f => f + 1);
+    LastStopReason.set(backendRunOneFrame());
     postRun();
+    pauseEmulator();
+}
+
+function step() {
+    preRun();
+    debugStep();
+    postRun();
+    pauseEmulator();
 }
 
 function preRun(): void {
@@ -129,10 +150,18 @@ function preRun(): void {
     setJoypad(keys);
 }
 
+let lastFrame = -1;
+
 function postRun(): void {
     fetchLogs();
-    if (get(DebuggerAttached))
-        GbDebugInfoStore.set(getDebugInfo() as GbDebugInfo);
+    if (get(DebuggerAttached)) {
+        const info = getDebugInfo() as GbDebugInfo;
+        GbDebugInfoStore.set(info);
+        if (info.currentFrame != lastFrame) {
+            GameFrames.update(frames => frames + 1);
+            lastFrame = info.currentFrame;
+        }
+    }
     EmulatorBusy.set(false);
     const latestSaveFrame = getLastSaveFrame();
     if (latestSaveFrame > lastSaveFrame) {
@@ -150,6 +179,9 @@ function postRun(): void {
         });
         console.log(`Saved: game: '${newSave.name}'`);
         lastSaveFrame = latestSaveFrame;
+    }
+    for (let i = 0; i < postRunCallbacks.length; i++) {
+        postRunCallbacks[i]()
     }
 }
 
@@ -169,6 +201,7 @@ function getInputForEmu(): number {
 
 function pauseEmulator(): void {
     EmulatorPaused.set(true);
+    window.cancelAnimationFrame(runningAnimationFrameHandle);
 }
 
 function unPauseEmulator(): void {

@@ -30,7 +30,7 @@ export class Cpu {
 
     static PCbeingRan: u16 = 0x0000; // for debug purposes, changed on new instruction being red
 
-    static CycleCount: u32 = 0;
+    static CycleCount: u64 = 0;
 
     static isHalted: boolean = false;
     static isStopped: boolean = false;

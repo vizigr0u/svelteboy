@@ -1,6 +1,6 @@
 memory.grow(1);
 
-export { initEmulator, runOneFrame } from "./emulator";
+export { initEmulator, runOneFrame, runEmulator } from "./emulator";
 
 export { getGameFrame } from "./io/video/ppu";
 
