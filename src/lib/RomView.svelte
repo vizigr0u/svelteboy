@@ -116,7 +116,7 @@
                     class="rom-play-button"
                     on:click={() => {
                         playRomPromise = Emulator.PlayRom(rom);
-                        // playRomPromise = new Promise((r) => {});
+                        // playRomPromise = new Promise((r) => {}); // Debug loading spinner
                     }}
                     disabled={isLoading || isLoaded}
                     ><i class="fa-regular fa-circle-play" /></button
