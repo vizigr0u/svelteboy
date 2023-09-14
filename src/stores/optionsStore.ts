@@ -11,6 +11,7 @@ export const RemoteRomsListUri = MakeLocalStore<string>('option-remote-roms-list
 export const CachedRemoteRoms = MakeLocalStore<RemoteRom[]>('option-cached-remote-roms', []);
 export const FetchingRemoteRoms = writable<boolean>(false);
 export const ShowDebugger = MakeLocalStore<boolean>("option-show-debugger", false);
+export const EmulatorSpeed = writable<number>(1);
 
 RemoteRomsListUri.subscribe((uri) => {
     if (uri && uri.startsWith("http")) {

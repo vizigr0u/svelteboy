@@ -5,6 +5,7 @@
         showFPS,
         RemoteRomsListUri,
         ShowDebugger,
+        EmulatorSpeed,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
 </script>
@@ -35,6 +36,15 @@
         >
         <input id="useBoot" type="checkbox" bind:checked={$useBoot} disabled />
         <span>Todo: </span><span>Select boot rom</span>
+
+        <label for="emulatorspeed">Emulator Speed</label>
+        <input
+            type="number"
+            min="0.01"
+            max="6"
+            step="0.1"
+            bind:value={$EmulatorSpeed}
+        />
     </div>
 </div>
 

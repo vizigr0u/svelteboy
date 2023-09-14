@@ -96,11 +96,15 @@
       <div class="roms-container">
         {#if filteredRoms.length > 20}
           <MyVirtualList items={filteredRoms} let:item>
-            <RomView rom={item} />
+            {#key item.sha1}
+              <RomView rom={item} />
+            {/key}
           </MyVirtualList>
         {:else}
           {#each filteredRoms as item}
-            <RomView rom={item} />
+            {#key item.sha1}
+              <RomView rom={item} />
+            {/key}
           {/each}
         {/if}
       </div>

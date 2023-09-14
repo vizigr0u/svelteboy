@@ -25,7 +25,7 @@ import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
-import { useBoot } from "stores/optionsStore";
+import { EmulatorSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { humanReadableSize } from "./utils";
 
@@ -114,7 +114,7 @@ function run(time: number) {
     const dt = lastRenderTime <= 0 ? 15 : time - lastRenderTime;
     {
         preRun();
-        const stopReason = runEmulator(dt);
+        const stopReason = runEmulator(dt * get(EmulatorSpeed));
         LastStopReason.set(stopReason);
         postRun();
         if (stopReason != DebugStopReason.TargetCyclesReached) {
