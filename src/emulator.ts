@@ -97,7 +97,6 @@ async function playRom(rom: RomReference): Promise<void> {
     const loaded = await new Promise<boolean>((r) =>
         r(Emulator.LoadCartridgeRom(buffer))
     );
-    fetchLogs();
     if (!loaded) {
         console.log(`Error loading rom`);
         return;
