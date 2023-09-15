@@ -7,6 +7,7 @@ import { Dma } from "./io/video/dma";
 import { Ppu, PpuMode } from "./io/video/ppu";
 import { Debugger } from "./debug/debugger";
 import { SaveGame } from "./memory/savegame";
+import { Audio } from "./audio/audio";
 
 const OFFICIAL_CYCLES_PER_SECOND: u32 = 4194304;
 const CYCLES_PER_SECOND: u32 = 4194162; // measured on real GBs in a small survey
@@ -42,6 +43,7 @@ enum EmulatorStopReason {
         IO.Init();
         Ppu.Init();
         Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
+        Audio.Init();
         Emulator.targetCycles = 0;
         Emulator.targetFrame = 0;
         Emulator.wasInit = true;
@@ -82,7 +84,8 @@ enum EmulatorStopReason {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             stopReason = Emulator.GetStopReason();
-        } while (stopReason == EmulatorStopReason.None)
+        } while (stopReason == EmulatorStopReason.None);
+        Audio.RenderFrame(timeMilliSec);
         return stopReason;
     }
 

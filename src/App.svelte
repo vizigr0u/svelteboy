@@ -6,7 +6,10 @@
 
   import RomsSection from "./lib/RomsSection.svelte";
   import { ShowDebugger } from "./stores/optionsStore";
+  import AudioTests from "./lib/debug/AudioTests.svelte";
 </script>
+
+<AudioTests />
 
 <div class="page-container">
   <main>

@@ -6,8 +6,11 @@
         RemoteRomsListUri,
         ShowDebugger,
         EmulatorSpeed,
+        AudioBufferSize,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
+
+    const validAudioBufferSizes = [64, 128, 256, 512, 1024, 2048];
 </script>
 
 <div class="options-view debug-tool-container">
@@ -46,6 +49,13 @@
             step="0.1"
             bind:value={$EmulatorSpeed}
         />
+
+        <label for="bufferaudiosize">Audio Buffer size:</label>
+        <select id="bufferaudiosize" bind:value={$AudioBufferSize}>
+            {#each validAudioBufferSizes as size}
+                <option value={size}>{size}</option>
+            {/each}
+        </select>
     </div>
 </div>
 
