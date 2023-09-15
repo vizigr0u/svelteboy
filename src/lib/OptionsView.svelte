@@ -39,6 +39,7 @@
 
         <label for="emulatorspeed">Emulator Speed</label>
         <input
+            id="emulatorspeed"
             type="number"
             min="0.01"
             max="6"
