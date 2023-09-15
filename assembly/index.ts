@@ -63,4 +63,4 @@ export { setJoypad } from "./io/joypad";
 
 export { loadSaveGame, getLastSave, getLastSaveFrame } from './memory/savegame'
 
-export { getAudioBuffersToReadCount, getAudioBuffersToReadSize, getAudioBufferToReadPointer, markAudioBuffersRead } from './audio/audio';
+export { getAudioSampleRate, getAudioBuffersSize, getAudioBuffersToReadCount, getAudioBufferToReadPointer, markAudioBuffersRead } from './audio/audio';

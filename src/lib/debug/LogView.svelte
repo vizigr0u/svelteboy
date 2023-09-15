@@ -86,7 +86,7 @@
             />
         </label>
         <div class="log-category-dropdown">
-            <button class="log-category-toggle" disabled
+            <button class="log-category-toggle"
                 ><i class="fa-solid fa-filter" />...
             </button>
             <div class="log-category-dropdown-content">
@@ -125,8 +125,8 @@
         >
     </div>
     <div class="log-container">
-        <!-- {#each filterLog($DebugLines, $MutedCategories).slice(-maxLines) as item} -->
-        {#each $DebugLines.slice(-maxLines) as item}
+        {#each filterLog($DebugLines, $MutedCategories).slice(-maxLines) as item}
+            <!-- {#each $DebugLines.slice(-maxLines) as item} -->
             <span>{item}</span>
         {/each}
     </div>

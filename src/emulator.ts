@@ -21,16 +21,17 @@ import {
     getLastSave,
     getLastSaveFrame,
     memory as backendMemory,
+    getAudioSampleRate,
+    getAudioBuffersSize,
     getAudioBuffersToReadCount,
-    getAudioBuffersToReadSize,
     getAudioBufferToReadPointer,
     markAudioBuffersRead,
 } from "../build/backend";
 import { fetchLogs } from "./debug";
-import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
+import { AudioAnalyzerNode, DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
-import { EmulatorSpeed, useBoot } from "stores/optionsStore";
+import { AudioMasterVolume, EmulatorSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { humanReadableSize } from "./utils";
 
@@ -82,14 +83,76 @@ export const Debug = {
     DetachDebugger: detachDebugger,
 }
 
+//-------------------------------------
+function generateSineWaveBuffers(frequency, sampleRate, durationSeconds, numBuffers) {
+    const totalSamples = Math.round(durationSeconds * sampleRate);
+    const samplesPerBuffer = Math.round(totalSamples / numBuffers);
+    const sineWaveBuffers = [];
+
+    let phase = 0;
+    const angularFreq = 2 * Math.PI * frequency / sampleRate;
+
+    for (let buf = 0; buf < numBuffers; buf++) {
+        const audioBuffer = new Float32Array(samplesPerBuffer);
+        for (let i = 0; i < samplesPerBuffer; i++) {
+            audioBuffer[i] = Math.sin(phase);
+            phase += angularFreq;
+            if (phase >= 2 * Math.PI) phase -= 2 * Math.PI;
+        }
+        sineWaveBuffers.push(audioBuffer);
+    }
+
+    return sineWaveBuffers;
+}
+
+// Example usage:
+const sampleRate = 44100;  // CD Quality
+const durationSeconds = 10;
+const numBuffers = 5;
+const bufferSize = sampleRate * durationSeconds / numBuffers;
+
+const AudioTestBuffers = generateSineWaveBuffers(440, 44100, 10, 5);
+
+function getTestAudioBuffer(index: number): AudioBuffer {
+    const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
+    audioBuffer.copyToChannel(AudioTestBuffers[index], 0);
+    audioBuffer.copyToChannel(AudioTestBuffers[index], 1);
+    return audioBuffer;
+}
+
+//-------------------------------------
+
+let wasInit: boolean = false;
 let audioCtx: AudioContext;
-let audioBuffer: AudioBuffer;
+let analyzerNode: AnalyserNode;
+let masterVolumeNode: GainNode;
+let destinationNode: AudioNode;
 let audioContextStartOffset: number;
 
 export const Audio = {
     Init: () => {
+        if (wasInit)
+            return;
         audioCtx = new window.AudioContext();
+        masterVolumeNode = audioCtx.createGain();
+        analyzerNode = audioCtx.createAnalyser();
+        analyzerNode.connect(masterVolumeNode);
+        AudioAnalyzerNode.set(analyzerNode);
+        masterVolumeNode.connect(audioCtx.destination);
+        masterVolumeNode.gain.value = get(AudioMasterVolume);
+        AudioMasterVolume.subscribe(gain => { masterVolumeNode.gain.value = gain });
+
+        console.log(JSON.stringify(AudioTestBuffers[0]))
+        console.log(JSON.stringify(AudioTestBuffers[1]))
+
+        destinationNode = analyzerNode;
         Emulator.AddPostRunCallback(postRunAudio);
+
+        // for (let i = 0; i < AudioTestBuffers.length; i++) {
+        //     queueBuffer(getTestAudioBuffer(i));
+        // }
+
+        wasInit = true;
     },
     Play: () => {
         let audioContextTimestamp = audioCtx.getOutputTimestamp();
@@ -98,28 +161,58 @@ export const Audio = {
 }
 
 let logDelay = 0;
+const MinBufferToRender = 10;
 
 function postRunAudio() {
+    const bufferSize = getAudioBuffersSize();
+    const sampleRate = getAudioSampleRate();
     const numAvailableBuffers = getAudioBuffersToReadCount();
-    if (getAudioBuffersToReadCount() > 0) {
-        console.log("Grabbing " + numAvailableBuffers + " audio buffers");
-        const size = getAudioBuffersToReadSize();
-        const left = getAudioBuffer(getAudioBufferToReadPointer(0), size);
-        if (logDelay-- == 0) {
-            console.log(JSON.stringify(left));
-            logDelay += 5000;
+    if (getAudioBuffersToReadCount() >= MinBufferToRender) {
+        console.log("Grabbing " + numAvailableBuffers + " audio buffers of size " + bufferSize);
+        for (let i = 0; i < numAvailableBuffers; i++) {
+            const buffer = createAudioBufferFromData(bufferSize, sampleRate);
+            queueBuffer(buffer);
+            markAudioBuffersRead(1);
         }
-        const right = getAudioBuffer(getAudioBufferToReadPointer(1), size);
-        markAudioBuffersRead(numAvailableBuffers);
-        audioBuffer = audioCtx.createBuffer(2, size, audioCtx.sampleRate);
-        audioBuffer.copyToChannel(left, 0);
-        audioBuffer.copyToChannel(right, 1);
-        const source = audioCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioCtx.destination);
-        source.start();
     }
 }
+
+function createAudioBufferFromData(bufferSize, sampleRate) {
+    const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
+    const left = getAudioBuffer(getAudioBufferToReadPointer(0), bufferSize);
+    if (logDelay-- <= 0) {
+        console.log(JSON.stringify(left));
+        if (logDelay < -3)
+            logDelay += 1000;
+    }
+    const right = getAudioBuffer(getAudioBufferToReadPointer(1), bufferSize);
+    audioBuffer.copyToChannel(left, 0);
+    audioBuffer.copyToChannel(right, 1);
+    return audioBuffer;
+}
+
+let currentPlayTime = -1;
+
+function queueBuffer(buffer: AudioBuffer) {
+    if (currentPlayTime < audioCtx.currentTime) {
+        currentPlayTime = audioCtx.currentTime;
+    }
+
+    playBuffer(buffer, currentPlayTime);
+
+    // Update the currentPlayTime by adding buffer's duration
+    currentPlayTime += buffer.duration;
+}
+
+function playBuffer(buffer: AudioBuffer, startTime: number): AudioBufferSourceNode {
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(destinationNode);
+    source.start(startTime);
+    console.log("Queue buffer to play at " + startTime);
+    return source;
+}
+
 
 function getAudioBuffer(ptr: number, size: number): Float32Array {
     return new Float32Array(backendMemory.buffer, ptr, size);

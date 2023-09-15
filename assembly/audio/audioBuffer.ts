@@ -7,7 +7,7 @@ const NumChannels = 2;
 
 const BufferSizeBits: u32 = 9;
 const BufferSize: i32 = 1 << BufferSizeBits; // 512
-const QueueSizeBits: i32 = 3;
+const QueueSizeBits: i32 = 5;
 const QueueSize: u32 = 1 << QueueSizeBits;
 const QueueSizeMask: u32 = QueueSize - 1;
 const TotalBufferSize: i32 = QueueSize * BufferSize;
@@ -47,9 +47,9 @@ export class AudioOutBuffer {
         return this.toPlayIndex > this.workingIndex ? QueueSize - (this.toPlayIndex - this.workingIndex) : this.workingIndex - this.toPlayIndex;
     }
 
-    @inline getBuffersToReadSize(): u32 {
-        return this.getBuffersToReadCount() << BufferSizeBits;
-    }
+    // @inline getBuffersToReadSize(): u32 {
+    //     return this.getBuffersToReadCount() << BufferSizeBits;
+    // }
 
     @inline getBufferToReadPointer(channel: AudioChannel): usize {
         return this.data[channel].dataStart + (this.toPlayIndex << BufferSizeBits);

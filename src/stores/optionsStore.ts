@@ -13,6 +13,7 @@ export const FetchingRemoteRoms = writable<boolean>(false);
 export const ShowDebugger = MakeLocalStore<boolean>("option-show-debugger", false);
 export const EmulatorSpeed = writable<number>(1);
 export const AudioBufferSize = writable<number>(512);
+export const AudioMasterVolume = MakeLocalStore<number>("option-master-volume", 0.5);
 
 RemoteRomsListUri.subscribe((uri) => {
     if (uri && uri.startsWith("http")) {

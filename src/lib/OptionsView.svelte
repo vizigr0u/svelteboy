@@ -7,6 +7,7 @@
         ShowDebugger,
         EmulatorSpeed,
         AudioBufferSize,
+        AudioMasterVolume,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
 
@@ -56,6 +57,15 @@
                 <option value={size}>{size}</option>
             {/each}
         </select>
+
+        <label for="mastervolume">Master Volume</label>
+        <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            bind:value={$AudioMasterVolume}
+        />
     </div>
 </div>
 
