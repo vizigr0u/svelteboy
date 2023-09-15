@@ -295,3 +295,7 @@ function scanlineTransferTick(): boolean {
 export function getGameFrame(): Uint8ClampedArray {
     return Ppu.DrawnBuffer();
 }
+
+export function getGameFramePtr(): usize {
+    return Ppu.DrawnBuffer().dataStart;
+}

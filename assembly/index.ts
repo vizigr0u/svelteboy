@@ -2,7 +2,7 @@ memory.grow(1);
 
 export { initEmulator, runOneFrame, runEmulator } from "./emulator";
 
-export { getGameFrame } from "./io/video/ppu";
+export { getGameFrame, getGameFramePtr } from "./io/video/ppu";
 
 export { setVerbose, spliceLogs, dumpLogToConsole } from "./debug/logger";
 
@@ -62,3 +62,5 @@ export {
 export { setJoypad } from "./io/joypad";
 
 export { loadSaveGame, getLastSave, getLastSaveFrame } from './memory/savegame'
+
+export { getAudioBuffersToReadCount, getAudioBuffersToReadSize, getAudioBufferToReadPointer, markAudioBuffersRead } from './audio/audio';

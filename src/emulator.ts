@@ -6,7 +6,7 @@ import {
     getDebugInfo,
     debugStep,
     initEmulator,
-    getGameFrame,
+    getGameFramePtr,
     loadCartridgeRom,
     drawTileData,
     drawBackgroundMap,
@@ -19,7 +19,12 @@ import {
     getOAMTiles,
     loadSaveGame as emuLoadSave,
     getLastSave,
-    getLastSaveFrame
+    getLastSaveFrame,
+    memory as backendMemory,
+    getAudioBuffersToReadCount,
+    getAudioBuffersToReadSize,
+    getAudioBufferToReadPointer,
+    markAudioBuffersRead,
 } from "../build/backend";
 import { fetchLogs } from "./debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
@@ -36,6 +41,7 @@ let runningAnimationFrameHandle = 0;
 
 export const Emulator = {
     Reset: () => {
+        Audio.Init();
         EmulatorInitialized.set(false);
         initEmulator(get(useBoot));
         EmulatorInitialized.set(true);
@@ -49,7 +55,7 @@ export const Emulator = {
         runningAnimationFrameHandle = window.requestAnimationFrame(run)
     },
     Pause: pauseEmulator,
-    GetGameFrame: getGameFrame,
+    GetGameFrame: () => { return new Uint8ClampedArray(backendMemory.buffer, getGameFramePtr(), 144 * 160 * 4) },
     LoadCartridgeRom: loadCartridgeRom,
     LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
     PlayRom: playRom,
@@ -74,6 +80,49 @@ export const Debug = {
     GetOAMTiles: getOAMTiles,
     AttachDebugger: attachDebugger,
     DetachDebugger: detachDebugger,
+}
+
+let audioCtx: AudioContext;
+let audioBuffer: AudioBuffer;
+let audioContextStartOffset: number;
+
+export const Audio = {
+    Init: () => {
+        audioCtx = new window.AudioContext();
+        Emulator.AddPostRunCallback(postRunAudio);
+    },
+    Play: () => {
+        let audioContextTimestamp = audioCtx.getOutputTimestamp();
+        audioContextStartOffset = audioContextTimestamp.contextTime;
+    }
+}
+
+let logDelay = 0;
+
+function postRunAudio() {
+    const numAvailableBuffers = getAudioBuffersToReadCount();
+    if (getAudioBuffersToReadCount() > 0) {
+        console.log("Grabbing " + numAvailableBuffers + " audio buffers");
+        const size = getAudioBuffersToReadSize();
+        const left = getAudioBuffer(getAudioBufferToReadPointer(0), size);
+        if (logDelay-- == 0) {
+            console.log(JSON.stringify(left));
+            logDelay += 5000;
+        }
+        const right = getAudioBuffer(getAudioBufferToReadPointer(1), size);
+        markAudioBuffersRead(numAvailableBuffers);
+        audioBuffer = audioCtx.createBuffer(2, size, audioCtx.sampleRate);
+        audioBuffer.copyToChannel(left, 0);
+        audioBuffer.copyToChannel(right, 1);
+        const source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioCtx.destination);
+        source.start();
+    }
+}
+
+function getAudioBuffer(ptr: number, size: number): Float32Array {
+    return new Float32Array(backendMemory.buffer, ptr, size);
 }
 
 async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer> {
