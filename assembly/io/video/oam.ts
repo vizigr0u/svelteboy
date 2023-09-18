@@ -6,7 +6,7 @@ import { Dma } from "./dma";
 import { Lcd, LcdControlBit } from "./lcd";
 import { Ppu, PpuMode } from "./ppu";
 
-export const MAX_OAM_COUNT: u32 = 40;
+export const MAX_OAM_COUNT: i32 = 40;
 
 export enum OamAttribute {
     /* 0-2: CGB pal number */
