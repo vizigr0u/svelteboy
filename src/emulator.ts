@@ -354,10 +354,12 @@ function getInputForEmu(): number {
 
 function pauseEmulator(): void {
     EmulatorPaused.set(true);
+    audioCtx?.suspend();
     window.cancelAnimationFrame(runningAnimationFrameHandle);
 }
 
 function unPauseEmulator(): void {
     EmulatorPaused.set(false);
+    audioCtx.resume();
     lastRenderTime = -1;
 }
