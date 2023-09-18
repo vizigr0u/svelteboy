@@ -151,9 +151,6 @@ export const Audio = {
         masterVolumeNode.gain.value = get(AudioMasterVolume);
         AudioMasterVolume.subscribe(gain => { masterVolumeNode.gain.value = gain });
 
-        console.log(JSON.stringify(AudioTestBuffers[0]))
-        console.log(JSON.stringify(AudioTestBuffers[1]))
-
         destinationNode = analyzerNode;
         Emulator.AddPostRunCallback(postRunAudio);
 
@@ -178,7 +175,7 @@ function postRunAudio() {
     const sampleRate = getAudioSampleRate();
     const numAvailableBuffers = getAudioBuffersToReadCount();
     if (getAudioBuffersToReadCount() >= MinBufferToRender) {
-        console.log("Grabbing " + numAvailableBuffers + " audio buffers of size " + bufferSize);
+        // console.log("Grabbing " + numAvailableBuffers + " audio buffers of size " + bufferSize);
         const ptrs = [];
         for (let i = 0; i < numAvailableBuffers; i++) {
             ptrs.push([getAudioBufferToReadPointer(0), getAudioBufferToReadPointer(1)])
@@ -191,14 +188,14 @@ function postRunAudio() {
 }
 
 function createAudioBufferFromData(bufferSize, sampleRate) {
-    console.log("Left Pointer: " + getAudioBufferToReadPointer(0) + ", Right: " + getAudioBufferToReadPointer(1));
+    // console.log("Left Pointer: " + getAudioBufferToReadPointer(0) + ", Right: " + getAudioBufferToReadPointer(1));
     const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
     const left = getAudioBuffer(getAudioBufferToReadPointer(0), bufferSize);
-    if (logDelay-- <= 0) {
-        console.log(JSON.stringify(left));
-        if (logDelay < -3)
-            logDelay += 1000;
-    }
+    // if (logDelay-- <= 0) {
+    //     console.log(JSON.stringify(left));
+    //     if (logDelay < -3)
+    //         logDelay += 1000;
+    // }
     const right = getAudioBuffer(getAudioBufferToReadPointer(1), bufferSize);
     audioBuffer.copyToChannel(left, 0);
     audioBuffer.copyToChannel(right, 1);
@@ -223,7 +220,7 @@ function playBuffer(buffer: AudioBuffer, startTime: number): AudioBufferSourceNo
     source.buffer = buffer;
     source.connect(destinationNode);
     source.start(startTime);
-    console.log("Queue buffer to play at " + startTime);
+    // console.log("Queue buffer to play at " + startTime);
     return source;
 }
 
