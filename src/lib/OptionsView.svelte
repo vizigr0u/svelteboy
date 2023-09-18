@@ -6,7 +6,7 @@
         RemoteRomsListUri,
         ShowDebugger,
         EmulatorSpeed,
-        AudioBufferSize,
+        // AudioBufferSize,
         AudioMasterVolume,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
@@ -51,12 +51,12 @@
             bind:value={$EmulatorSpeed}
         />
 
-        <label for="bufferaudiosize">Audio Buffer size:</label>
+        <!-- <label for="bufferaudiosize">Audio Buffer size:</label>
         <select id="bufferaudiosize" bind:value={$AudioBufferSize}>
             {#each validAudioBufferSizes as size}
                 <option value={size}>{size}</option>
             {/each}
-        </select>
+        </select> -->
 
         <label for="mastervolume">Master Volume</label>
         <input

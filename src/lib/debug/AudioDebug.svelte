@@ -1,32 +1,49 @@
 <script lang="ts">
-    import { AudioAnalyzerNode } from "@/stores/debugStores";
+    import { Debug } from "@/emulator";
+    import {
+        AudioAnalyzerNode,
+        AudioBufferPointers,
+    } from "@/stores/debugStores";
     import { EmulatorPaused } from "@/stores/playStores";
     import { onMount } from "svelte";
 
     let pixelScale: number = 1;
-    let canvas: HTMLCanvasElement;
+    let leftCanvas: HTMLCanvasElement;
+    let rightCanvas: HTMLCanvasElement;
+    let analyserCanvas: HTMLCanvasElement;
 
-    const WIDTH = 1024;
-    const HEIGHT = 256;
+    let pointerIndex: number = -1;
+
+    const WIDTH = 512;
+    const HEIGHT = 128;
     let bufferLength;
-    let dataArray;
-    let canvasCtx: CanvasRenderingContext2D;
+    let analyserArray: Float32Array;
+    let AnalyzsercanvasCtx: CanvasRenderingContext2D;
+    let leftCanvasCtx: CanvasRenderingContext2D;
+    let rightCanvasCtx: CanvasRenderingContext2D;
     let rafRef = 0;
 
     onMount(() => {
-        const unsub = AudioAnalyzerNode.subscribe((analyser) => {
+        const unsubAnalyser = AudioAnalyzerNode.subscribe((analyser) => {
             if (analyser == undefined) {
                 window.cancelAnimationFrame(rafRef);
                 return;
             }
-            canvasCtx = canvas.getContext("2d");
+            leftCanvasCtx = leftCanvas.getContext("2d");
+            rightCanvasCtx = rightCanvas.getContext("2d");
+            AnalyzsercanvasCtx = analyserCanvas.getContext("2d");
             analyser.fftSize = 2048;
             bufferLength = analyser.frequencyBinCount;
-            dataArray = new Uint8Array(bufferLength);
+            analyserArray = new Float32Array(bufferLength);
             rafRef = window.requestAnimationFrame(draw);
         });
+        const unsubPointers = AudioBufferPointers.subscribe((ptrs) => {
+            pointerIndex =
+                ptrs.length > 0 ? Math.min(ptrs.length - 1, pointerIndex) : -1;
+        });
         return () => {
-            unsub();
+            unsubAnalyser();
+            unsubPointers();
             window.cancelAnimationFrame(rafRef);
         };
     });
@@ -35,51 +52,108 @@
         const analyser = $AudioAnalyzerNode;
 
         if (analyser == undefined) return;
-        analyser.getByteTimeDomainData(dataArray);
+        analyser.getFloatTimeDomainData(analyserArray);
 
         if (!$EmulatorPaused) {
-            canvasCtx.fillStyle = "rgb(20, 20, 20)";
-            canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-            canvasCtx.lineWidth = 2;
-            canvasCtx.strokeStyle = "rgb(90, 255, 150)";
-            canvasCtx.beginPath();
-            const sliceWidth = WIDTH / bufferLength;
-            let x = 0;
+            renderBuffer(analyserArray, AnalyzsercanvasCtx);
+        }
 
-            for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0;
-                const y = v * (HEIGHT / 2);
-
-                if (i === 0) {
-                    canvasCtx.moveTo(x, y);
-                } else {
-                    canvasCtx.lineTo(x, y);
-                }
-
-                x += sliceWidth;
-            }
-            canvasCtx.lineTo(WIDTH, HEIGHT / 2);
-            canvasCtx.stroke();
+        const ptrs = $AudioBufferPointers;
+        if (ptrs.length > 0 && pointerIndex >= 0) {
+            const safeIdx = Math.min(ptrs.length - 1, pointerIndex);
+            const left = Debug.GetAudioBufferFromPtr(ptrs[safeIdx][0]);
+            const right = Debug.GetAudioBufferFromPtr(ptrs[safeIdx][1]);
+            renderBuffer(left, leftCanvasCtx);
+            renderBuffer(right, rightCanvasCtx);
         }
 
         rafRef = window.requestAnimationFrame(draw);
     }
+
+    function renderBuffer(buffer: Float32Array, ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = "rgb(20, 20, 20)";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgb(90, 255, 150)";
+        ctx.beginPath();
+        const sliceWidth = WIDTH / buffer.length;
+        let x = 0;
+
+        for (let i = 0; i < buffer.length; i++) {
+            const y = ((buffer[i] + 1) / 2) * HEIGHT;
+
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+        // ctx.lineTo(WIDTH, HEIGHT / 2);
+        ctx.stroke();
+    }
 </script>
 
-<div class="canvas-container">
-    <canvas
-        class="canvas"
-        style="width: {WIDTH}px; height: {HEIGHT}px"
-        bind:this={canvas}
-        width={WIDTH}
-        height={HEIGHT}
+<div class="canvases-container">
+    <input
+        type="number"
+        min={-1}
+        max={$AudioBufferPointers.length > 0
+            ? $AudioBufferPointers.length - 1
+            : 0}
+        bind:value={pointerIndex}
     />
+    <div class="canvas-container">
+        <span>LEFT</span>
+        <canvas
+            class="canvas"
+            style="width: {WIDTH * pixelScale}px; height: {HEIGHT *
+                pixelScale}px"
+            bind:this={leftCanvas}
+            width={WIDTH}
+            height={HEIGHT}
+        />
+    </div>
+    <div class="canvas-container">
+        <span>RIGHT</span>
+        <canvas
+            class="canvas"
+            style="width: {WIDTH * pixelScale}px; height: {HEIGHT *
+                pixelScale}px"
+            bind:this={rightCanvas}
+            width={WIDTH}
+            height={HEIGHT}
+        />
+    </div>
+    <div class="canvas-container">
+        <span>OUT</span>
+        <canvas
+            class="canvas"
+            style="width: {WIDTH * pixelScale}px; height: {HEIGHT *
+                pixelScale}px"
+            bind:this={analyserCanvas}
+            width={WIDTH}
+            height={HEIGHT}
+        />
+    </div>
 </div>
 
 <style>
-    .canvas-container {
+    .canvases-container {
         background-color: #1f1f1f;
         padding: 2em;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .canvas-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .canvas-container > span {
+        text-align: center;
     }
 
     .canvas {

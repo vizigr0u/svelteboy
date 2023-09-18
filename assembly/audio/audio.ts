@@ -1,3 +1,4 @@
+import { CYCLES_PER_SECOND } from "../constants";
 import { Logger } from "../debug/logger";
 import { AudioChannel, AudioOutBuffer } from "./audioBuffer";
 
@@ -20,10 +21,17 @@ export class Audio {
     static sinPhase: f64 = 0;
 
     static Init(): void {
-        if (Logger.verbose >= 3) {
+        if (Logger.verbose >= 2) {
             log('Initializing Audio');
         }
         Audio.timeSamples = 0;
+        Audio.sinPhase = 0;
+        if (Logger.verbose >= 3) {
+            const leftP = Audio.outBuffer.getWorkingBuffer(AudioChannel.Left).dataStart;
+            const rightP = Audio.outBuffer.getWorkingBuffer(AudioChannel.Right).dataStart;
+            log(`Out Buffers starting at ${leftP} and ${rightP}\n`);
+            log(Audio.outBuffer.PrintParams())
+        }
     }
 
     private static RenderSamples(bufferIndex: i32, numSamples: i32): void {
@@ -37,24 +45,35 @@ export class Audio {
             const x = <f32>(Math.sin(Audio.sinPhase));
             left[bufferIndex + i] = x; // L
             right[bufferIndex + i] = x; // R
+            if (Logger.verbose >= 4) {
+                log(`left[${bufferIndex + i}] = ${x} (at ${left.dataStart + bufferIndex + i})`);
+                log(`right[${bufferIndex + i}] = ${x} (at ${right.dataStart + bufferIndex + i})`);
+            }
             Audio.sinPhase += angularFreq;
-            if (Audio.sinPhase >= 2 * Math.PI)
-                Audio.sinPhase -= 2 * Math.PI;
+            if (Audio.sinPhase >= 2.0 * Math.PI) {
+                if (Logger.verbose >= 2) {
+                    log(`(at ${bufferIndex + i}) SinPhase from ${Audio.sinPhase} to ${Audio.sinPhase - (2.0 * Math.PI)}`)
+                }
+                Audio.sinPhase -= 2.0 * Math.PI;
+            }
         }
     }
 
-    static RenderFrame(timeMs: f64): void {
-        const sampleCount = <i32>Math.round(timeMs * SamplesPerMs);
+    static RenderCycles(t_cycles: u64): void {
+        let samplesToWrite: i32 = <i32>Math.round((<f64>t_cycles * SampleRate) / <f64>CYCLES_PER_SECOND);
         if (Logger.verbose >= 2)
-            log(`${sampleCount} samples = ${sampleCount >> 9} buffers of ${AudioOutBuffer.BufferSize}. i = ${Audio.timeSamples}`);
-        let samplesToWrite = sampleCount
+            log(`${samplesToWrite} samples = ${samplesToWrite >> 9} buffers of ${AudioOutBuffer.BufferSize}. i = ${Audio.timeSamples}`);
         while (samplesToWrite > 0) {
             const bufferIndex: i32 = <i32>Audio.timeSamples % AudioOutBuffer.BufferSize;
             const spaceLeft = AudioOutBuffer.BufferSize - bufferIndex;
             const samplesThisBuffer = samplesToWrite > spaceLeft ? spaceLeft : samplesToWrite;
-            Audio.timeSamples += samplesThisBuffer;
             Audio.RenderSamples(bufferIndex, <i32>samplesThisBuffer);
+            Audio.timeSamples += samplesThisBuffer;
             samplesToWrite -= samplesThisBuffer;
+            if (Logger.verbose >= 3) {
+                log(Audio.outBuffer.PrintIndices(AudioChannel.Left, 63));
+                log(Audio.outBuffer.PrintIndices(AudioChannel.Left, 64));
+            }
             if (spaceLeft <= samplesThisBuffer) {
                 if (!Audio.outBuffer.hasSpaceForNextBuffer()) {
                     log('Stop rendering audio: Queue Full');
@@ -87,20 +106,3 @@ export function getAudioBufferToReadPointer(channel: AudioChannel): usize {
 export function markAudioBuffersRead(numBuffers: u32): void {
     Audio.outBuffer.markBuffersRead(numBuffers);
 }
-
-// export function audioFillBuffers(length: u32): void {
-//     left = new Float32Array(length);
-//     right = new Float32Array(length);
-//     for (let i = 0; i < left.length; i++) {
-//         left[i] = <f32>Math.random() * 2 - 1;
-//     }
-//     memory.copy(right.dataStart, left.dataStart, left.byteLength);
-// }
-
-// export function audioGetLeft(): Float32Array {
-//     return left;
-// }
-
-// export function audioGetRight(): Float32Array {
-//     return right;
-// }
