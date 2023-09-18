@@ -28,7 +28,15 @@ import {
     markAudioBuffersRead,
 } from "../build/backend";
 import { fetchLogs } from "./debug";
-import { AudioAnalyzerNode, DebuggerAttached, GbDebugInfoStore, LastStopReason, Verbose } from "stores/debugStores";
+import {
+    AudioAnalyzerNode,
+    AudioBufferPointers,
+    AudioBufferSize,
+    DebuggerAttached,
+    GbDebugInfoStore,
+    LastStopReason,
+    Verbose
+} from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
 import { AudioMasterVolume, EmulatorSpeed, useBoot } from "stores/optionsStore";
@@ -81,6 +89,7 @@ export const Debug = {
     GetOAMTiles: getOAMTiles,
     AttachDebugger: attachDebugger,
     DetachDebugger: detachDebugger,
+    GetAudioBufferFromPtr: (ptr: number) => getAudioBuffer(ptr, get(AudioBufferSize)),
 }
 
 //-------------------------------------
@@ -161,23 +170,28 @@ export const Audio = {
 }
 
 let logDelay = 0;
-const MinBufferToRender = 10;
+const MinBufferToRender = 5;
 
 function postRunAudio() {
     const bufferSize = getAudioBuffersSize();
+    AudioBufferSize.set(bufferSize);
     const sampleRate = getAudioSampleRate();
     const numAvailableBuffers = getAudioBuffersToReadCount();
     if (getAudioBuffersToReadCount() >= MinBufferToRender) {
         console.log("Grabbing " + numAvailableBuffers + " audio buffers of size " + bufferSize);
+        const ptrs = [];
         for (let i = 0; i < numAvailableBuffers; i++) {
+            ptrs.push([getAudioBufferToReadPointer(0), getAudioBufferToReadPointer(1)])
             const buffer = createAudioBufferFromData(bufferSize, sampleRate);
             queueBuffer(buffer);
             markAudioBuffersRead(1);
         }
+        AudioBufferPointers.set(ptrs);
     }
 }
 
 function createAudioBufferFromData(bufferSize, sampleRate) {
+    console.log("Left Pointer: " + getAudioBufferToReadPointer(0) + ", Right: " + getAudioBufferToReadPointer(1));
     const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
     const left = getAudioBuffer(getAudioBufferToReadPointer(0), bufferSize);
     if (logDelay-- <= 0) {
@@ -214,8 +228,8 @@ function playBuffer(buffer: AudioBuffer, startTime: number): AudioBufferSourceNo
 }
 
 
-function getAudioBuffer(ptr: number, size: number): Float32Array {
-    return new Float32Array(backendMemory.buffer, ptr, size);
+function getAudioBuffer(ptr: number, sampleCount: number): Float32Array {
+    return new Float32Array(backendMemory.buffer, ptr, sampleCount);
 }
 
 async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer> {
@@ -246,7 +260,8 @@ async function playRom(rom: RomReference): Promise<void> {
     Emulator.Pause();
     Emulator.Reset();
     loadedCartridge.set(rom);
-    Emulator.RunUntilBreak();
+    if (!get(DebuggerAttached))
+        Emulator.RunUntilBreak();
 }
 
 let lastRenderTime: number = -1;

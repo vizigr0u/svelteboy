@@ -113,6 +113,7 @@
 
     export async function scrollToIndex(index, opts) {
         const { scrollTop } = viewport;
+        if (!viewport) return;
         const itemsDelta = index - start;
         const _itemHeight = itemHeight || average_height;
         const distance = itemsDelta * _itemHeight;

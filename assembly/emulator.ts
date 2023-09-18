@@ -8,12 +8,7 @@ import { Ppu, PpuMode } from "./io/video/ppu";
 import { Debugger } from "./debug/debugger";
 import { SaveGame } from "./memory/savegame";
 import { Audio } from "./audio/audio";
-
-const OFFICIAL_CYCLES_PER_SECOND: u32 = 4194304;
-const CYCLES_PER_SECOND: u32 = 4194162; // measured on real GBs in a small survey
-
-const FPS: u32 = 60;
-const CYCLES_PER_FRAME: u32 = CYCLES_PER_SECOND / FPS;
+import { CYCLES_PER_SECOND } from './constants';
 
 function log(s: string): void {
     Logger.Log("EMU: " + s);
@@ -79,25 +74,28 @@ enum EmulatorStopReason {
 
         Emulator.targetCycles = Cpu.CycleCount + maxCycles;
         Emulator.targetFrame = 0;
+        const startCycles = Cpu.CycleCount;
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             stopReason = Emulator.GetStopReason();
         } while (stopReason == EmulatorStopReason.None);
-        Audio.RenderFrame(timeMilliSec);
+        Audio.RenderCycles(Cpu.CycleCount - startCycles);
         return stopReason;
     }
 
     static RunOneFrame(): EmulatorStopReason {
         Emulator.targetFrame = Ppu.currentFrame + 1;
         Emulator.targetCycles = 0;
+        const startCycles = Cpu.CycleCount;
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             stopReason = Emulator.GetStopReason();
-        } while (stopReason == EmulatorStopReason.None)
+        } while (stopReason == EmulatorStopReason.None);
+        Audio.RenderCycles(Cpu.CycleCount - startCycles);
         return stopReason;
     }
 
