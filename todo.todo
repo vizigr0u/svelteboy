@@ -1,10 +1,7 @@
-☐ fix background horizontal scrolling bug (looks like we only display tiles on multiples of 8)
 ☐ Check timing test roms
 ☐ disassemble dynamic parts (WRAM, HRAM)
-☐ investigate scanline renderer for perfs
 ☐ Use webgl for display + shader to choose coloring?
 ☐ Improve overall UX for saving loading etc.
-☐ Hide debugger by default
 ☐ am I really gonna start working on sound?
 ☐ ???
 ☐ PROFIT
