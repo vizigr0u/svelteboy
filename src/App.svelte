@@ -9,8 +9,6 @@
   import AudioTests from "./lib/debug/AudioTests.svelte";
 </script>
 
-<AudioTests />
-
 <div class="page-container">
   <main>
     <Player />
