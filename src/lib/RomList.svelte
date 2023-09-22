@@ -35,6 +35,7 @@
   async function cacheRoms(): Promise<void> {
     for (let j = 0; j < roms.length; j++) {
       const rom = roms[j];
+      if (!rom || !rom.name) continue;
       const relevantWords = rom.name
         .toLowerCase()
         .split(" ")

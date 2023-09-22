@@ -5,21 +5,25 @@
         CachedRemoteRoms,
     } from "@/stores/optionsStore";
     import { cartRomStore } from "@/stores/romStores";
-    import { DragState } from "../types";
+    import { DragState, type RemoteRom } from "../types";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
+    import HomeBrewList from "../assets/homebrews";
 
     let dragState: DragState;
     let dragStatus: string;
 
     enum Tab {
+        Homebrews,
         Local,
         Hosted,
     }
+    const homebrews: RemoteRom[] = HomeBrewList;
+    console.log("Homebrews: " + JSON.stringify(homebrews));
 
-    let tab: Tab = Tab.Local;
+    let tab: Tab = Tab.Homebrews;
 
-    let tabOptions = [Tab.Local, Tab.Hosted];
+    let tabOptions = [Tab.Homebrews, Tab.Local, Tab.Hosted];
 </script>
 
 <RomDropZone bind:dragState bind:dragStatus>
@@ -42,6 +46,8 @@
         </div>
         {#if tab == Tab.Local}
             <RomList title="Local roms" roms={$cartRomStore} />
+        {:else if tab == Tab.Homebrews}
+            <RomList title="Local roms" roms={homebrews} />
         {:else if $FetchingRemoteRoms}
             <span class="loading-roms-text"
                 ><i class="fas fa-spinner fa-spin" /> Fetching {$RemoteRomsListUri}...</span
