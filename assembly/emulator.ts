@@ -7,8 +7,9 @@ import { Dma } from "./io/video/dma";
 import { Ppu, PpuMode } from "./io/video/ppu";
 import { Debugger } from "./debug/debugger";
 import { SaveGame } from "./memory/savegame";
-import { Audio } from "./audio/audio";
+import { AudioRender } from "./audio/render";
 import { CYCLES_PER_SECOND } from './constants';
+import { APU } from "./audio/apu";
 
 function log(s: string): void {
     Logger.Log("EMU: " + s);
@@ -38,7 +39,8 @@ enum EmulatorStopReason {
         IO.Init();
         Ppu.Init();
         Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
-        Audio.Init();
+        APU.Init();
+        AudioRender.Init();
         Emulator.targetCycles = 0;
         Emulator.targetFrame = 0;
         Emulator.wasInit = true;
@@ -74,28 +76,28 @@ enum EmulatorStopReason {
 
         Emulator.targetCycles = Cpu.CycleCount + maxCycles;
         Emulator.targetFrame = 0;
-        const startCycles = Cpu.CycleCount;
+        AudioRender.Prepare(Cpu.CycleCount);
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             stopReason = Emulator.GetStopReason();
         } while (stopReason == EmulatorStopReason.None);
-        Audio.RenderCycles(Cpu.CycleCount - startCycles);
+        AudioRender.Render(Cpu.CycleCount);
         return stopReason;
     }
 
     static RunOneFrame(): EmulatorStopReason {
         Emulator.targetFrame = Ppu.currentFrame + 1;
         Emulator.targetCycles = 0;
-        const startCycles = Cpu.CycleCount;
+        AudioRender.Prepare(Cpu.CycleCount);
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             stopReason = Emulator.GetStopReason();
         } while (stopReason == EmulatorStopReason.None);
-        Audio.RenderCycles(Cpu.CycleCount - startCycles);
+        AudioRender.Render(Cpu.CycleCount);
         return stopReason;
     }
 

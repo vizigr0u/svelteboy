@@ -1,9 +1,5 @@
 import { Logger } from "../debug/logger";
-
-export enum AudioChannel {
-    Left = 0,
-    Right = 1
-}
+import { AudioChannel } from "./audioTypes";
 
 function log(s: string): void {
     Logger.Log("APU OUT: " + s);
@@ -13,7 +9,7 @@ const NumChannels = 2;
 
 const BufferLengthBits: u32 = 8;  // 256
 const BufferByteLengthBits: u32 = BufferLengthBits + 2; // size of f32
-const BufferLength: i32 = 1 << BufferLengthBits;
+export const BufferLength: i32 = 1 << BufferLengthBits;
 const BufferByteLength: i32 = 1 << BufferByteLengthBits;
 const QueueSizeBits: i32 = 7;
 const QueueSize: u32 = 1 << QueueSizeBits;
