@@ -69,4 +69,4 @@ export {
   getAudioBuffersToReadCount,
   getAudioBufferToReadPointer,
   markAudioBuffersRead
-} from './audio/audio';
+} from './audio/render';
