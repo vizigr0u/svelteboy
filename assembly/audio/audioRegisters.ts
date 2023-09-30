@@ -1,5 +1,6 @@
 import { GB_IO_START } from "../memory/memoryConstants";
-import { ChannelData, RegisterType } from "./audioTypes";
+import { uToHex } from "../utils/stringUtils";
+import { ChannelData, AudioRegisterType } from "./audioTypes";
 
 export const SoundGbAddressStart: u16 = 0xFF10;
 export const SoundDataSize: u16 = 0x30;
@@ -23,39 +24,41 @@ export class AudioRegisters {
     }
 
     static getChange(reg: u8, newValue: u8): u8 {
-        if (reg >= <u8>RegisterType.WaveStart && reg <= <u8>RegisterType.WaveEnd)
+        if (reg >= <u8>AudioRegisterType.WaveStart && reg <= <u8>AudioRegisterType.WaveEnd)
             return newValue;
-        const t: RegisterType = <RegisterType>(reg);
+        const t: AudioRegisterType = <AudioRegisterType>(reg);
         switch (t) {
-            case RegisterType.NR11_C1Length:
-            case RegisterType.NR12_C1Volume:
-            case RegisterType.NR13_C1PeriodLo:
-            case RegisterType.NR21_C2Length:
-            case RegisterType.NR22_C2Volume:
-            case RegisterType.NR23_C2PeriodLo:
-            case RegisterType.NR31_C3Length:
-            case RegisterType.NR33_C3PeriodLo:
-            case RegisterType.NR42_C4Volume:
-            case RegisterType.NR43_C4Freq:
-            case RegisterType.NR51_Panning:
+            case AudioRegisterType.NR11_C1Length:
+            case AudioRegisterType.NR12_C1Volume:
+            case AudioRegisterType.NR13_C1PeriodLo:
+            case AudioRegisterType.NR21_C2Length:
+            case AudioRegisterType.NR22_C2Volume:
+            case AudioRegisterType.NR23_C2PeriodLo:
+            case AudioRegisterType.NR31_C3Length:
+            case AudioRegisterType.NR33_C3PeriodLo:
+            case AudioRegisterType.NR42_C4Volume:
+            case AudioRegisterType.NR43_C4Freq:
+            case AudioRegisterType.NR50_Volume:
+            case AudioRegisterType.NR51_Panning:
                 return newValue;
-            case RegisterType.NR10_C1Sweep:
+            case AudioRegisterType.NR10_C1Sweep:
                 return (newValue & 0b01111111) | 0b10000000;
-            case RegisterType.NR14_C1PeriodHi:
-            case RegisterType.NR24_C2PeriodHi:
-            case RegisterType.NR34_C3PeriodHi:
+            case AudioRegisterType.NR14_C1PeriodHi:
+            case AudioRegisterType.NR24_C2PeriodHi:
+            case AudioRegisterType.NR34_C3PeriodHi:
                 return (newValue & 0b11000111) | 0b00111000;
-            case RegisterType.NR30_C3Enable:
+            case AudioRegisterType.NR30_C3Enable:
                 return (newValue & 0b10000000) | 0b01111111;
-            case RegisterType.NR32_C3Volume:
+            case AudioRegisterType.NR32_C3Volume:
                 return (newValue & 0b01100000) | 0b10011111;
-            case RegisterType.NR44_C4Control:
+            case AudioRegisterType.NR44_C4Control:
                 return (newValue & 0b11000000) | 0b00111111;
-            case RegisterType.NR41_C4Length:
+            case AudioRegisterType.NR41_C4Length:
                 return (newValue & 0b00111111) | 0b11000000;
-            case RegisterType.NR52_SoundOnOff:
+            case AudioRegisterType.NR52_SoundOnOff:
                 return (newValue & 0b10001111) | 0b01110000;
             default:
+                console.log("Unexpected register: " + uToHex<u8>(reg))
                 unreachable();
                 return 0xFF;
         }

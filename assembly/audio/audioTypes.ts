@@ -14,12 +14,12 @@ export class ChannelData {
 
 @unmanaged
 export class AudioEvent {
-    TimeOffset: u32;
+    FrameSampleIndex: u32;
     Type: u8;
     Value: u8;
 }
 
-export enum RegisterType {
+export enum AudioRegisterType {
     NR10_C1Sweep = 0x10,
     NR11_C1Length = 0x11,
     NR12_C1Volume = 0x12,
@@ -38,6 +38,7 @@ export enum RegisterType {
     NR42_C4Volume = 0x21,
     NR43_C4Freq = 0x22,
     NR44_C4Control = 0x23,
+    NR50_Volume = 0x24,
     NR51_Panning = 0x25,
     NR52_SoundOnOff = 0x26,
     WaveStart = 0x30,

@@ -7,19 +7,24 @@ const EventQueueSize: i32 = 512;
 
 @final
 export class AudioEventQueue {
-    static data: InlinedArray<AudioEvent> = new InlinedArray<AudioEvent>(EventQueueSize);
-    static head: i32;
-    static tail: i32;
+    private static data: InlinedArray<AudioEvent> = new InlinedArray<AudioEvent>(EventQueueSize);
+    private static head: i32;
+    private static tail: i32;
 
     static Reset(): void {
         AudioEventQueue.head = 0;
         AudioEventQueue.tail = -1;
     }
 
-    @inline
-    static get Size(): i32 { return AudioEventQueue.tail - AudioEventQueue.head + 1; }
+    @inline static get Size(): i32 { return AudioEventQueue.tail - AudioEventQueue.head + 1; }
 
-    static Enqueue(timeOffset: u32, type: u8, value: u8): boolean {
+    @inline static IsEmpty(): boolean { return AudioEventQueue.Size == 0; }
+
+    @inline static Peek(): AudioEvent { return unchecked(AudioEventQueue.data[AudioEventQueue.head]); }
+
+    @inline static Dequeue(): AudioEvent { return unchecked(AudioEventQueue.data[AudioEventQueue.head++]); }
+
+    static Enqueue(frameSampleIndex: u32, type: u8, value: u8): boolean {
         if (AudioEventQueue.tail == EventQueueSize - 1) {
             if (Logger.verbose >= 1)
                 log('AUDIO EVENT QUEUE FULL');
@@ -28,7 +33,7 @@ export class AudioEventQueue {
         }
         AudioEventQueue.tail++;
         const event: AudioEvent = AudioEventQueue.data[AudioEventQueue.tail];
-        event.TimeOffset = timeOffset;
+        event.FrameSampleIndex = frameSampleIndex;
         event.Type = type;
         event.Value = value;
         return true;

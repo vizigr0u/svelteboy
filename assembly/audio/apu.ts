@@ -4,13 +4,11 @@ import { SoundGbAddressStart, SoundGbAddressEnd, AudioRegisters } from "./audioR
 import { AudioRender } from "./render";
 
 export function log(s: string): void {
-    Logger.Log("APU: " + s);
+    Logger.Log("AUD: " + s);
 }
 
 @final
 export class APU {
-    static AudioOn: boolean = false;
-
     static Init(): void {
         if (Logger.verbose >= 2) {
             log('Initializing Audio');
