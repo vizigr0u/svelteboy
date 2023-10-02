@@ -167,7 +167,7 @@ export const Audio = {
 }
 
 let logDelay = 0;
-const MinBufferToRender = 5;
+const MinBufferToRender = 2;
 
 function postRunAudio() {
     const bufferSize = getAudioBuffersSize();

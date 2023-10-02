@@ -2,6 +2,10 @@ import { GB_IO_START } from "../memory/memoryConstants";
 import { uToHex } from "../utils/stringUtils";
 import { ChannelData, AudioRegisterType } from "./audioTypes";
 
+export const SAMPLE_RATE: f64 = 44100;
+const SamplesPerMs: f64 = SAMPLE_RATE / 1000;
+const sampleDuration: f64 = 1 / SAMPLE_RATE;
+
 export const SoundGbAddressStart: u16 = 0xFF10;
 export const SoundDataSize: u16 = 0x30;
 export const SoundGbAddressEnd: u16 = SoundGbAddressStart + SoundDataSize - 1;
