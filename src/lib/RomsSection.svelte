@@ -21,9 +21,9 @@
     const homebrews: RemoteRom[] = HomeBrewList;
     console.log("Homebrews: " + JSON.stringify(homebrews));
 
-    let tab: Tab = Tab.Homebrews;
+    let tab: Tab = Tab.Local;
 
-    let tabOptions = [Tab.Homebrews, Tab.Local, Tab.Hosted];
+    let tabOptions = [Tab.Local, Tab.Hosted];
 </script>
 
 <RomDropZone bind:dragState bind:dragStatus>
