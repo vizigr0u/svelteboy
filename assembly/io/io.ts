@@ -9,6 +9,7 @@ import { Dma } from "./video/dma";
 import { Lcd } from "./video/lcd";
 import { AudioInput } from "./audioInputs";
 import { Joypad } from "./joypad";
+import { APU } from "../audio/apu";
 
 const UNHANDLED_CGB_START: u32 = 0xFF4D;
 
@@ -43,7 +44,9 @@ export class IO {
             }
 
         }
-        if (Serial.Handles(gbAddress)) {
+        if (APU.Handles(gbAddress)) {
+            APU.Store(gbAddress, value);
+        } else if (Serial.Handles(gbAddress)) {
             Serial.Store(gbAddress, value);
         } else if (Lcd.Handles(gbAddress)) {
             Lcd.Store(gbAddress, value);
@@ -69,6 +72,9 @@ export class IO {
         if (Logger.verbose >= 4)
             log(`IO read at [${uToHex<u16>(gbAddress)}] ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`);
 
+        if (APU.Handles(gbAddress)) {
+            return APU.Load(gbAddress);
+        }
         if (Timer.Handles(gbAddress)) {
             return Timer.Load(gbAddress);
         }

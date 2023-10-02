@@ -10,6 +10,7 @@
     import ForceInputControl from "./ForceInputControl.svelte";
     import { GameFrames } from "stores/playStores";
     import { Debug } from "../../emulator";
+    import AudioDebug from "./AudioDebug.svelte";
 
     let drawTiles;
     let drawBG;
@@ -47,6 +48,7 @@
 
 <div class="debug-section">
     <div class="debug-left-panel debug-panel">
+        <AudioDebug />
         <Debugger />
         <LogView />
         <HexDumpControl />

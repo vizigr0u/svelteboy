@@ -1,7 +1,6 @@
-import { GB_OAM_START, GB_VIDEO_START } from '../../memory/memoryConstants';
+import { GB_OAM_SIZE, GB_OAM_START, GB_VIDEO_START } from '../../memory/memoryConstants';
 import { LCD_HEIGHT, LCD_WIDTH } from './constants';
 import { Lcd, LcdControlBit } from './lcd';
-import { MAX_OAM_COUNT, OamData } from './oam';
 import { Ppu } from './ppu';
 
 const gbTileData: u8[] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C];
@@ -66,11 +65,10 @@ export function getBGTileMap(buffer: Uint8Array): Uint8Array {
 }
 
 export function getOAMTiles(buffer: Uint32Array): Uint32Array {
-    const byteLength = MAX_OAM_COUNT * offsetof<OamData>();
     // console.log(uToHex<usize>(buffer.dataStart))
     assert(buffer != null && buffer.buffer != null, 'OAM is null')
-    assert(buffer.byteLength == byteLength, 'getOAMTiles: Buffer size not matching');
-    memory.copy(buffer.dataStart, GB_OAM_START, byteLength);
+    assert(buffer.byteLength == GB_OAM_SIZE, 'getOAMTiles: Buffer size not matching');
+    memory.copy(buffer.dataStart, GB_OAM_START, GB_OAM_SIZE);
     return buffer;
 }
 
