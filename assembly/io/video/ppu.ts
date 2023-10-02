@@ -2,7 +2,7 @@ import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger } from "../../debug/logger";
 import { DefaultPaletteColors, LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd } from "./lcd";
-import { Oam, OamData } from "./oam";
+import { MAX_OAM_COUNT, Oam, OamData } from "./oam";
 import { PixelFifo } from "./pixelFifo";
 import { PpuTransfer } from "./ppuTransfer";
 import { ScanlineRenderer } from "./scanlineRenderer";
@@ -30,25 +30,27 @@ function log(s: string): void {
     Logger.Log("PPU: " + s);
 }
 
+const BUFFER_LENGTH: i32 = <i32>MAX_SPRITES_PER_LINE;
+
 export class PpuOamFifo {
     /** Head index of the PpuOamFifo */
     static head: i32 = 0;
     /** Number of elements in the PpuOamFifo */
     static size: i32 = 0;
-    static buffer: StaticArray<u8> = new StaticArray<u8>(MAX_SPRITES_PER_LINE);
+    static buffer: StaticArray<u8> = new StaticArray<u8>(BUFFER_LENGTH);
 
     static Reset(): void {
         PpuOamFifo.size = 0;
         PpuOamFifo.head = 0;
     }
 
-    @inline static IsFull(): boolean { return PpuOamFifo.size == PpuOamFifo.buffer.length }
+    @inline static IsFull(): boolean { return PpuOamFifo.size == BUFFER_LENGTH }
 
     @inline static IsEmpty(): boolean { return PpuOamFifo.head == PpuOamFifo.size };
 
-    @inline static Dequeue(): OamData { return unchecked(Oam.view[PpuOamFifo.buffer[PpuOamFifo.head++]]) }
+    @inline static Dequeue(): OamData { return unchecked(Oam.view[unchecked(PpuOamFifo.buffer[PpuOamFifo.head++])]) }
 
-    @inline static Peek(offset: i32 = 0): OamData { return unchecked(Oam.view[PpuOamFifo.buffer[PpuOamFifo.head + offset]]) }
+    @inline static Peek(offset: i32 = 0): OamData { return unchecked(Oam.view[unchecked(PpuOamFifo.buffer[PpuOamFifo.head + offset])]) }
 
     static Enqueue(oamIndex: u8): void {
         assert(PpuOamFifo.head == 0, 'Can only insert in this fifo ')
@@ -68,7 +70,7 @@ export class PpuOamFifo {
         PpuOamFifo.Reset();
         const ly = Lcd.data.lY;
         const oams = Oam.view;
-        for (let i = 0; i < oams.length && !PpuOamFifo.IsFull(); i++) {
+        for (let i = 0; i < MAX_OAM_COUNT && !PpuOamFifo.IsFull(); i++) {
             const oam = unchecked(oams[i]);
             if (oam.xPos == 0)
                 continue;
@@ -88,13 +90,13 @@ export class PpuOamFifo {
         }
         if (Logger.verbose >= 3) {
             log(`FetchCurrentLine: ${ly}, ${PpuOamFifo.size} match(es).`)
-        }
-        if (Logger.verbose >= 4) {
-            let s = '';
-            for (let i = 0; i < PpuOamFifo.size; i++) {
-                s += PpuOamFifo.buffer[i].toString() + ' '
+            if (Logger.verbose >= 4) {
+                let s = '';
+                for (let i = 0; i < PpuOamFifo.size; i++) {
+                    s += PpuOamFifo.buffer[i].toString() + ' '
+                }
+                log('FetchCurrentLine -> [' + s + ']');
             }
-            log('FetchCurrentLine -> [' + s + ']');
         }
     }
 
@@ -294,4 +296,8 @@ function scanlineTransferTick(): boolean {
 
 export function getGameFrame(): Uint8ClampedArray {
     return Ppu.DrawnBuffer();
+}
+
+export function getGameFramePtr(): usize {
+    return Ppu.DrawnBuffer().dataStart;
 }

@@ -181,3 +181,8 @@ export type RemoteRomsList = {
     baseuri: string,
     roms: RemoteRomLocation[]
 }
+
+export enum AudioChannel {
+    Left = 0,
+    Right = 1
+}

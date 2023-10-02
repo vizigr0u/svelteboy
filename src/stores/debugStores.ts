@@ -16,6 +16,9 @@ export const Verbose = writable<number>(1);
 export const DebuggerAttached = writable<boolean>(false);
 export const Breakpoints = writable<Set<number>>(new Set<number>());
 export const LastStopReason = writable<DebugStopReason>(DebugStopReason.None);
+export const AudioAnalyzerNode = writable<AnalyserNode>(undefined);
+export const AudioBufferSize = writable<number>(64);
+export const AudioBufferPointers = writable<number[][]>([]);
 
 export const MutedCategories = MakeLocalStore<string[]>("DebugLogMutedCategories", []);
 
