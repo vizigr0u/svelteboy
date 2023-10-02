@@ -3,18 +3,12 @@ import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { uToHex } from "../utils/stringUtils";
+import { DutyCycle, PulseChannel } from "./PulseChannel";
 import { log } from "./apu";
 import { AudioOutBuffer } from "./audioBuffer";
-import { SoundDataPtr, SoundDataSize } from "./audioRegisters";
+import { SAMPLE_RATE, SoundDataPtr, SoundDataSize } from "./audioRegisters";
 import { AudioChannel, AudioEvent, AudioRegisterType } from "./audioTypes";
 import { AudioEventQueue } from "./eventQueue";
-
-const SAMPLE_RATE: f64 = 44100;
-const SamplesPerMs: f64 = SAMPLE_RATE / 1000;
-const sampleDuration: f64 = 1 / SAMPLE_RATE;
-
-const sineFreq = 440;
-const sinePeriod: f64 = 1 / sineFreq;
 
 @final
 export class AudioRender {
@@ -22,18 +16,20 @@ export class AudioRender {
     static outBuffer: AudioOutBuffer = new AudioOutBuffer();
     static localData: Uint8Array = new Uint8Array(SoundDataSize);
     static channelSound: Uint8Array = new Uint8Array(AudioOutBuffer.BufferSize * 4);
-    static c1Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 0 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
-    static c2Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 1 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
+    static channel1: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 0 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
+    static channel2: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 1 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
     static c3Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 2 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
     static c4Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 3 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
     static sampleIndex: u64;
     static initialCycles: u64;
 
-    static sinPhase: f64 = 0;
+    static LeftVolume: f32 = 1.0;
+    static RightVolume: f32 = 1.0;
 
     static Init(): void {
+        AudioRender.channel1.Reset();
+        AudioRender.channel2.Reset();
         AudioRender.sampleIndex = 0;
-        AudioRender.sinPhase = 0;
         AudioRender.initialCycles = 0;
         AudioRender.AudioOn = MemoryMap.useBootRom ? false : true;
         if (Logger.verbose >= 3) {
@@ -67,8 +63,6 @@ export class AudioRender {
         let start: i32 = bufferStart;
         let end: i32 = bufferStart;
 
-        const angularFreq: f64 = 2 * Math.PI * sineFreq / SAMPLE_RATE;
-
         if (true) {
             while (end < bufferEnd) {
                 end = bufferEnd;
@@ -79,24 +73,17 @@ export class AudioRender {
                     }
                 }
 
-                assert(end >= 0 && end <= AudioRender.c1Sound.length, `AudioRender.c1Sound.length = ${AudioRender.c1Sound.length} start = ${start} end = ${end} AudioEventQueue.Peek().SampleIndex = ${AudioEventQueue.Peek().FrameSampleIndex} sampleOffset = ${sampleOffset}`);
+                assert(end >= 0 && end <= AudioOutBuffer.BufferSize, `AudioOutBuffer.BufferSize = ${AudioOutBuffer.BufferSize} start = ${start} end = ${end} AudioEventQueue.Peek().SampleIndex = ${AudioEventQueue.Peek().FrameSampleIndex} sampleOffset = ${sampleOffset}`);
                 if (Logger.verbose >= 2) // TODO: tone down
                     log(`fill buffer from ${start} to ${end}`);
-                for (let i: i32 = start; i < end; i++) {
-                    // Render channels
-                    assert(i >= 0 && i < AudioRender.c1Sound.length, `i = ${i} start = ${start} end = ${end}`);
-                    const x: u8 = <f32>(Math.sin(AudioRender.sinPhase)) >= 0 ? 0xF : 0;
-                    AudioRender.c1Sound[i] = AudioRender.AudioOn ? x : 0;
-                    if (Logger.verbose >= 2) // TODO: tone down
-                        log(`c1Sound[${i}] = ${uToHex<u8>(AudioRender.c1Sound[i])}`);
-                    AudioRender.sinPhase += angularFreq;
-                    if (AudioRender.sinPhase >= 2.0 * Math.PI) {
-                        if (Logger.verbose >= 2) {
-                            log(`(at ${bufferStart + i}) SinPhase from ${AudioRender.sinPhase} to ${AudioRender.sinPhase - (2.0 * Math.PI)}`)
-                        }
-                        AudioRender.sinPhase -= 2.0 * Math.PI;
-                    }
+
+                AudioRender.channel1.Render(start, end);
+                AudioRender.channel2.Render(start, end);
+
+                if (AudioRender.AudioOn) {
+                    AudioRender.RenderVolumes(start, end);
                 }
+
                 start = end;
                 if (end < bufferEnd) {
                     const ev = AudioEventQueue.Dequeue();
@@ -107,18 +94,44 @@ export class AudioRender {
             }
         }
 
+        AudioRender.MixChannels(bufferStart, numSamples);
+    }
 
+    static RenderVolumes(start: i32, end: i32): void {
+        const left: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Left);
+        const right: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Right);
+        for (let i: i32 = start; i < end; i++) {
+            left[i] = AudioRender.LeftVolume;
+            right[i] = AudioRender.RightVolume;
+        }
+    }
+
+    static MixChannels(bufferStart: i32, numSamples: i32): void {
         const left: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Left);
         const right: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Right);
 
-        for (let i: i32 = 0; i < numSamples; i++) {
-            const x: f32 = (<f32>AudioRender.c1Sound[bufferStart + i] - 7.5) / 7.5;
-            left[bufferStart + i] = x; // L
-            right[bufferStart + i] = x; // R
-            if (Logger.verbose >= 4) {
-                log(`left[${bufferStart + i}] = ${x} (at ${left.dataStart + bufferStart + i})`);
-                log(`right[${bufferStart + i}] = ${x} (at ${right.dataStart + bufferStart + i})`);
+        if (AudioRender.AudioOn) {
+            const numChans: f32 = (AudioRender.channel1.Enabled ? 1.0 : 0.0) + (AudioRender.channel2.Enabled ? 1.0 : 0.0) /*+ (Channel3.Enabled ? 1.0 : 0.0) + (Channel4.Enabled ? 1.0 : 0.0)*/;
+            for (let i: i32 = 0; i < numSamples; i++) {
+                let l: f32 = 0;
+                let r: f32 = 0;
+                if (AudioRender.channel1.Enabled) {
+                    const x = (<f32>AudioRender.channel1.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    l = AudioRender.channel1.MixLeft ? x : 0;
+                    r = AudioRender.channel1.MixRight ? x : 0;
+                }
+                if (AudioRender.channel2.Enabled) {
+                    const x = (<f32>AudioRender.channel2.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    l += AudioRender.channel2.MixLeft ? x : 0;
+                    r += AudioRender.channel2.MixRight ? x : 0;
+                }
+
+                left[bufferStart + i] *= l / numChans;
+                right[bufferStart + i] *= r / numChans;
             }
+        } else {
+            memory.fill(left.dataStart + bufferStart, 0, numSamples);
+            memory.fill(right.dataStart + bufferStart, 0, numSamples);
         }
     }
 
@@ -128,19 +141,51 @@ export class AudioRender {
         AudioRender.localData[dataIndex] = ev.Value;
         if (ev.Type < <u8>AudioRegisterType.WaveStart) {
             const t = <AudioRegisterType>ev.Type;
-            if (Logger.verbose >= 1) {
+            if (Logger.verbose >= 2) {
                 log('Apply Event ' + uToHex<u8>(ev.Type));
             }
             switch (t) {
                 case AudioRegisterType.NR10_C1Sweep:
+                    // TODO
+                    break;
                 case AudioRegisterType.NR11_C1Length:
+                    AudioRender.channel1.setDutyCycle(<DutyCycle>(ev.Value >> 6));
+                    AudioRender.channel1.LengthTimer = ev.Value & 0b00111111;
+                    break;
                 case AudioRegisterType.NR12_C1Volume:
+                    if (AudioRender.channel1.Enabled && (ev.Value & 0b11111000) == 0)
+                        AudioRender.channel1.Enabled = false;
+                    AudioRender.channel1.InitialVolume = ev.Value >> 4;
+                    AudioRender.channel1.SweepPace = ev.Value & 0x03;
+                    break;
                 case AudioRegisterType.NR13_C1PeriodLo:
+                    AudioRender.channel1.PeriodLow = ev.Value;
+                    break;
                 case AudioRegisterType.NR14_C1PeriodHi:
+                    if (!AudioRender.channel1.Enabled && (ev.Value & 0x80) != 0)
+                        AudioRender.channel1.Enabled = true;
+                    AudioRender.channel1.TimerEnabled = (ev.Value & 0x40) != 0;
+                    AudioRender.channel1.PeriodHigh = ev.Value & 0x07;
+                    break;
                 case AudioRegisterType.NR21_C2Length:
+                    AudioRender.channel2.setDutyCycle(<DutyCycle>(ev.Value >> 6));
+                    AudioRender.channel2.LengthTimer = ev.Value & 0b00111111;
+                    break;
                 case AudioRegisterType.NR22_C2Volume:
+                    if (AudioRender.channel2.Enabled && (ev.Value & 0b11111000) == 0)
+                        AudioRender.channel2.Enabled = false;
+                    AudioRender.channel2.InitialVolume = ev.Value >> 4;
+                    AudioRender.channel2.SweepPace = ev.Value & 0x03;
+                    break;
                 case AudioRegisterType.NR23_C2PeriodLo:
+                    AudioRender.channel2.PeriodLow = ev.Value;
+                    break;
                 case AudioRegisterType.NR24_C2PeriodHi:
+                    if (!AudioRender.channel2.Enabled && (ev.Value & 0x80) != 0)
+                        AudioRender.channel2.Enabled = true;
+                    AudioRender.channel2.TimerEnabled = (ev.Value & 0x40) != 0;
+                    AudioRender.channel2.PeriodHigh = ev.Value & 0x07;
+                    break;
                 case AudioRegisterType.NR30_C3Enable:
                 case AudioRegisterType.NR31_C3Length:
                 case AudioRegisterType.NR32_C3Volume:
@@ -150,7 +195,13 @@ export class AudioRender {
                 case AudioRegisterType.NR42_C4Volume:
                 case AudioRegisterType.NR43_C4Freq:
                 case AudioRegisterType.NR44_C4Control:
+                    break;
                 case AudioRegisterType.NR50_Volume:
+                    const leftVolume = (ev.Value >> 4) & 0x7;
+                    const rightVolume = ev.Value & 0x07;
+                    AudioRender.LeftVolume = (<f32>leftVolume + 1.0) / 8.0;
+                    AudioRender.RightVolume = (<f32>rightVolume + 1.0) / 8.0;
+                    break;
                 case AudioRegisterType.NR51_Panning:
                     break;
                 case AudioRegisterType.NR52_SoundOnOff:
@@ -171,7 +222,7 @@ export class AudioRender {
         const samplesToWrite: i32 = <i32>Math.round((<f64>t_cycles * SAMPLE_RATE) / <f64>CYCLES_PER_SECOND);
         if (Logger.verbose >= 2)
             log(`${samplesToWrite} samples = ${samplesToWrite >> 9} buffers of ${AudioOutBuffer.BufferSize}.i = ${AudioRender.sampleIndex} `);
-        if (Logger.verbose >= 1 && AudioEventQueue.Size > 0) { // TODO: tone down
+        if (Logger.verbose >= 2 && AudioEventQueue.Size > 0) { // TODO: tone down
             log('Event queued this time: ' + AudioEventQueue.Size.toString());
         }
         const initialSampleIndex: u64 = AudioRender.sampleIndex;

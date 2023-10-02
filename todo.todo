@@ -1,3 +1,4 @@
+☐ Light/dark skin support
 ☐ Check timing test roms
 ☐ disassemble dynamic parts (WRAM, HRAM)
 ☐ Use webgl for display + shader to choose coloring?
