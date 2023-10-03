@@ -144,7 +144,7 @@
         display: none;
         position: absolute;
         box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-        background-color: #1a1a1a;
+        background-color: var(--subsection-bg-color);
         z-index: 1;
     }
     .category-option {
@@ -155,7 +155,7 @@
         text-transform: capitalize;
     }
     .category-option:hover {
-        background-color: #333;
+        background-color: var(--subsection-bg-color);
     }
     .log-section {
         min-height: 5em;
@@ -171,6 +171,7 @@
     }
 
     .log-container {
+        background-color: var(--subsection-bg-color);
         display: flex;
         flex-direction: column;
         text-align: left;

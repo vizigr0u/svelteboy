@@ -108,7 +108,7 @@
 
     :global(.debug-tool-container) {
         border: 1px solid #111;
-        background-color: #1f1f1f;
+        background-color: var(--section-bg-color);
         padding: 1em;
         margin: 1em 0;
     }

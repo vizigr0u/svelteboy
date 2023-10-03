@@ -111,8 +111,8 @@
     border-bottom: 1px solid #333;
     min-height: 10em;
     height: 25em;
-    background-color: #222;
-    color: rgb(142, 152, 167);
+    background-color: var(--subsection-bg-color);
+    color: var(--text-faded-color);
     display: flex;
     flex-direction: column;
     gap: 0.3em;
