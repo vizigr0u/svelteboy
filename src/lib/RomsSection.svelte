@@ -62,7 +62,7 @@
     .dropzone-hint {
         margin: 0.5em;
         padding: 0.5em;
-        background-color: #222;
+        background-color: var(--subsection-bg-color);
         border: 2px solid #111;
         display: flex;
         flex-direction: column;

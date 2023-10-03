@@ -39,7 +39,9 @@
         });
         const unsubPointers = AudioBufferPointers.subscribe((ptrs) => {
             pointerIndex =
-                ptrs.length > 0 ? Math.min(ptrs.length - 1, pointerIndex) : -1;
+                ptrs.length > 0
+                    ? Math.max(0, Math.min(ptrs.length - 1, pointerIndex))
+                    : -1;
         });
         return () => {
             unsubAnalyser();
@@ -141,7 +143,7 @@
 
 <style>
     .canvases-container {
-        background-color: #1f1f1f;
+        background-color: var(--section-bg-color);
         padding: 2em;
         display: flex;
         flex-direction: column;

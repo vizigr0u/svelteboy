@@ -15,13 +15,15 @@
 
 <div class="disassembly-container debug-tool-container">
   <h3 class:title-detached={$DebuggerAttached}>
-    <input
-      class="debugger-attach-toggle"
-      type="checkbox"
-      checked={$DebuggerAttached}
-      on:change={() => ($DebuggerAttached = !$DebuggerAttached)}
-    />
-    Debugger {$DebuggerAttached ? "" : "(detached)"}
+    <label>
+      <input
+        class="debugger-attach-toggle"
+        type="checkbox"
+        checked={$DebuggerAttached}
+        on:change={() => ($DebuggerAttached = !$DebuggerAttached)}
+      />
+      Debugger {$DebuggerAttached ? "" : "(detached)"}
+    </label>
   </h3>
 
   <DebugControlBar />

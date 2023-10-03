@@ -144,7 +144,7 @@
         font-size: small;
         padding: 0.3em 0.5em;
         border: 1px solid #424242;
-        background-color: #323232;
+        background-color: var(--subsection-bg-color);
         /* width: 15em; */
         /* min-height: 7em; */
         display: flex;
@@ -231,5 +231,11 @@
 
     .rom-loaded {
         background-color: #27312a;
+    }
+
+    @media (prefers-color-scheme: light) {
+        .rom-loaded {
+            background-color: #a6bdad;
+        }
     }
 </style>

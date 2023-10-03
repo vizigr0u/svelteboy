@@ -136,7 +136,7 @@
 <style>
     .savegame-section {
         padding: 1em;
-        background-color: #1f1f1f;
+        background-color: var(--section-bg-color);
     }
 
     .savegame-section > h3 {

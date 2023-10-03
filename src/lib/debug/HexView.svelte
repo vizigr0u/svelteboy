@@ -54,11 +54,11 @@
     .hex-viewer__header-number,
     .hex-viewer__line-number {
         color: #999;
-        background-color: #2a2a2a;
+        background-color: var(--subsection-bg-color);
     }
 
     .hexviewer-number {
-        border: 1px solid #444;
+        border: 1px solid var(--text-faded-color);
         border-left-width: 0;
         border-top-width: 0;
     }

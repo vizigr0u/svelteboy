@@ -138,7 +138,7 @@
     flex-direction: column;
     padding: 0.3em 0.5em;
     border: 1px solid #424242;
-    background-color: #222222;
+    background-color: var(--subsection-bg-color);
     min-height: 2em;
     height: 30em;
     overflow-y: auto;

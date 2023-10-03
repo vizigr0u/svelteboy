@@ -171,7 +171,7 @@
     .serial-content {
         font-family: "Courier New", Courier, monospace;
         padding: 0.2em;
-        background-color: #282828;
+        background-color: var(--subsection-bg-color);
         border: 1px solid #444;
         min-width: 20em;
         max-width: 33em;

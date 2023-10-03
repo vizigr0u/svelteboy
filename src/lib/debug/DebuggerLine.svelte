@@ -103,4 +103,34 @@
         margin-left: auto;
         margin-right: 1em;
     }
+
+    @media (prefers-color-scheme: light) {
+        .program-line {
+            border-bottom: 1px solid rgb(38, 38, 38);
+        }
+
+        .program-line:hover {
+            background-color: #c8decd;
+        }
+
+        .highlighted {
+            background-color: #9bbca3;
+        }
+
+        .program-line.highlighted::before {
+            color: #666;
+        }
+
+        .program-line.highlighted:hover {
+            background-color: #c8decd;
+        }
+
+        .op {
+            color: rgb(190, 56, 98);
+        }
+
+        .operand {
+            color: rgb(56, 127, 158);
+        }
+    }
 </style>
