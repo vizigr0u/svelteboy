@@ -5,6 +5,8 @@ Try it on my [github page](https://vizigr0u.github.io/svelteboy/)
 
 Frontend in [Vite](https://vitejs.dev/)+[Svelte](https://svelte.dev/) - backend in [AssemblyScript](https://www.assemblyscript.org)
 
+https://github.com/vizigr0u/svelteboy/assets/1981001/a2ff0eca-8390-42bf-9545-72663c4e7257
+
 ![Capture as of 2023-09-01](https://github.com/vizigr0u/svelteboy/assets/1981001/dba8aead-0ec1-4117-9bfd-aa19c63f18e0)
 
 
