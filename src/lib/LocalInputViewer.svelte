@@ -23,12 +23,17 @@
         );
         buttons.forEach((button) => {
             const input = inputsByButton.get(button);
+            button.ontouchstart = () => {
+                updateInput(input, true);
+            };
             button.onmousedown = () => {
                 updateInput(input, true);
             };
             button.onmouseup = () => updateInput(input, false);
             button.onblur = () => updateInput(input, false);
             button.onmouseleave = () => updateInput(input, false);
+            button.ontouchend = () => updateInput(input, false);
+            button.ontouchcancel = () => updateInput(input, false);
         });
         const unsub = KeyPressMap.subscribe((inputs) => {
             buttons.forEach((button) => {
