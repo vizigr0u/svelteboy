@@ -203,6 +203,15 @@ export class AudioRender {
                     AudioRender.RightVolume = (<f32>rightVolume + 1.0) / 8.0;
                     break;
                 case AudioRegisterType.NR51_Panning:
+                    // TODO Channel 3 and 4 panning
+                    AudioRender.channel1.MixRight = (ev.Value & (1 << 0)) != 0;
+                    AudioRender.channel2.MixRight = (ev.Value & (1 << 1)) != 0;
+                    // AudioRender.channel3.MixRight = (ev.Value & (1 << 2)) != 0;
+                    // AudioRender.channel4.MixRight = (ev.Value & (1 << 3)) != 0;
+                    AudioRender.channel1.MixLeft = (ev.Value & (1 << 4)) != 0;
+                    AudioRender.channel2.MixLeft = (ev.Value & (1 << 5)) != 0;
+                    // AudioRender.channel3.MixLeft = (ev.Value & (1 << 6)) != 0;
+                    // AudioRender.channel4.MixLeft = (ev.Value & (1 << 7)) != 0;
                     break;
                 case AudioRegisterType.NR52_SoundOnOff:
                     AudioRender.AudioOn = (ev.Value & 0x80) != 0;
