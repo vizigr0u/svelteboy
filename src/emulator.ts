@@ -148,8 +148,8 @@ export const Audio = {
         analyzerNode.connect(masterVolumeNode);
         AudioAnalyzerNode.set(analyzerNode);
         masterVolumeNode.connect(audioCtx.destination);
-        masterVolumeNode.gain.value = get(AudioMasterVolume);
-        AudioMasterVolume.subscribe(gain => { masterVolumeNode.gain.value = gain });
+        masterVolumeNode.gain.value = get(AudioMasterVolume) * get(AudioMasterVolume);
+        AudioMasterVolume.subscribe(gain => { masterVolumeNode.gain.value = gain * gain });
 
         destinationNode = analyzerNode;
         Emulator.AddPostRunCallback(postRunAudio);
