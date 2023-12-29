@@ -1,4 +1,8 @@
-☐ add sound channels 3 and 4
+☐ Audio:
+    ☐ Channel 3 (wave)
+    ☐ Finish Channel 4 Noise
+    ☐ Channels 1-2-4 Enveloppe
+    ☐ Channel 1-2 Period Sweeps
 ☐ Check timing test roms
 ☐ disassemble dynamic parts (WRAM, HRAM)
 ☐ Use webgl for display + shader to choose coloring?

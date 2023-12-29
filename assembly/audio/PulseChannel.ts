@@ -29,14 +29,14 @@ function DutyCycleHighRatio(dc: DutyCycle): f32 {
 
 @final
 export class PulseChannel {
-    Enabled: boolean = false;
     MixLeft: boolean = true;
     MixRight: boolean = true;
-    InitialVolume: u8 = 0xF;
+    Volume: u8 = 0xF;
     SweepPace: u8 = 0;
     LengthTimer: f32 = 0;
     Buffer: Uint8Array;
 
+    private enabled: boolean = false;
     private waveHighRatio: f32 = DutyCycleHighRatio(DutyCycle.Medium);
     private frequencyBits: u16 = 1750; // A440
     private angularFrequency: f64;
@@ -46,6 +46,15 @@ export class PulseChannel {
 
     constructor(buffer: Uint8Array) {
         this.Buffer = buffer;
+    }
+
+    @inline get Enabled(): boolean { return this.enabled; }
+
+    set Enabled(enabled: boolean) {
+        if (enabled) {
+            this.trigger();
+        }
+        this.enabled = enabled;
     }
 
     @inline
@@ -74,6 +83,10 @@ export class PulseChannel {
         this.updateFrequency();
     }
 
+    trigger(): void {
+
+    }
+
     setDutyCycle(waveDutyCycle: DutyCycle): void {
         this.waveHighRatio = DutyCycleHighRatio(waveDutyCycle);
         if (Logger.verbose >= 2) {
@@ -97,7 +110,7 @@ export class PulseChannel {
         for (let i: i32 = start; i < end; i++) {
             if (this.Enabled) {
                 assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
-                const x: u8 = this.phase >= this.waveHighRatio ? this.InitialVolume : 0;
+                const x: u8 = this.phase >= this.waveHighRatio ? this.Volume : 0;
                 this.Buffer[i] = x;
                 if (Logger.verbose >= 2)
                     log(`c1Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);

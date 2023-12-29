@@ -68,5 +68,6 @@ export {
   getAudioBuffersSize,
   getAudioBuffersToReadCount,
   getAudioBufferToReadPointer,
-  markAudioBuffersRead
+  markAudioBuffersRead,
+  setMuteChannel
 } from './audio/render';
