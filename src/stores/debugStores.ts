@@ -21,6 +21,10 @@ export const AudioBufferSize = writable<number>(64);
 export const AudioBufferPointers = writable<number[][]>([]);
 
 export const MutedCategories = MakeLocalStore<string[]>("DebugLogMutedCategories", []);
+export const MuteSoundChannel1 = writable<boolean>(false);
+export const MuteSoundChannel2 = writable<boolean>(false);
+export const MuteSoundChannel3 = writable<boolean>(false);
+export const MuteSoundChannel4 = writable<boolean>(false);
 
 export const GbDebugInfoStore = writable<GbDebugInfo>(undefined);
 
