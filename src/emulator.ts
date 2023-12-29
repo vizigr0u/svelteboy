@@ -26,6 +26,7 @@ import {
     getAudioBuffersToReadCount,
     getAudioBufferToReadPointer,
     markAudioBuffersRead,
+    setMuteChannel
 } from "../build/backend";
 import { fetchLogs } from "./debug";
 import {
@@ -35,6 +36,10 @@ import {
     DebuggerAttached,
     GbDebugInfoStore,
     LastStopReason,
+    MuteSoundChannel1,
+    MuteSoundChannel2,
+    MuteSoundChannel3,
+    MuteSoundChannel4,
     Verbose
 } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
@@ -82,6 +87,7 @@ export const Debug = {
         runningAnimationFrameHandle = window.requestAnimationFrame(step)
     },
     SetBreakpoint: debugSetBreakpoint,
+    SetMuteChannel: setMuteChannel,
     SetPPUBreak: debugSetPPUBreak,
     DrawBackgroundMap: drawBackgroundMap,
     DrawTileData: drawTileData,
@@ -93,7 +99,7 @@ export const Debug = {
 }
 
 //-------------------------------------
-function generateSineWaveBuffers(frequency, sampleRate, durationSeconds, numBuffers) {
+function generateSineWaveBuffers(frequency: number, sampleRate: number, durationSeconds: number, numBuffers: number) {
     const totalSamples = Math.round(durationSeconds * sampleRate);
     const samplesPerBuffer = Math.round(totalSamples / numBuffers);
     const sineWaveBuffers = [];
@@ -150,6 +156,10 @@ export const Audio = {
         masterVolumeNode.connect(audioCtx.destination);
         masterVolumeNode.gain.value = get(AudioMasterVolume) * get(AudioMasterVolume);
         AudioMasterVolume.subscribe(gain => { masterVolumeNode.gain.value = gain * gain });
+        MuteSoundChannel1.subscribe(setMute => { Debug.SetMuteChannel(1, setMute); });
+        MuteSoundChannel2.subscribe(setMute => { Debug.SetMuteChannel(2, setMute); });
+        MuteSoundChannel3.subscribe(setMute => { Debug.SetMuteChannel(3, setMute); });
+        MuteSoundChannel4.subscribe(setMute => { Debug.SetMuteChannel(4, setMute); });
 
         destinationNode = analyzerNode;
         Emulator.AddPostRunCallback(postRunAudio);
@@ -187,7 +197,7 @@ function postRunAudio() {
     }
 }
 
-function createAudioBufferFromData(bufferSize, sampleRate) {
+function createAudioBufferFromData(bufferSize: number, sampleRate: number) {
     // console.log("Left Pointer: " + getAudioBufferToReadPointer(0) + ", Right: " + getAudioBufferToReadPointer(1));
     const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
     const left = getAudioBuffer(getAudioBufferToReadPointer(0), bufferSize);
