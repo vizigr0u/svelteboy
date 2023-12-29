@@ -3,6 +3,7 @@ import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { uToHex } from "../utils/stringUtils";
+import { NoiseChannel } from "./NoiseChannel";
 import { DutyCycle, PulseChannel } from "./PulseChannel";
 import { log } from "./apu";
 import { AudioOutBuffer } from "./audioBuffer";
@@ -18,10 +19,17 @@ export class AudioRender {
     static channelSound: Uint8Array = new Uint8Array(AudioOutBuffer.BufferSize * 4);
     static channel1: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 0 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
     static channel2: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 1 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
+    // static channel3: WaveChannel = new WaveChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 2 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
+    static channel4: NoiseChannel = new NoiseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 3 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
     static c3Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 2 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
     static c4Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 3 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
     static sampleIndex: u64;
     static initialCycles: u64;
+
+    static debugMute1: boolean = false;
+    static debugMute2: boolean = false;
+    static debugMute3: boolean = false;
+    static debugMute4: boolean = false;
 
     static LeftVolume: f32 = 1.0;
     static RightVolume: f32 = 1.0;
@@ -29,6 +37,7 @@ export class AudioRender {
     static Init(): void {
         AudioRender.channel1.Reset();
         AudioRender.channel2.Reset();
+        AudioRender.channel4.Reset();
         AudioRender.sampleIndex = 0;
         AudioRender.initialCycles = 0;
         AudioRender.AudioOn = MemoryMap.useBootRom ? false : true;
@@ -79,6 +88,8 @@ export class AudioRender {
 
                 AudioRender.channel1.Render(start, end);
                 AudioRender.channel2.Render(start, end);
+                // AudioRender.channel3.Render(start, end);
+                AudioRender.channel4.Render(start, end);
 
                 if (AudioRender.AudioOn) {
                     AudioRender.RenderVolumes(start, end);
@@ -111,19 +122,24 @@ export class AudioRender {
         const right: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Right);
 
         if (AudioRender.AudioOn) {
-            const numChans: f32 = (AudioRender.channel1.Enabled ? 1.0 : 0.0) + (AudioRender.channel2.Enabled ? 1.0 : 0.0) /*+ (Channel3.Enabled ? 1.0 : 0.0) + (Channel4.Enabled ? 1.0 : 0.0)*/;
+            const numChans: f32 = (AudioRender.channel1.Enabled ? 1.0 : 0.0) + (AudioRender.channel2.Enabled ? 1.0 : 0.0) /*+ (AudioRender.channel3.Enabled ? 1.0 : 0.0)*/ + (AudioRender.channel4.Enabled ? 1.0 : 0.0);
             for (let i: i32 = 0; i < numSamples; i++) {
                 let l: f32 = 0;
                 let r: f32 = 0;
-                if (AudioRender.channel1.Enabled) {
+                if (AudioRender.channel1.Enabled && !AudioRender.debugMute1) {
                     const x = (<f32>AudioRender.channel1.Buffer[bufferStart + i] / 7.5) - 1.0;
                     l = AudioRender.channel1.MixLeft ? x : 0;
                     r = AudioRender.channel1.MixRight ? x : 0;
                 }
-                if (AudioRender.channel2.Enabled) {
+                if (AudioRender.channel2.Enabled && !AudioRender.debugMute2) {
                     const x = (<f32>AudioRender.channel2.Buffer[bufferStart + i] / 7.5) - 1.0;
                     l += AudioRender.channel2.MixLeft ? x : 0;
                     r += AudioRender.channel2.MixRight ? x : 0;
+                }
+                if (AudioRender.channel4.Enabled && !AudioRender.debugMute4) {
+                    const x = (<f32>AudioRender.channel4.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    l += AudioRender.channel4.MixLeft ? x : 0;
+                    r += AudioRender.channel4.MixRight ? x : 0;
                 }
 
                 left[bufferStart + i] *= l / numChans;
@@ -155,7 +171,7 @@ export class AudioRender {
                 case AudioRegisterType.NR12_C1Volume:
                     if (AudioRender.channel1.Enabled && (ev.Value & 0b11111000) == 0)
                         AudioRender.channel1.Enabled = false;
-                    AudioRender.channel1.InitialVolume = ev.Value >> 4;
+                    AudioRender.channel1.Volume = ev.Value >> 4;
                     AudioRender.channel1.SweepPace = ev.Value & 0x03;
                     break;
                 case AudioRegisterType.NR13_C1PeriodLo:
@@ -174,7 +190,7 @@ export class AudioRender {
                 case AudioRegisterType.NR22_C2Volume:
                     if (AudioRender.channel2.Enabled && (ev.Value & 0b11111000) == 0)
                         AudioRender.channel2.Enabled = false;
-                    AudioRender.channel2.InitialVolume = ev.Value >> 4;
+                    AudioRender.channel2.Volume = ev.Value >> 4;
                     AudioRender.channel2.SweepPace = ev.Value & 0x03;
                     break;
                 case AudioRegisterType.NR23_C2PeriodLo:
@@ -192,9 +208,22 @@ export class AudioRender {
                 case AudioRegisterType.NR33_C3PeriodLo:
                 case AudioRegisterType.NR34_C3PeriodHi:
                 case AudioRegisterType.NR41_C4Length:
+                    AudioRender.channel4.LengthTimer = ev.Value;
+                    break;
                 case AudioRegisterType.NR42_C4Volume:
+                    if (AudioRender.channel4.Enabled && (ev.Value & 0b11111000) == 0)
+                        AudioRender.channel4.Enabled = false;
+                    AudioRender.channel4.Volume = ev.Value >> 4;
+                    AudioRender.channel4.SweepPace = ev.Value & 0x03;
+                    break;
                 case AudioRegisterType.NR43_C4Freq:
+                    const shift: u8 = (ev.Value >> 4) & 0x0F;
+                    AudioRender.channel4.ShortMode = (ev.Value & 0x08) != 0;
+                    const divider: u8 = ev.Value & 0x07;
+                    AudioRender.channel4.setLsfrClock(shift, divider);
+                    break;
                 case AudioRegisterType.NR44_C4Control:
+                    AudioRender.channel4.Enabled = (ev.Value & 0x80) != 0;
                     break;
                 case AudioRegisterType.NR50_Volume:
                     const leftVolume = (ev.Value >> 4) & 0x7;
@@ -203,15 +232,15 @@ export class AudioRender {
                     AudioRender.RightVolume = (<f32>rightVolume + 1.0) / 8.0;
                     break;
                 case AudioRegisterType.NR51_Panning:
-                    // TODO Channel 3 and 4 panning
+                    // TODO Channel 3 panning
                     AudioRender.channel1.MixRight = (ev.Value & (1 << 0)) != 0;
                     AudioRender.channel2.MixRight = (ev.Value & (1 << 1)) != 0;
                     // AudioRender.channel3.MixRight = (ev.Value & (1 << 2)) != 0;
-                    // AudioRender.channel4.MixRight = (ev.Value & (1 << 3)) != 0;
+                    AudioRender.channel4.MixRight = (ev.Value & (1 << 3)) != 0;
                     AudioRender.channel1.MixLeft = (ev.Value & (1 << 4)) != 0;
                     AudioRender.channel2.MixLeft = (ev.Value & (1 << 5)) != 0;
                     // AudioRender.channel3.MixLeft = (ev.Value & (1 << 6)) != 0;
-                    // AudioRender.channel4.MixLeft = (ev.Value & (1 << 7)) != 0;
+                    AudioRender.channel4.MixLeft = (ev.Value & (1 << 7)) != 0;
                     break;
                 case AudioRegisterType.NR52_SoundOnOff:
                     AudioRender.AudioOn = (ev.Value & 0x80) != 0;
@@ -257,6 +286,25 @@ export class AudioRender {
         }
         if (Logger.verbose >= 2)
             log(`wrote up to ${AudioRender.sampleIndex} in buffer #${AudioRender.outBuffer.WorkingIndex} `);
+    }
+}
+
+export function setMuteChannel(channel: u8, setMute: boolean = false): void {
+    switch (channel) {
+        case 1:
+            AudioRender.debugMute1 = setMute;
+            break;
+        case 2:
+            AudioRender.debugMute2 = setMute;
+            break;
+        case 3:
+            AudioRender.debugMute3 = setMute;
+            break;
+        case 4:
+            AudioRender.debugMute4 = setMute;
+            break;
+        default:
+            break;
     }
 }
 
