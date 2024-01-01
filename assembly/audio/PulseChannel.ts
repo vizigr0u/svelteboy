@@ -112,8 +112,8 @@ export class PulseChannel {
                 assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
                 const x: u8 = this.phase >= this.waveHighRatio ? this.Volume : 0;
                 this.Buffer[i] = x;
-                if (Logger.verbose >= 2)
-                    log(`c1Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
+                if (Logger.verbose >= 3)
+                    log(`pulse Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
                 this.phase += this.AngularFrequency;
                 if (this.phase >= 1.0) {
                     if (Logger.verbose >= 2) {
