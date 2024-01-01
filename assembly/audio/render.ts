@@ -21,8 +21,6 @@ export class AudioRender {
     static channel2: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 1 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
     // static channel3: WaveChannel = new WaveChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 2 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
     static channel4: NoiseChannel = new NoiseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 3 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
-    static c3Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 2 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
-    static c4Sound: Uint8Array = Uint8Array.wrap(AudioRender.channelSound.buffer, 3 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize);
     static sampleIndex: u64;
     static initialCycles: u64;
 

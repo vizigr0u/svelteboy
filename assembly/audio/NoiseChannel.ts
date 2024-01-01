@@ -57,15 +57,18 @@ export class NoiseChannel {
         this.lsfrPeriod = (divider == 0)
             ? <f64>1 / <f64>(524288 >> shift)
             : <f64>divider / <f64>(262144 >> shift);
+        if (Logger.verbose >= 3) {
+            log(`Set LSFR clock: shift ${shift}, divider ${divider} -> period ${this.lsfrPeriod}`);
+        }
     }
 
-    TickLsfr(): u16 {
-        const lowsAreEqual: u16 = ~((this.Lsfr ^ (this.Lsfr >> 1)) & 1);
-        this.Lsfr = (this.Lsfr & ~0x80) | lowsAreEqual << 15; // set bit 15
+    TickLsfr(): void {
+        const lowsAreEqual: u16 = ~(this.Lsfr ^ (this.Lsfr >> 1)) & 1;
+        this.Lsfr = (this.Lsfr & ~0x8000) | lowsAreEqual << 15; // set bit 15
         if (this.ShortMode) {
-            this.Lsfr = (this.Lsfr & ~0x08) | lowsAreEqual << 7; // set bit 7
+            this.Lsfr = (this.Lsfr & ~0x80) | lowsAreEqual << 7; // set bit 7
         }
-        return this.Lsfr >> 1;
+        this.Lsfr = this.Lsfr >> 1;
     }
 
     Render(start: i32, end: i32): void {
@@ -73,13 +76,16 @@ export class NoiseChannel {
             if (this.Enabled) {
                 assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
                 this.Buffer[i] = (this.Lsfr & 1) != 0 ? this.Volume : 0;
-                if (Logger.verbose >= 2)
+                if (Logger.verbose >= 4)
                     log(`c4Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
                 this.lsfrSampleCount++;
-                const timeEllapsed: f64 = this.lsfrTimeOffset + <f64>this.lsfrSampleCount / SAMPLE_RATE;
-                const dt: f64 = timeEllapsed - this.lsfrPeriod;
+                const timeElapsed: f64 = this.lsfrTimeOffset + <f64>this.lsfrSampleCount / SAMPLE_RATE;
+                const dt: f64 = timeElapsed - this.lsfrPeriod;
                 if (dt >= 0) {
                     this.TickLsfr();
+                    if (Logger.verbose >= 3) {
+                        log(`Chan4 LSFR tick after ${timeElapsed} (${this.lsfrSampleCount} samples) -> 0b${this.Lsfr.toString(2)}`);
+                    }
                     this.lsfrSampleCount = 0;
                     this.lsfrTimeOffset = dt;
                 }
