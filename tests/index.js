@@ -13,8 +13,9 @@ import {
     testFifo,
     dumpLogToConsole,
     setVerbose,
-    testPixelFifo
-} from "../build/debug.js";
+    testPixelFifo,
+    test4BitBuffer
+} from "../build/backend.js";
 
 console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
 
@@ -36,6 +37,8 @@ function test(testableFunc, ignored = false) {
 }
 
 dumpLogToConsole();
+
+test(test4BitBuffer);
 
 resetCpuTestSession();
 
