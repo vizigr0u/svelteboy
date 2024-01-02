@@ -42,7 +42,7 @@ export { testMisc } from './tests/miscTests';
 export { testInterrupts } from './tests/interruptTests';
 export { testFifo } from './tests/fifoTests';
 export { testPixelFifo } from './tests/pixelFifoTests';
-export { testUInt4Array } from './tests/UInt4ArrayTests';
+export { testUint4Array } from './tests/Uint4ArrayTests';
 
 export {
   getGameboyTileExampleData,

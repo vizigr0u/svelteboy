@@ -1,7 +1,7 @@
-import { UInt4Array } from "../audio/UInt4Array";
+import { Uint4Array } from "../audio/Uint4Array";
 
 function testCreation(): boolean {
-    const b = new UInt4Array(10);
+    const b = new Uint4Array(10);
     b[1] = 1;
     b[3] = 3;
     b[5] = 5;
@@ -21,11 +21,11 @@ function testCreation(): boolean {
 }
 
 function testWrap(): boolean {
-    const main = new UInt4Array(16);
-    const a = UInt4Array.wrap(main.Buffer, 0, 2);
-    const b = UInt4Array.wrap(main.Buffer, 2, 2);
-    const c = UInt4Array.wrap(main.Buffer, 4, 2);
-    const d = UInt4Array.wrap(main.Buffer, 6, 2);
+    const main = new Uint4Array(16);
+    const a = Uint4Array.wrap(main.buffer, 0, 2);
+    const b = Uint4Array.wrap(main.buffer, 2, 2);
+    const c = Uint4Array.wrap(main.buffer, 4, 2);
+    const d = Uint4Array.wrap(main.buffer, 6, 2);
     for (let i = 0; i < 4; i++) {
         a[i] = <u8>i + 0 * 4;
         b[i] = <u8>i + 1 * 4;
@@ -40,7 +40,7 @@ function testWrap(): boolean {
     return true;
 }
 
-export function testUInt4Array(): boolean {
+export function testUint4Array(): boolean {
     assert(testCreation());
     assert(testWrap());
     return true;

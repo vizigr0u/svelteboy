@@ -1,4 +1,4 @@
-export class UInt4Array {
+export class Uint4Array {
     [key: i32]: u8
     private internal: Uint8Array;
 
@@ -6,9 +6,9 @@ export class UInt4Array {
         this.internal = new Uint8Array((size + 1) >> 1);
     }
 
-    @inline get Length(): i32 { return this.internal.length >> 1; }
+    @inline get length(): i32 { return this.internal.length >> 1; }
 
-    @inline get Buffer(): ArrayBuffer { return this.internal.buffer; }
+    @inline get buffer(): ArrayBuffer { return this.internal.buffer; }
 
     @operator("[]")
     __get(i: i32): u8 {
@@ -30,15 +30,15 @@ export class UInt4Array {
         this.internal[index8] = val;
     }
 
-    static wrap(buffer: ArrayBuffer, byteOffset: i32, length: i32): UInt4Array {
-        const copy: UInt4Array = new UInt4Array(0);
+    static wrap(buffer: ArrayBuffer, byteOffset: i32, length: i32): Uint4Array {
+        const copy: Uint4Array = new Uint4Array(0);
         copy.internal = Uint8Array.wrap(buffer, byteOffset, length);
         return copy;
     }
 
     dump(): string {
-        var s = `(${this.Length} in ${this.internal.length}B})[`;
-        for (let i = 0; i < this.Length; i++) {
+        var s = `(${this.length} in ${this.internal.length}B})[`;
+        for (let i = 0; i < this.length; i++) {
             s += `${this[i]}, `;
         }
         return s + ']';
