@@ -14,7 +14,7 @@ import {
     dumpLogToConsole,
     setVerbose,
     testPixelFifo,
-    test4BitBuffer
+    testUInt4Array
 } from "../build/backend.js";
 
 console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
@@ -38,7 +38,7 @@ function test(testableFunc, ignored = false) {
 
 dumpLogToConsole();
 
-test(test4BitBuffer);
+test(testUInt4Array);
 
 resetCpuTestSession();
 

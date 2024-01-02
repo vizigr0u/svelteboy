@@ -1,4 +1,4 @@
-export class audio4bitBuffer {
+export class UInt4Array {
     [key: i32]: u8
     private internal: Uint8Array;
 
@@ -30,8 +30,8 @@ export class audio4bitBuffer {
         this.internal[index8] = val;
     }
 
-    static wrap(buffer: ArrayBuffer, byteOffset: i32, length: i32): audio4bitBuffer {
-        const copy: audio4bitBuffer = new audio4bitBuffer(0);
+    static wrap(buffer: ArrayBuffer, byteOffset: i32, length: i32): UInt4Array {
+        const copy: UInt4Array = new UInt4Array(0);
         copy.internal = Uint8Array.wrap(buffer, byteOffset, length);
         return copy;
     }
