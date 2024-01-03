@@ -3,6 +3,8 @@ import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
 import { SAMPLE_RATE } from "./audioRegisters";
 
+import { Uint4Array } from "./Uint4Array";
+
 export enum DutyCycle {
     VeryHigh = 0,
     High = 1,
@@ -34,7 +36,7 @@ export class PulseChannel {
     Volume: u8 = 0xF;
     SweepPace: u8 = 0;
     LengthTimer: f32 = 0;
-    Buffer: Uint8Array;
+    Buffer: Uint4Array;
 
     private enabled: boolean = false;
     private waveHighRatio: f32 = DutyCycleHighRatio(DutyCycle.Medium);
@@ -44,7 +46,7 @@ export class PulseChannel {
     private samplesUntilStop: i32 = 0;
     private timerEnabled: boolean = false;
 
-    constructor(buffer: Uint8Array) {
+    constructor(buffer: Uint4Array) {
         this.Buffer = buffer;
     }
 
