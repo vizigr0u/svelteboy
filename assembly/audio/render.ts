@@ -210,7 +210,7 @@ export class AudioRender {
                 case AudioRegisterType.NR33_C3PeriodLo:
                 case AudioRegisterType.NR34_C3PeriodHi:
                 case AudioRegisterType.NR41_C4Length:
-                    AudioRender.channel4.LengthTimer = ev.Value;
+                    AudioRender.channel4.LengthTimer = ev.Value & 0b00111111;
                     break;
                 case AudioRegisterType.NR42_C4Volume:
                     if (AudioRender.channel4.Enabled && (ev.Value & 0b11111000) == 0)
