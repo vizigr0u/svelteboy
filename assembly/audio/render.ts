@@ -11,16 +11,20 @@ import { SAMPLE_RATE, SoundDataPtr, SoundDataSize } from "./audioRegisters";
 import { AudioChannel, AudioEvent, AudioRegisterType } from "./audioTypes";
 import { AudioEventQueue } from "./eventQueue";
 
+import { Uint4Array } from "./Uint4Array";
+
+const HalfBufferSize: i32 = AudioOutBuffer.BufferSize >> 1;
+
 @final
 export class AudioRender {
     static AudioOn: boolean = false;
     static outBuffer: AudioOutBuffer = new AudioOutBuffer();
     static localData: Uint8Array = new Uint8Array(SoundDataSize);
-    static channelSound: Uint8Array = new Uint8Array(AudioOutBuffer.BufferSize * 4);
-    static channel1: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 0 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
-    static channel2: PulseChannel = new PulseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 1 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
-    // static channel3: WaveChannel = new WaveChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 2 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
-    static channel4: NoiseChannel = new NoiseChannel(Uint8Array.wrap(AudioRender.channelSound.buffer, 3 * AudioOutBuffer.BufferSize, AudioOutBuffer.BufferSize));
+    static channelSound: Uint4Array = new Uint4Array(AudioOutBuffer.BufferSize * 4);
+    static channel1: PulseChannel = new PulseChannel(Uint4Array.wrap(AudioRender.channelSound.buffer, 0 * HalfBufferSize, HalfBufferSize));
+    static channel2: PulseChannel = new PulseChannel(Uint4Array.wrap(AudioRender.channelSound.buffer, 1 * HalfBufferSize, HalfBufferSize));
+    // static channel3: NoiseChannel = new NoiseChannel(Uint4Array.wrap(AudioRender.channelSound4bit.buffer, 2 * HalfBufferSize, HalfBufferSize));
+    static channel4: NoiseChannel = new NoiseChannel(Uint4Array.wrap(AudioRender.channelSound.buffer, 3 * HalfBufferSize, HalfBufferSize));
     static sampleIndex: u64;
     static initialCycles: u64;
 

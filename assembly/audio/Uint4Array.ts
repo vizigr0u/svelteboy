@@ -6,7 +6,7 @@ export class Uint4Array {
         this.internal = new Uint8Array((size + 1) >> 1);
     }
 
-    @inline get length(): i32 { return this.internal.length >> 1; }
+    @inline get length(): i32 { return this.internal.length << 1; }
 
     @inline get buffer(): ArrayBuffer { return this.internal.buffer; }
 

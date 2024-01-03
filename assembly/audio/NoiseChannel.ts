@@ -3,6 +3,8 @@ import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
 import { SAMPLE_RATE } from "./audioRegisters";
 
+import { Uint4Array } from "./Uint4Array";
+
 @final
 export class NoiseChannel {
     MixLeft: boolean = true;
@@ -11,7 +13,7 @@ export class NoiseChannel {
     SweepPace: u8 = 0;
     ShortMode: boolean = false;
     LengthTimer: f32 = 0;
-    Buffer: Uint8Array;
+    Buffer: Uint4Array;
     Lsfr: u16 = 0;
 
     private lsfrPeriod: f64 = <f64>1 / <f64>262144;
@@ -21,7 +23,7 @@ export class NoiseChannel {
     private samplesUntilStop: i32 = 0;
     private timerEnabled: boolean = false;
 
-    constructor(buffer: Uint8Array) {
+    constructor(buffer: Uint4Array) {
         this.Buffer = buffer;
     }
 
