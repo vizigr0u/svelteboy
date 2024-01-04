@@ -145,26 +145,18 @@
     </div>
     <div class="channels-mute-controls">
         Mute Channels:
-        <label
-            >1 <input
-                type="checkbox"
-                bind:checked={$MuteSoundChannel1}
-            /></label
-        >
-        <label
-            >2 <input
-                type="checkbox"
-                bind:checked={$MuteSoundChannel2}
-            /></label
-        >
-        <label>3 <input type="checkbox" disabled={true} checked={true} /></label
-        >
-        <label
-            >4 <input
-                type="checkbox"
-                bind:checked={$MuteSoundChannel4}
-            /></label
-        >
+        <label>
+            1 <input type="checkbox" bind:checked={$MuteSoundChannel1} />
+        </label>
+        <label>
+            2 <input type="checkbox" bind:checked={$MuteSoundChannel2} />
+        </label>
+        <label>
+            3 <input type="checkbox" bind:checked={$MuteSoundChannel3} />
+        </label>
+        <label>
+            4 <input type="checkbox" bind:checked={$MuteSoundChannel4} />
+        </label>
     </div>
 </div>
 
