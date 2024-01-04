@@ -1,9 +1,8 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
+import { AudioChannelBase } from "./AudioChannelBase";
 import { SAMPLE_RATE } from "./audioRegisters";
-
-import { Uint4Array } from "./Uint4Array";
 
 export enum DutyCycle {
     VeryHigh = 0,
@@ -30,37 +29,14 @@ function DutyCycleHighRatio(dc: DutyCycle): f32 {
 }
 
 @final
-export class PulseChannel {
-    MixLeft: boolean = true;
-    MixRight: boolean = true;
-    Volume: u8 = 0xF;
+export class PulseChannel extends AudioChannelBase {
     SweepPace: u8 = 0;
-    LengthTimer: f32 = 0;
-    Buffer: Uint4Array;
+    EnvelopeIncreasing: boolean = false;
 
-    private enabled: boolean = false;
     private waveHighRatio: f32 = DutyCycleHighRatio(DutyCycle.Medium);
     private frequencyBits: u16 = 1750; // A440
     private angularFrequency: f64;
     private phase: f64 = 0;
-    private samplesUntilStop: i32 = 0;
-    private timerEnabled: boolean = false;
-
-    constructor(buffer: Uint4Array) {
-        this.Buffer = buffer;
-    }
-
-    @inline get Enabled(): boolean { return this.enabled; }
-
-    set Enabled(enabled: boolean) {
-        if (enabled) {
-            this.trigger();
-        }
-        this.enabled = enabled;
-    }
-
-    @inline
-    get AngularFrequency(): f64 { return this.angularFrequency; }
 
     set PeriodLow(value: u8) {
         this.frequencyBits = (this.frequencyBits & 0xFF00) | value;
@@ -68,13 +44,6 @@ export class PulseChannel {
             log(`lowFreq change to ${value}: frequencyBits = ${uToHex<u16>(this.frequencyBits)}}`)
         }
         this.updateFrequency();
-    }
-
-    set TimerEnabled(enabled: boolean) {
-        if (enabled) {
-            this.samplesUntilStop = <i32>Math.round(this.LengthTimer * 72.26562);
-        }
-        this.timerEnabled = enabled;
     }
 
     set PeriodHigh(value: u8) {
@@ -86,7 +55,7 @@ export class PulseChannel {
     }
 
     trigger(): void {
-
+        this.baseTrigger();
     }
 
     setDutyCycle(waveDutyCycle: DutyCycle): void {
@@ -112,28 +81,19 @@ export class PulseChannel {
         for (let i: i32 = start; i < end; i++) {
             if (this.Enabled) {
                 assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
-                const x: u8 = this.phase >= this.waveHighRatio ? this.Volume : 0;
+                const x: u8 = this.phase >= this.waveHighRatio ? this.InitialVolume : 0;
                 this.Buffer[i] = x;
                 if (Logger.verbose >= 3)
                     log(`pulse Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
-                this.phase += this.AngularFrequency;
+                this.phase += this.angularFrequency;
                 if (this.phase >= 1.0) {
                     if (Logger.verbose >= 2) {
-                        log(`(at ${start + i}) SinPhase from ${this.phase} to ${this.phase - 1.0}`)
+                        log(`(Pulse at ${start + i}) SinPhase from ${this.phase} to ${this.phase - 1.0}`)
                     }
                     this.phase -= 1.0;
                 }
             }
         }
-        if (this.samplesUntilStop > 0 && this.timerEnabled) {
-            const samplesEllapsed: i32 = end - start;
-            if (samplesEllapsed >= this.samplesUntilStop) {
-                this.samplesUntilStop = 0;
-                this.timerEnabled = false;
-                this.Enabled = false;
-            } else {
-                this.samplesUntilStop -= samplesEllapsed;
-            }
-        }
+        this.updateTimer(end - start);
     }
 }

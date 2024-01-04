@@ -1,47 +1,18 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
+import { AudioChannelBase } from "./AudioChannelBase";
 import { SAMPLE_RATE } from "./audioRegisters";
 
-import { Uint4Array } from "./Uint4Array";
-
 @final
-export class NoiseChannel {
-    MixLeft: boolean = true;
-    MixRight: boolean = true;
-    Volume: u8 = 0xF;
+export class NoiseChannel extends AudioChannelBase {
     SweepPace: u8 = 0;
     ShortMode: boolean = false;
-    LengthTimer: f32 = 0;
-    Buffer: Uint4Array;
     Lsfr: u16 = 0;
 
     private lsfrPeriod: f64 = <f64>1 / <f64>262144;
     private lsfrTimeOffset: f64 = 0;
     private lsfrSampleCount: u32 = 0;
-    private enabled: boolean = false;
-    private samplesUntilStop: i32 = 0;
-    private timerEnabled: boolean = false;
-
-    constructor(buffer: Uint4Array) {
-        this.Buffer = buffer;
-    }
-
-    set TimerEnabled(enabled: boolean) {
-        if (enabled) {
-            this.samplesUntilStop = <i32>Math.round(this.LengthTimer * 72.26562);
-        }
-        this.timerEnabled = enabled;
-    }
-
-    @inline get Enabled(): boolean { return this.enabled; }
-
-    set Enabled(enabled: boolean) {
-        if (enabled) {
-            this.trigger();
-        }
-        this.enabled = enabled;
-    }
 
     Reset(): void {
         this.Lsfr = 0;
@@ -50,9 +21,8 @@ export class NoiseChannel {
     }
 
     trigger(): void {
-        this.Lsfr = 0;
-        this.lsfrTimeOffset = 0;
-        this.lsfrSampleCount = 0;
+        this.baseTrigger();
+        this.Reset();
     }
 
     setLsfrClock(shift: u8, divider: u8): void {
@@ -77,7 +47,7 @@ export class NoiseChannel {
         for (let i: i32 = start; i < end; i++) {
             if (this.Enabled) {
                 assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
-                this.Buffer[i] = (this.Lsfr & 1) != 0 ? this.Volume : 0;
+                this.Buffer[i] = (this.Lsfr & 1) != 0 ? this.InitialVolume : 0;
                 if (Logger.verbose >= 4)
                     log(`c4Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
                 this.lsfrSampleCount++;
@@ -93,15 +63,6 @@ export class NoiseChannel {
                 }
             }
         }
-        if (this.samplesUntilStop > 0 && this.timerEnabled) {
-            const samplesEllapsed: i32 = end - start;
-            if (samplesEllapsed >= this.samplesUntilStop) {
-                this.samplesUntilStop = 0;
-                this.timerEnabled = false;
-                this.Enabled = false;
-            } else {
-                this.samplesUntilStop -= samplesEllapsed;
-            }
-        }
+        this.updateTimer(end - start);
     }
 }

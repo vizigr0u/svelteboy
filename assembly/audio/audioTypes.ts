@@ -12,14 +12,8 @@ export class ChannelData {
     PeriodHigh: u8;
 }
 
-@unmanaged
-export class AudioEvent {
-    FrameSampleIndex: u32;
-    Type: u8;
-    Value: u8;
-}
-
 export enum AudioRegisterType {
+    Offset = 0x10,
     NR10_C1Sweep = 0x10,
     NR11_C1Length = 0x11,
     NR12_C1Volume = 0x12,
@@ -43,4 +37,15 @@ export enum AudioRegisterType {
     NR52_SoundOnOff = 0x26,
     WaveStart = 0x30,
     WaveEnd = 0x3F
+}
+
+export function getRegisterIndex(reg: AudioRegisterType): i32 { return <i32>reg - <i32>AudioRegisterType.Offset; };
+
+@unmanaged
+export class AudioEvent {
+    FrameSampleIndex: u32;
+    Type: u8;
+    Value: u8;
+
+    @inline get RegisterIndex(): i32 { return getRegisterIndex(this.Type); };
 }
