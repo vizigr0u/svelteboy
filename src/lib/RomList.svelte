@@ -88,7 +88,7 @@
   {/if}
   {#await cacheRomsPromise}
     <div class="status">
-      <i class="fas fa-spinner fa-spin" />
+      <i class="fas fa-spinner fa-spin"></i>
       Caching roms...
     </div>
   {:then}

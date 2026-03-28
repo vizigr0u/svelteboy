@@ -106,7 +106,7 @@
         <div class="over-image-box">
             {#await playRomPromise}
                 <div class="loading-rom-placeholder">
-                    <i class="fas fa-spinner fa-spin" />
+                    <i class="fas fa-spinner fa-spin"></i>
                 </div>
             {:then}
                 <button
@@ -116,7 +116,8 @@
                         // playRomPromise = new Promise((r) => {}); // Debug loading spinner
                     }}
                     disabled={isLoading || isLoaded}
-                    ><i class="fa-regular fa-circle-play" /></button
+                    aria-label="Play"
+                    ><i class="fa-regular fa-circle-play"></i></button
                 >
             {/await}
         </div>
