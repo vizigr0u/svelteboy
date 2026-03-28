@@ -91,7 +91,7 @@
       {height}
       class="canvas"
       style="width: {width * pixelSize}px; height: {height * pixelSize}px;"
-    />
+    ></canvas>
   </div>
 </div>
 

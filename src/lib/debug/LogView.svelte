@@ -80,20 +80,20 @@
                 type="number"
                 class="verbose-input"
                 bind:value={$Verbose}
-                on:change={() => Debug.SetVerbose($Verbose)}
+                onchange={() => Debug.SetVerbose($Verbose)}
                 min="0"
                 max="10"
             />
         </label>
         <div class="log-category-dropdown">
             <button class="log-category-toggle"
-                ><i class="fa-solid fa-filter" />...
+                ><i class="fa-solid fa-filter"></i>...
             </button>
             <div class="log-category-dropdown-content">
                 {#each LogCategories as cat}
                     <button
                         class="category-option"
-                        on:click={() => toggleCategory(cat)}
+                        onclick={() => toggleCategory(cat)}
                         >{$MutedCategories.includes(cat) ? "\u2610" : "\u2611"}
                         {cat}</button
                     >
@@ -106,20 +106,22 @@
             >
         {/if}
         <button
-            on:click={onClearClick}
+            aria-label="Clear logs"
+            onclick={onClearClick}
             disabled={!$DebugLines || $DebugLines.length == 0}
-            ><i class="fa-solid fa-trash" /></button
+            ><i class="fa-solid fa-trash"></i></button
         >
-        <button on:click={fetchLogs} disabled={$EmulatorBusy}
-            ><i class="fa-solid fa-rotate" /></button
+        <button aria-label="Refresh" onclick={fetchLogs} disabled={$EmulatorBusy}
+            ><i class="fa-solid fa-rotate"></i></button
         >
         <button
-            on:click={() => downloadLog([])}
+            aria-label="Download"
+            onclick={() => downloadLog([])}
             disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
-            ><i class="fa-solid fa-cloud-arrow-down" /></button
+            ><i class="fa-solid fa-cloud-arrow-down"></i></button
         >
         <button
-            on:click={() => downloadLog($MutedCategories)}
+            onclick={() => downloadLog($MutedCategories)}
             disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
             >Download Fitlered</button
         >

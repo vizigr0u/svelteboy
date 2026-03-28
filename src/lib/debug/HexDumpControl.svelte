@@ -53,12 +53,12 @@
       <div class="custom-hex-form">
         <div class="hex-bound-view">
           <input type="number" bind:value={minPC} min="0" max="65535" />
-          <div />
+          <div></div>
         </div>
 
         <div class="hex-bound-view">
           <input type="number" bind:value={count} min="0" max="65535" />
-          <div />
+          <div></div>
         </div>
       </div>
     {/if}

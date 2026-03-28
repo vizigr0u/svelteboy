@@ -7,19 +7,19 @@
 
   let {
     dragState = $bindable(DragState.Idle),
+    dragStatus = $bindable(""),
     onRomReceived = (_: LocalRom) => {},
     saveRom = true,
     validExtensions = ["gb"],
     children,
   } = $props<{
     dragState?: DragState;
+    dragStatus?: string;
     onRomReceived?: (rom: LocalRom) => void;
     saveRom?: boolean;
     validExtensions?: string[];
     children: Snippet;
   }>();
-
-  let dragStatus: string = $state("");
 
   function getValidDroppedFileItem(e: DragEvent): DataTransferItem {
     if (e.dataTransfer.items.length != 1) return undefined;

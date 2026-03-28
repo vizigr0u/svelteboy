@@ -47,19 +47,19 @@
 
 <div class="input-viewer" bind:this={buttonContainer}>
     <div class="dir-viewer">
-        <button data-input="Up" />
-        <button data-input="Left" />
-        <button data-input="Right" />
-        <button data-input="Down" />
-        <div class="center" />
+        <button data-input="Up" aria-label="Up"></button>
+        <button data-input="Left" aria-label="Left"></button>
+        <button data-input="Right" aria-label="Right"></button>
+        <button data-input="Down" aria-label="Down"></button>
+        <div class="center"></div>
     </div>
     <div class="special-key-viewer">
-        <button data-input="Select" />
-        <button data-input="Start" />
+        <button data-input="Select" aria-label="Select"></button>
+        <button data-input="Start" aria-label="Start"></button>
     </div>
     <div class="action-key-viewer">
-        <button data-input="B" />
-        <button data-input="A" />
+        <button data-input="B" aria-label="B"></button>
+        <button data-input="A" aria-label="A"></button>
     </div>
     {#if !$HideKeyboardWarning}
         <div class="keybinds-hint">
@@ -71,9 +71,10 @@
             Maybe.
             <button
                 class="dismiss-hint"
-                on:click={() => {
+                aria-label="Dismiss"
+                onclick={() => {
                     $HideKeyboardWarning = true;
-                }}><i class="fa-solid fa-xmark" /></button
+                }}><i class="fa-solid fa-xmark"></i></button
             >
         </div>
     {/if}

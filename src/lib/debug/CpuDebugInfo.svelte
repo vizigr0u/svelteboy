@@ -25,7 +25,7 @@
                     name="SP"
                     value={$GbDebugInfoStore.registers.SP}
                 />
-                <div class="gap" />
+                <div class="gap"></div>
                 <RegisterView
                     name="AF"
                     value={$GbDebugInfoStore.registers.AF}
@@ -42,9 +42,9 @@
                     name="HL"
                     value={$GbDebugInfoStore.registers.HL}
                 />
-                <div class="gap" />
+                <div class="gap"></div>
                 <CpuFlagsView flags={$GbDebugInfoStore.registers.AF} />
-                <div class="cpu-flags-info" />
+                <div class="cpu-flags-info"></div>
             </div>
             <div class="lcd-info">
                 <span>control: {$GbDebugInfoStore.lcd.control}</span>
@@ -54,7 +54,7 @@
                 <span>lY: {$GbDebugInfoStore.lcd.lY}</span>
                 <span>lYcompare: {$GbDebugInfoStore.lcd.lYcompare}</span>
                 <span>dma: {$GbDebugInfoStore.lcd.dma}</span>
-                <div class="gap" />
+                <div class="gap"></div>
                 <span>Frame: {$GbDebugInfoStore.currentFrame}</span>
                 <span
                     >PPU mode: {PPUMode[
@@ -108,7 +108,7 @@
                 <div class="info-field">
                     IE {uToHex($GbDebugInfoStore.interruptEnabled)}
                 </div>
-                <div class="gap" />
+                <div class="gap"></div>
                 <div class="info-field">
                     Div: {uToHex($GbDebugInfoStore.timer.div)}
                     ({uToHex16($GbDebugInfoStore.timer.internalDiv)})

@@ -12,17 +12,22 @@
   import { fetchDisassembly } from "../../debug";
   import { EmulatorInitialized, EmulatorPaused } from "stores/playStores";
 
-  let scrollToIndex;
+  let virtualList = $state(null);
   let lastJumpTime: number = 0;
   const minJumpDelay: number = 200;
-  let currentPC = 0;
 
-  $: currentPC =
-    $GbDebugInfoStore == undefined ? 0 : $GbDebugInfoStore.registers.PC;
+  let currentPC = $derived(
+    $GbDebugInfoStore == undefined ? 0 : $GbDebugInfoStore.registers.PC
+  );
 
-  let lineMap = {};
+  let lineMap: Record<string, number> = $state({});
 
-  loadedCartridge.subscribe((rom) => disassembleRom(rom));
+  let firstLine: number = $state(0);
+  let lastLine: number = $state(0);
+
+  $effect(() => {
+    return loadedCartridge.subscribe((rom) => disassembleRom(rom));
+  });
 
   function disassembleRom(rom: RomReference): void {
     if (rom && $disassembledRomsStore?.sha1 != rom.sha1) {
@@ -32,44 +37,43 @@
     }
   }
 
-  EmulatorInitialized.subscribe((initialized) => {
-    if (
-      $DebuggerAttached &&
-      initialized &&
-      $disassembledRomsStore != undefined
-    ) {
-      scrollToIndex(0);
-    }
-  });
-
-  disassembledRomsStore.subscribe((info) => {
-    if (info == undefined) {
-      lineMap = {};
-      return;
-    }
-    const d = {};
-    info.programLines.forEach((line, index) => {
-      d[line.pc] = index;
+  $effect(() => {
+    return EmulatorInitialized.subscribe((initialized) => {
+      if ($DebuggerAttached && initialized && $disassembledRomsStore != undefined) {
+        virtualList?.scrollToIndex(0);
+      }
     });
-    lineMap = d;
   });
 
-  GbDebugInfoStore.subscribe((info: GbDebugInfo) => {
-    if (!info) return;
-    const t = performance.now();
-    const lineNumber = lineMap[info.registers.PC.toString()];
-    if (
-      lineNumber !== undefined &&
-      (lineNumber < firstLine || lineNumber > lastLine) &&
-      (lastJumpTime == 0 || $EmulatorPaused || t - lastJumpTime > minJumpDelay)
-    ) {
-      scrollToIndex(Math.max(0, lineNumber - 5));
-      lastJumpTime = t;
-    }
+  $effect(() => {
+    return disassembledRomsStore.subscribe((info) => {
+      if (info == undefined) {
+        lineMap = {};
+        return;
+      }
+      const d: Record<string, number> = {};
+      info.programLines.forEach((line, index) => {
+        d[line.pc] = index;
+      });
+      lineMap = d;
+    });
   });
 
-  let firstLine;
-  let lastLine;
+  $effect(() => {
+    return GbDebugInfoStore.subscribe((info: GbDebugInfo) => {
+      if (!info) return;
+      const t = performance.now();
+      const lineNumber = lineMap[info.registers.PC.toString()];
+      if (
+        lineNumber !== undefined &&
+        (lineNumber < firstLine || lineNumber > lastLine) &&
+        (lastJumpTime == 0 || $EmulatorPaused || t - lastJumpTime > minJumpDelay)
+      ) {
+        virtualList?.scrollToIndex(Math.max(0, lineNumber - 5));
+        lastJumpTime = t;
+      }
+    });
+  });
 </script>
 
 <div class="disassembly-container">
@@ -84,10 +88,11 @@
       items={$disassembledRomsStore?.programLines ?? []}
       bind:start={firstLine}
       bind:end={lastLine}
-      bind:scrollToIndex
-      let:item
+      bind:this={virtualList}
     >
-      <DebuggerLine line={item} highlighted={item.pc == currentPC} />
+      {#snippet children(item)}
+        <DebuggerLine line={item} highlighted={item.pc == currentPC} />
+      {/snippet}
     </MyVirtualList>
   </div>
 </div>
