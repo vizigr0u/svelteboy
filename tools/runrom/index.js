@@ -1,6 +1,7 @@
 import {
-    runCartridge, loadCartridgeRom, loadBootRom, runOneFrame, initEmulator, setVerbose, serialEnableLog, dumpLogToConsole
-} from "../../build/release.js";
+    // loadCartridgeRom,
+    loadBootRom, runOneFrame, initEmulator, setVerbose, serialEnableLog, dumpLogToConsole
+} from "../../build/backend.js";
 
 import { open } from 'node:fs/promises';
 
@@ -69,9 +70,9 @@ Promise.all(promises).then(result => {
     if (benchmark) {
         runBenchmark();
     } else {
-        serialEnableLog(true);
-        dumpLogToConsole(true);
-        runCartridge();
+        console.log('Disabled, needs reimplementing, use --benchmark');
+        // serialEnableLog(true);
+        // dumpLogToConsole(true);
     }
 
     bootFile.close();
