@@ -1,15 +1,25 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import { cartRomStore } from "stores/romStores";
   import { DragState, type LocalRom, type StoredRom } from "../types";
   import { humanReadableSize } from "../utils";
   import { Buffer } from "buffer";
 
-  export let dragState: DragState = DragState.Idle;
-  export let dragStatus: string = "";
-  export let onRomReceived: (rom: LocalRom) => void = (_) => {};
-  export let saveRom: boolean = true;
+  let {
+    dragState = $bindable(DragState.Idle),
+    onRomReceived = (_: LocalRom) => {},
+    saveRom = true,
+    validExtensions = ["gb"],
+    children,
+  } = $props<{
+    dragState?: DragState;
+    onRomReceived?: (rom: LocalRom) => void;
+    saveRom?: boolean;
+    validExtensions?: string[];
+    children: Snippet;
+  }>();
 
-  export let validExtensions: string[] = ["gb"];
+  let dragStatus: string = $state("");
 
   function getValidDroppedFileItem(e: DragEvent): DataTransferItem {
     if (e.dataTransfer.items.length != 1) return undefined;
@@ -80,10 +90,10 @@
 <div
   role="none"
   class="dragZone text"
-  on:drop={onDrop}
-  on:dragover={onDragOver}
-  on:dragleave={onDragLeave}
-  on:dragenter={onDragEnter}
+  ondrop={onDrop}
+  ondragover={onDragOver}
+  ondragleave={onDragLeave}
+  ondragenter={onDragEnter}
 >
-  <slot />
+  {@render children()}
 </div>

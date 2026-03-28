@@ -1,8 +1,7 @@
 <script lang="ts">
     import DebugValue from "./DebugValue.svelte";
 
-    export let name: string;
-    export let value: number;
+    let { name, value } = $props<{ name: string; value: number }>();
 
     // const firstReg = () => ({ name: name.charAt(0), value: (value && 0xFF00) >> 8});
     // const secondReg = () => ({ name: name.charAt(1), value: value && 0xFF});

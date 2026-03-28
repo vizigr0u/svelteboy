@@ -3,22 +3,21 @@
   import MyVirtualList from "./MyVirtualList.svelte";
   import RomView from "./RomView.svelte";
 
-  export let title: string;
-  export let roms: RomReference[] = [];
+  let { title, roms = [] } = $props<{ title: string; roms?: RomReference[] }>();
 
-  let init = false;
+  let init = $state(false);
   const romWordsMap: Map<string, RomReference[]> = new Map<
     string,
     RomReference[]
   >();
 
-  let filter: string = "";
-  let filteredRoms: RomReference[] = [];
+  let filter: string = $state("");
+  let filteredRoms: RomReference[] = $state([]);
 
   const maxChars = 5;
 
-  let cacheRomsPromise: Promise<void>;
-  $: cacheRomsPromise = cacheRoms();
+  let cacheRomsPromise: Promise<void> | undefined = $state(undefined);
+  $effect(() => { cacheRomsPromise = cacheRoms(); });
 
   function isLetterOrNumber(c: string): boolean {
     return (c >= "a" && c <= "z") || (c >= "0" && c <= "9");
@@ -82,7 +81,7 @@
       >Search: <input
         type="text"
         bind:value={filter}
-        on:input={filterRoms}
+        oninput={filterRoms}
         disabled={!init}
       />
     </label>
@@ -96,10 +95,12 @@
     {#if filteredRoms.length > 0}
       <div class="roms-container">
         {#if filteredRoms.length > 20}
-          <MyVirtualList items={filteredRoms} let:item>
-            {#key item.sha1}
-              <RomView rom={item} />
-            {/key}
+          <MyVirtualList items={filteredRoms}>
+            {#snippet children(item)}
+              {#key item.sha1}
+                <RomView rom={item} />
+              {/key}
+            {/snippet}
           </MyVirtualList>
         {:else}
           {#each filteredRoms as item}

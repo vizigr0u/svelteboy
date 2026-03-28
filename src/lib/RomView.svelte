@@ -18,12 +18,10 @@
     const gbArtDir = artDir + "gb_art/";
     const gbcArtDir = artDir + "gbc_art/";
 
-    export let rom: RomReference;
+    let { rom } = $props<{ rom: RomReference }>();
 
-    let romDescription: string;
-
-    let src: string = defaultThumbnailUri;
-    let alt: string = defaultAltText;
+    let src: string = $state(defaultThumbnailUri);
+    let alt: string = $state(defaultAltText);
 
     type RomImgData = {
         src: string;
@@ -49,16 +47,15 @@
             });
     });
 
-    let playRomPromise: Promise<void> = undefined;
-    let isLoading: boolean = false;
+    let playRomPromise: Promise<void> | undefined = $state(undefined);
+    let isLoading: boolean = $state(false);
 
     // $: imagePromise = fetchImageAndAlt(rom);
 
-    $: romDescription = getRomDescription(rom);
-
-    let isLoaded: boolean;
-    $: isLoaded =
-        $loadedCartridge != undefined && $loadedCartridge.sha1 == rom.sha1;
+    let romDescription = $derived(getRomDescription(rom));
+    let isLoaded = $derived(
+        $loadedCartridge != undefined && $loadedCartridge.sha1 == rom.sha1
+    );
 
     async function fetchImageAndAlt(rom: RomReference): Promise<RomImgData> {
         const isGbc = rom.name.endsWith(".gbc");
@@ -101,7 +98,7 @@
     <div class="image-wrapper">
         <img
             class="rom-thumbnail"
-            on:error={onThumbnailError}
+            onerror={onThumbnailError}
             {src}
             {alt}
             loading="lazy"
@@ -114,7 +111,7 @@
             {:then}
                 <button
                     class="rom-play-button"
-                    on:click={() => {
+                    onclick={() => {
                         playRomPromise = Emulator.PlayRom(rom);
                         // playRomPromise = new Promise((r) => {}); // Debug loading spinner
                     }}
@@ -131,7 +128,7 @@
             {#if isStoredRom(rom)}
                 <button
                     class="rom-action-button"
-                    on:click={deleteRom}
+                    onclick={deleteRom}
                     disabled={isLoading}>Delete</button
                 >
             {/if}

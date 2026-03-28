@@ -1,6 +1,5 @@
 <script lang="ts">
-    export let dataArray: Uint8Array;
-    export let startPC: number = 0;
+    let { dataArray, startPC = 0 } = $props<{ dataArray: Uint8Array; startPC?: number }>();
 
     function numLines(): number {
         return Math.ceil((dataArray.length + (startPC & 0xf)) / 16);

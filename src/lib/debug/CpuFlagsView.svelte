@@ -1,5 +1,5 @@
 <script lang="ts">
-    export let flags: number;
+    let { flags } = $props<{ flags: number }>();
 
     enum Flags {
         Z = 0b10000000,
@@ -40,7 +40,7 @@
                 disabled={true}
             />
         </div>
-        <div class="flag-values" />
+        <div class="flag-values"></div>
     </div>
 {/key}
 

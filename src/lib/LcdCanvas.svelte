@@ -3,16 +3,25 @@
   import { GameFrames } from "stores/playStores";
   import type { Writable } from "svelte/store";
 
-  export let width: number = 42;
-  export let height: number = 42;
-  export let updateBuffer: (a: Uint8ClampedArray) => Uint8ClampedArray = (a) =>
-    a;
-  export let postProcess: (ctx: CanvasRenderingContext2D) => void = undefined;
-  export let mouseMove: (ev: MouseEvent) => void = undefined;
-  export let pixelSize = 2;
-  export let autodraw: boolean = true;
-  export const draw = () => drawToCanvas();
-  export let frameStore: Writable<number> = GameFrames;
+  let {
+    width = 42,
+    height = 42,
+    updateBuffer = (a: Uint8ClampedArray) => a,
+    postProcess = undefined as ((ctx: CanvasRenderingContext2D) => void) | undefined,
+    mouseMove = undefined as ((ev: MouseEvent) => void) | undefined,
+    pixelSize = $bindable(2),
+    autodraw = $bindable(true),
+    frameStore = GameFrames as Writable<number>,
+  } = $props<{
+    width?: number;
+    height?: number;
+    updateBuffer?: (a: Uint8ClampedArray) => Uint8ClampedArray;
+    postProcess?: (ctx: CanvasRenderingContext2D) => void;
+    mouseMove?: (ev: MouseEvent) => void;
+    pixelSize?: number;
+    autodraw?: boolean;
+    frameStore?: Writable<number>;
+  }>();
 
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;
@@ -24,21 +33,24 @@
   let postProcessTime: number = 0;
   let initialized: boolean = false;
 
-  frameStore.subscribe((frame) => {
-    if (initialized && autodraw) {
-      if (frame != -1) {
-        drawToCanvas();
-        drawCounts++;
-        if (timeSpentDrawing > 0) {
-          timeReport = (timeSpentDrawing / drawCounts).toFixed(1);
-          if (postProcess) {
-            timeReport += " postProcess: " + postProcessTime.toFixed(1);
+  $effect(() => {
+    const unsub = frameStore.subscribe((frame) => {
+      if (initialized && autodraw) {
+        if (frame != -1) {
+          drawToCanvas();
+          drawCounts++;
+          if (timeSpentDrawing > 0) {
+            timeReport = (timeSpentDrawing / drawCounts).toFixed(1);
+            if (postProcess) {
+              timeReport += " postProcess: " + postProcessTime.toFixed(1);
+            }
           }
+        } else {
+          drawCounts = 0;
         }
-      } else {
-        drawCounts = 0;
       }
-    }
+    });
+    return unsub;
   });
 
   onMount(() => {
@@ -71,9 +83,9 @@
 
 <div class="tile-data-canvas">
   <div class="tile-data-canvas-container">
-    <!-- svelte-ignore a11y-mouse-events-have-key-events -->
+    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
     <canvas
-      on:mousemove={onMouseMove}
+      onmousemove={onMouseMove}
       bind:this={canvas}
       {width}
       {height}

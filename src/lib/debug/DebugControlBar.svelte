@@ -5,11 +5,10 @@
     import { Emulator, Debug } from "../../emulator";
     import { EmulatorPaused } from "stores/playStores";
 
-    let breakSkipCount: number = 1;
-    let hasRomToDebug = false;
-
-    $: hasRomToDebug =
-        $loadedBootRom != undefined || $loadedCartridge != undefined;
+    let breakSkipCount: number = $state(1);
+    let hasRomToDebug = $derived(
+        $loadedBootRom != undefined || $loadedCartridge != undefined
+    );
 
     async function onIgnoreBreakClick() {
         for (let i = 0; i < breakSkipCount + 1; i++) {
@@ -28,35 +27,35 @@
 
 <div class="debug-control-buttons">
     <button
-        on:click={onRunPauseClick}
+        onclick={onRunPauseClick}
         disabled={!$DebuggerAttached || !hasRomToDebug}
         >{$EmulatorPaused ? "Run Debug" : "Pause"}</button
     >
     <button
-        on:click={Debug.Step}
+        onclick={Debug.Step}
         disabled={!$DebuggerAttached || !hasRomToDebug}>Step</button
     >
     <button
-        on:click={Debug.RunFrame}
+        onclick={Debug.RunFrame}
         disabled={!$DebuggerAttached || !hasRomToDebug}
     >
         Next Frame
     </button>
     <div class="next-frame-group">
         <button
-            on:click={onIgnoreBreakClick}
+            onclick={onIgnoreBreakClick}
             disabled={!$DebuggerAttached || !hasRomToDebug}
             >{`Ignore ${breakSkipCount} break`}</button
         >
         <div class="next-frame-count-buttons">
-            <button on:click={() => breakSkipCount++}>+</button>
+            <button onclick={() => breakSkipCount++}>+</button>
             <button
-                on:click={() => breakSkipCount--}
+                onclick={() => breakSkipCount--}
                 disabled={breakSkipCount <= 1}>-</button
             >
         </div>
     </div>
-    <button on:click={Emulator.Reset} disabled={!hasRomToDebug}>Reset</button>
+    <button onclick={Emulator.Reset} disabled={!hasRomToDebug}>Reset</button>
 </div>
 
 <style>

@@ -21,22 +21,22 @@
     { name: customName, start: 0xff80, size: 0x80 },
   ];
 
-  let promise: Promise<Uint8Array> = undefined;
+  let promise: Promise<Uint8Array> | undefined = $state(undefined);
   let index = 0;
 
-  let minPC: number = areas[0].start;
-  let count: number = areas[0].size;
+  let minPC: number = $state(areas[0].start);
+  let count: number = $state(areas[0].size);
 
-  let selectedArea: MemArea;
+  let selectedArea: MemArea = $state(undefined);
 
   function onClick() {
     promise = getHexDump(minPC, count);
   }
 
-  $: {
+  $effect(() => {
     minPC = selectedArea?.start ?? areas[0].start;
     count = selectedArea?.size ?? areas[0].size;
-  }
+  });
 </script>
 
 <div class="hex-viewer debug-tool-container">
@@ -63,7 +63,7 @@
       </div>
     {/if}
 
-    <button on:click={onClick}
+    <button onclick={onClick}
       >Fetch from {uToHex16(minPC)} to {uToHex16(minPC + count)}</button
     >
   </div>

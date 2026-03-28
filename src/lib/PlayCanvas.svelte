@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  export let width: number = 42;
-  export let height: number = 42;
-  export let pixelSize = 2;
+  let { width = 42, height = 42, pixelSize = 2 } = $props<{ width?: number; height?: number; pixelSize?: number }>();
 
   let canvas: HTMLCanvasElement;
   let context: CanvasRenderingContext2D;
@@ -23,7 +21,7 @@
 
 <div class="tile-data-canvas">
   <div class="tile-data-canvas-container">
-    <!-- svelte-ignore a11y-mouse-events-have-key-events -->
+    <!-- svelte-ignore a11y_mouse_events_have_key_events -->
     <canvas
       bind:this={canvas}
       {width}

@@ -3,17 +3,13 @@
     import { Breakpoints } from "stores/debugStores";
     import type { ProgramLine } from "../../types";
 
-    export let line: ProgramLine;
-    export let highlighted: boolean = false;
-
-    let breakpoint: boolean = $Breakpoints.has(line.pc);
+    let { line, highlighted = false } = $props<{ line: ProgramLine; highlighted?: boolean }>();
 
     function toggleBreakpoint() {
         if ($Breakpoints.has(line.pc)) $Breakpoints.delete(line.pc);
         else $Breakpoints.add(line.pc);
         Debug.SetBreakpoint(line.pc, $Breakpoints.has(line.pc));
         $Breakpoints = $Breakpoints;
-        breakpoint = $Breakpoints.has(line.pc);
     }
 </script>
 
@@ -21,8 +17,8 @@
     <button
         class="breakpoint-pill"
         class:breakpoint-enabled={$Breakpoints.has(line.pc)}
-        on:click={toggleBreakpoint}
-    />
+        onclick={toggleBreakpoint}
+    ></button>
     <span class="line-number">0x{line.pc.toString(16).padStart(4, "0")}</span>
     <span class="op">{line.op}</span>
     {#each line.parameters as op}
