@@ -4,14 +4,14 @@
     import { GameFrames } from "stores/playStores";
     import LcdCanvas from "../LcdCanvas.svelte";
 
-    export let pixelSize = 2;
-    export let autodraw: boolean = true;
+    let { pixelSize = $bindable(2), autodraw = $bindable(true) } = $props<{ pixelSize?: number; autodraw?: boolean }>();
+
     export const draw = () => doDraw();
 
     let tileMap: Uint8Array = new Uint8Array(32 * 32);
-    let posDebug: string = "";
-    let tileDebug: string = "";
-    let drawBG;
+    let posDebug: string = $state("");
+    let tileDebug: string = $state("");
+    let lcdCanvas = $state(null);
 
     function drawBGLines(ctx: CanvasRenderingContext2D): void {
         if ($GbDebugInfoStore == undefined) return;
@@ -93,7 +93,7 @@
     }
 
     function doDraw() {
-        drawBG();
+        lcdCanvas?.draw();
     }
 </script>
 
@@ -104,7 +104,7 @@
     {postProcess}
     mouseMove={onMouseMove}
     frameStore={GameFrames}
-    bind:draw={drawBG}
+    bind:this={lcdCanvas}
     bind:autodraw
     bind:pixelSize
 />

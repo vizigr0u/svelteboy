@@ -1,33 +1,33 @@
 <script>
     import { onMount, tick } from "svelte";
 
-    // props
-    export let items;
-    export let height = "100%";
-    export let itemHeight = undefined;
+    /** @type {{ items: any[], height?: string, itemHeight?: number, children: import('svelte').Snippet<[any]> }} */
+    let { items, height = "100%", itemHeight = undefined, children } = $props();
 
-    // read-only, but visible to consumers via bind:start
-    export let start = 0;
-    export let end = 0;
     // local state
     let height_map = [];
     let rows;
     let viewport;
     let contents;
-    let viewport_height = 0;
-    let visible;
-    let mounted;
+    let viewport_height = $state(0);
+    let mounted = $state(false);
 
-    let top = 0;
-    let bottom = 0;
+    let start = $state(0);
+    let end = $state(0);
+    let top = $state(0);
+    let bottom = $state(0);
     let average_height;
 
-    $: visible = items.slice(start, end).map((data, i) => {
-        return { index: i + start, data };
-    });
+    let visible = $derived(
+        items.slice(start, end).map((data, i) => {
+            return { index: i + start, data };
+        })
+    );
 
     // whenever `items` changes, invalidate the current heightmap
-    $: if (mounted) refresh(items, viewport_height, itemHeight);
+    $effect(() => {
+        if (mounted) refresh(items, viewport_height, itemHeight);
+    });
 
     async function refresh(items, viewport_height, itemHeight) {
         const isStartOverflow = items.length < start;
@@ -105,10 +105,6 @@
 
         while (i < items.length) height_map[i++] = average_height;
         bottom = remaining * average_height;
-
-        // TODO if we overestimated the space these
-        // rows would occupy we may need to add some
-        // more. maybe we can just call handle_scroll again?
     }
 
     export async function scrollToIndex(index, opts) {
@@ -120,7 +116,6 @@
         opts = {
             left: 0,
             top: scrollTop + distance,
-            // behavior: "smooth",
             ...opts,
         };
         viewport.scrollTo(opts);
@@ -136,7 +131,7 @@
 <svelte-virtual-list-viewport
     bind:this={viewport}
     bind:offsetHeight={viewport_height}
-    on:scroll={handle_scroll}
+    onscroll={handle_scroll}
     style="height: {height};"
 >
     <svelte-virtual-list-contents
@@ -145,7 +140,7 @@
     >
         {#each visible as row (row.index)}
             <svelte-virtual-list-row>
-                <slot item={row.data}>Missing template</slot>
+                {@render children(row.data)}
             </svelte-virtual-list-row>
         {/each}
     </svelte-virtual-list-contents>

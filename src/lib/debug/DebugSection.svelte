@@ -12,16 +12,16 @@
     import { Debug } from "../../emulator";
     import AudioDebug from "./AudioDebug.svelte";
 
-    let drawTiles;
-    let drawBG;
-    let pixelSize = 2;
-    let autodraw: boolean = true;
+    let lcdCanvas = $state(null);
+    let bgCanvas = $state(null);
+    let pixelSize = $state(2);
+    let autodraw: boolean = $state(true);
 
-    let tileDebug: string = "";
+    let tileDebug: string = $state("");
 
     function onRefreshClick() {
-        drawTiles();
-        drawBG();
+        lcdCanvas?.draw();
+        bgCanvas?.draw();
     }
 
     function onMouseMoveOnTiles(ev: MouseEvent) {
@@ -61,7 +61,7 @@
                 auto-draw
                 <input type="checkbox" bind:checked={autodraw} />
             </label>
-            <button on:click={onRefreshClick}>Draw now</button>
+            <button onclick={onRefreshClick}>Draw now</button>
             <input type="range" bind:value={pixelSize} min="1" max="10" />
         </div>
         <h4>Tile Data</h4>
@@ -71,14 +71,14 @@
             updateBuffer={(a) => Debug.DrawTileData(a, 32 * 8)}
             mouseMove={onMouseMoveOnTiles}
             frameStore={GameFrames}
-            bind:draw={drawTiles}
+            bind:this={lcdCanvas}
             autodraw={autodraw && $DebuggerAttached}
             bind:pixelSize
         />
         <span class="tile-debug">{tileDebug}</span>
         <h4>Background</h4>
         <BgCanvas
-            bind:draw={drawBG}
+            bind:this={bgCanvas}
             autodraw={autodraw && $DebuggerAttached}
             bind:pixelSize
         />

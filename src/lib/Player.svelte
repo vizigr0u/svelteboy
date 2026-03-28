@@ -9,22 +9,22 @@
     import { DragState } from "../types";
     import PlayCanvas from "./PlayCanvas.svelte";
 
-    let dragState: DragState;
-    let drawToCanvas;
+    let dragState: DragState = $state(DragState.Idle);
+    let playCanvas = $state(null);
 
     Emulator.AddPostRunCallback(() => {
-        drawToCanvas(Emulator.GetGameFrame());
+        playCanvas?.draw(Emulator.GetGameFrame());
     });
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
     class="console"
     role="main"
     tabindex="0"
-    on:keydown={gameInputKeydownHandler}
-    on:keyup={gameInputKeyupHandler}
+    onkeydown={gameInputKeydownHandler}
+    onkeyup={gameInputKeyupHandler}
 >
     <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
         <div
@@ -35,7 +35,7 @@
             <PlayCanvas
                 width={160}
                 height={144}
-                bind:draw={drawToCanvas}
+                bind:this={playCanvas}
                 pixelSize={$playerPixelSize}
             />
             {#if $showFPS}

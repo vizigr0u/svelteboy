@@ -1,6 +1,5 @@
 <script lang="ts">
-    export let value: number;
-    export let byteSize: number = 16;
+    let { value, byteSize = 16 } = $props<{ value: number; byteSize?: number }>();
 </script>
 
 <div class="debug-value">
