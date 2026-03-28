@@ -10,8 +10,8 @@
     import RomList from "./RomList.svelte";
     import HomeBrewList from "../assets/homebrews";
 
-    let dragState: DragState;
-    let dragStatus: string;
+    let dragState: DragState = $state(DragState.Idle);
+    let dragStatus: string = $state("");
 
     enum Tab {
         Homebrews,
@@ -21,7 +21,7 @@
     const homebrews: RemoteRom[] = HomeBrewList;
     console.log("Homebrews: " + JSON.stringify(homebrews));
 
-    let tab: Tab = Tab.Local;
+    let tab: Tab = $state(Tab.Local);
 
     let tabOptions = [Tab.Local, Tab.Hosted];
 </script>
@@ -39,7 +39,7 @@
         <div>
             {#each tabOptions as tabOption}
                 <button
-                    on:click={() => (tab = tabOption)}
+                    onclick={() => (tab = tabOption)}
                     disabled={tab == tabOption}>{Tab[tabOption]}</button
                 >
             {/each}
@@ -50,7 +50,7 @@
             <RomList title="Local roms" roms={homebrews} />
         {:else if $FetchingRemoteRoms}
             <span class="loading-roms-text"
-                ><i class="fas fa-spinner fa-spin" /> Fetching {$RemoteRomsListUri}...</span
+                ><i class="fas fa-spinner fa-spin"></i> Fetching {$RemoteRomsListUri}...</span
             >
         {:else}
             <RomList title="Hosted roms" roms={$CachedRemoteRoms} />

@@ -119,7 +119,7 @@
             bind:this={leftCanvas}
             width={WIDTH}
             height={HEIGHT}
-        />
+        ></canvas>
     </div>
     <div class="canvas-container">
         <span>RIGHT</span>
@@ -130,7 +130,7 @@
             bind:this={rightCanvas}
             width={WIDTH}
             height={HEIGHT}
-        />
+        ></canvas>
     </div>
     <div class="canvas-container">
         <span>OUT</span>
@@ -141,7 +141,7 @@
             bind:this={analyserCanvas}
             width={WIDTH}
             height={HEIGHT}
-        />
+        ></canvas>
     </div>
     <div class="channels-mute-controls">
         Mute Channels:

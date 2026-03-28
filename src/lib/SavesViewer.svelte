@@ -86,7 +86,7 @@
         </h3>
         {#if !$DismissSavesWarning && relevantSaves.length > 0}
             <div class="warning">
-                <i class="fa-solid fa-triangle-exclamation" /><span>
+                <i class="fa-solid fa-triangle-exclamation"></i><span>
                     Saves are NOT persistent (yet), they aren't stored! (Also
                     not well tested)<br /> Don't forget to download the save
                     files you want to keep.<br />
@@ -95,9 +95,10 @@
                     RAM.
                 </span>
                 <button
-                    on:click={() => {
+                    aria-label="Dismiss"
+                    onclick={() => {
                         $DismissSavesWarning = true;
-                    }}><i class="fa-solid fa-xmark" /></button
+                    }}><i class="fa-solid fa-xmark"></i></button
                 >
             </div>
         {/if}
@@ -109,25 +110,26 @@
                             save.buffer.byteLength
                         )})
                     </div>
-                    <button on:click={() => onLoadClick(save)}>Load</button>
-                    <button on:click={() => onDownloadClick(save)}
-                        ><i class="fa-solid fa-cloud-arrow-down" /></button
+                    <button onclick={() => onLoadClick(save)}>Load</button>
+                    <button aria-label="Download" onclick={() => onDownloadClick(save)}
+                        ><i class="fa-solid fa-cloud-arrow-down"></i></button
                     >
                     <button
                         class="delete-button"
-                        on:click={() => onDeleteClick(save)}
-                        ><i class="fa-solid fa-trash" /></button
+                        aria-label="Delete"
+                        onclick={() => onDeleteClick(save)}
+                        ><i class="fa-solid fa-trash"></i></button
                     >
                 </div>
             {/each}
         </div>
         <label>Add save: <input type="file" bind:files /></label>
         {#if files}
-            <button on:click={onClickUpload}>Add...</button>
+            <button onclick={onClickUpload}>Add...</button>
         {/if}
         {#if relevantSaves.length >= 3}
-            <button on:click={onClearAllClick}
-                ><i class="fa-solid fa-trash" /> Delete All Saves!</button
+            <button onclick={onClearAllClick}
+                ><i class="fa-solid fa-trash"></i> Delete All Saves!</button
             >
         {/if}
     </div>

@@ -1,8 +1,8 @@
 <script>
     import { onMount, tick } from "svelte";
 
-    /** @type {{ items: any[], height?: string, itemHeight?: number, children: import('svelte').Snippet<[any]> }} */
-    let { items, height = "100%", itemHeight = undefined, children } = $props();
+    /** @type {{ items: any[], height?: string, itemHeight?: number, start?: number, end?: number, children: import('svelte').Snippet<[any]> }} */
+    let { items, height = "100%", itemHeight = undefined, start = $bindable(0), end = $bindable(0), children } = $props();
 
     // local state
     let height_map = [];
@@ -12,8 +12,6 @@
     let viewport_height = $state(0);
     let mounted = $state(false);
 
-    let start = $state(0);
-    let end = $state(0);
     let top = $state(0);
     let bottom = $state(0);
     let average_height;

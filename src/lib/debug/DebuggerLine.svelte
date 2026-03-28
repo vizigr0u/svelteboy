@@ -17,6 +17,7 @@
     <button
         class="breakpoint-pill"
         class:breakpoint-enabled={$Breakpoints.has(line.pc)}
+        aria-label="Toggle breakpoint"
         onclick={toggleBreakpoint}
     ></button>
     <span class="line-number">0x{line.pc.toString(16).padStart(4, "0")}</span>

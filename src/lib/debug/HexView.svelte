@@ -22,7 +22,7 @@
 <div class="hex-viewer-grid">
     fetched data: {dataArray.byteLength} Bytes.
     <div class="hex-viewer__content">
-        <div />
+        <div></div>
         {#each Array(16) as _, x (x)}
             <div class="hex-viewer__header-number">
                 {x.toString(16).padStart(2, "0")}
