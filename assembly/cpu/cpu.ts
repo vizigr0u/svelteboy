@@ -85,7 +85,7 @@ export class Cpu {
         const t_cycles: u8 = wasHalted ? 4 : Cpu.executeNextInstruction();
         Cpu.CycleCount += t_cycles;
 
-        if (wasHalted && Interrupt.Requests() != 0) {
+        if (wasHalted && (Interrupt.Requests() & Interrupt.GetEnabled()) != 0) {
             Cpu.isHalted = false;
         }
 

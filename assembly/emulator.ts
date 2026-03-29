@@ -8,7 +8,7 @@ import { Ppu, PpuMode } from "./io/video/ppu";
 import { Debugger } from "./debug/debugger";
 import { SaveGame } from "./memory/savegame";
 import { AudioRender } from "./audio/render";
-import { CYCLES_PER_SECOND } from './constants';
+import { CYCLES_PER_SECOND, CYCLES_PER_FRAME } from './constants';
 import { APU } from "./audio/apu";
 
 function log(s: string): void {
@@ -89,7 +89,10 @@ enum EmulatorStopReason {
 
     static RunFrames(frames: u32): EmulatorStopReason {
         Emulator.targetFrame = Ppu.currentFrame + frames;
-        Emulator.targetCycles = 0;
+        // Safety cap: prevent infinite loop when LCD is off (Ppu.currentFrame never increments).
+        // Must exceed one real hardware frame (154 scanlines × 456 dots = 70224 cycles) so
+        // that EndOfFrame still fires first under normal operation.
+        Emulator.targetCycles = Cpu.CycleCount + <u64>CYCLES_PER_FRAME * (<u64>frames + 1);
         AudioRender.Prepare(Cpu.CycleCount);
         let stopReason = EmulatorStopReason.None;
         do {
