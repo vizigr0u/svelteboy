@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "npm run asbuild:debug && node tests",
+    "test": "pnpm run asbuild:debug && node tests",
     "asbuild:debug": "asc assembly/index.ts --target debug",
     "asbuild:debugrelease": "asc assembly/index.ts --target debugrelease",
     "asbuild:release": "asc assembly/index.ts --target release",
     "dev": "vite",
-    "build": "npm run asbuild:release && vite build",
+    "build": "pnpm run asbuild:release && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "start": "npx serve dist"
