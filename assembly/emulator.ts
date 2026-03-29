@@ -87,8 +87,8 @@ enum EmulatorStopReason {
         return stopReason;
     }
 
-    static RunOneFrame(): EmulatorStopReason {
-        Emulator.targetFrame = Ppu.currentFrame + 1;
+    static RunFrames(frames: u32): EmulatorStopReason {
+        Emulator.targetFrame = Ppu.currentFrame + frames;
         Emulator.targetCycles = 0;
         AudioRender.Prepare(Cpu.CycleCount);
         let stopReason = EmulatorStopReason.None;
@@ -135,7 +135,9 @@ enum EmulatorStopReason {
 
 export function initEmulator(useBootRom: boolean = true): void { Emulator.Init(useBootRom); }
 
-export function runOneFrame(): EmulatorStopReason { return Emulator.RunOneFrame(); }
+export function runFrames(frames: u32): EmulatorStopReason { return Emulator.RunFrames(frames); }
+
+export function runOneFrame(): EmulatorStopReason { return Emulator.RunFrames(1); }
 
 export function runEmulator(timeMilliSec: f64): EmulatorStopReason { return Emulator.Run(timeMilliSec); }
 
