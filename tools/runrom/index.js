@@ -1,32 +1,14 @@
 import {
-    // loadCartridgeRom,
-    loadBootRom, runOneFrame, initEmulator, setVerbose, serialEnableLog, dumpLogToConsole
+    loadCartridgeRom,
+    loadBootRom, runFrames, initEmulator, setVerbose,
+    // serialEnableLog, dumpLogToConsole
 } from "../../build/backend.js";
 
 import { open } from 'node:fs/promises';
 
 const DEFAULT_VERBOSE = 4;
+
 let verbose = DEFAULT_VERBOSE;
-
-// import { parseArgs } from "node:util";
-
-// const {
-//     values: { benchmark, verbose: verboseStr }, positionals
-// } = parseArgs({
-//     options: {
-//         verbose: {
-//             type: "string",
-//             short: "v",
-//             default: DEFAULT_VERBOSE.toString()
-//         },
-//         benchmark: {
-//             type: "boolean"
-//         },
-//     },
-// });
-
-// console.log(`Bench: ${benchmark}, verbose: ${verboseStr}, positionals: ${JSON.stringify(positionals)}"`)
-// process.exit(0)
 
 let args = process.argv;
 
@@ -56,9 +38,8 @@ setVerbose(0);
 
 function runBenchmark() {
     const t0 = performance.now();
-    const frames = 800;
-    for (let i = 0; i < frames; i++)
-        runOneFrame();
+    const frames = 5000;
+    runFrames(frames);
     const t1 = performance.now();
     console.log(`time: ${frames} frames in ${t1 - t0}ms = ${(frames * 1000) / (t1 - t0)} FPS`);
 }
