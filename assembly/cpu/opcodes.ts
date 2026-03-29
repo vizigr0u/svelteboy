@@ -72,12 +72,14 @@ export class Instruction {
     byteSize: u8;
     cycleCounts: StaticArray<u8>;
     immediate: boolean;
+    is16bit: boolean;
     operands: StaticArray<Operand>
     constructor(mnemonic: Op, byteSize: u8, cycleCount: u8, immediate: boolean, operands: Array<Operand>) {
         this.mnemonic = mnemonic;
         this.byteSize = byteSize;
         this.cycleCounts = StaticArray.fromArray([cycleCount]);
         this.immediate = immediate;
+        this.is16bit = (mnemonic == Op.INC || mnemonic == Op.DEC) && cycleCount == 8;
         this.operands = StaticArray.fromArray(operands);
     }
 

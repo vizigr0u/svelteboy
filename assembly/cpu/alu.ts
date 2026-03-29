@@ -128,7 +128,7 @@ export class Alu {
 
     static IncOp(instr: Instruction): void {
         const registerOp = instr.operands[0];
-        if (instr.cycleCounts[0] == 8) { // 16 bit
+        if (instr.is16bit) { // 16 bit
             const value: u16 = Cpu.get16bitValue(0x00, registerOp);
             Cpu.Set16bitValue(0x00, registerOp, value + 1);
         } else {
@@ -143,7 +143,7 @@ export class Alu {
 
     static DecOp(instr: Instruction): void {
         const registerOp = instr.operands[0];
-        if (instr.cycleCounts[0] == 8) { // 16 bit
+        if (instr.is16bit) { // 16 bit
             const value: u16 = Cpu.get16bitValue(0x00, registerOp);
             Cpu.Set16bitValue(0x00, registerOp, value - 1);
         } else {
