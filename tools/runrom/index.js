@@ -12,8 +12,13 @@ let verbose = DEFAULT_VERBOSE;
 
 let args = process.argv;
 
+const interactive = args.includes('--interactive');
+
 const benchmark = args.includes('--benchmark');
 
+if (interactive) {
+    args = args.filter(a => a != '--interactive');
+}
 if (benchmark) {
     args = args.filter(a => a != '--benchmark');
 }
@@ -37,11 +42,26 @@ const promises = [bootFile.readFile(), cartFile.readFile()];
 setVerbose(0);
 
 function runBenchmark() {
-    const t0 = performance.now();
-    const frames = 5000;
-    runFrames(frames);
-    const t1 = performance.now();
-    console.log(`time: ${frames} frames in ${t1 - t0}ms = ${(frames * 1000) / (t1 - t0)} FPS`);
+    const frames = 1500;
+    const iterations = 10;
+    // init low, avg and max
+    let avg = 0;
+    let low = 0;
+    let max = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < iterations; i++)
+    {
+        const t0 = performance.now();
+        runFrames(frames);
+        const time = performance.now() - t0;
+        avg += time / iterations;
+        low = Math.max(low, time);
+        max = Math.min(max, time);
+        if (interactive) {
+            console.log(`Iteration ${i + 1} - Time: ${time.toFixed(2)} ms (FPS: ${(frames * 1000) / time})`);
+        }
+    }
+    console.log(`Avg: ${(frames * 1000) / avg}, Low: ${(frames * 1000) / low}, High: ${(frames * 1000) / max}`);
 }
 
 Promise.all(promises).then(result => {
