@@ -50,14 +50,13 @@ enum EmulatorStopReason {
         if (Logger.verbose >= 3)
             log("Ticking emulator");
 
-        Timer.Tick(4);
         const t_cycles = Cpu.Tick();
 
         if (Logger.verbose >= 4)
             log("Cpu tick lasted " + t_cycles.toString() + ' cycles');
 
-        if (t_cycles > 4)
-            Timer.Tick(t_cycles - 4);
+        Timer.Tick(t_cycles);
+
         for (let i: u8 = 0; i < t_cycles; i++) {
             Ppu.Tick();
             if (Dma.active && i % 4 == 0)
