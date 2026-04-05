@@ -47,7 +47,7 @@ export class MemoryMap {
         const hiByte: u8 = <u8>(gbAddress >> 12);
         switch (hiByte) {
             case 0x0:
-                if (MemoryMap.useBootRom && gbAddress <= 0x100)
+                if (MemoryMap.useBootRom && gbAddress < MemoryMap.loadedBootRomSize)
                     return BOOT_ROM_START + gbAddress;
             case 0x1:
             case 0x2:
