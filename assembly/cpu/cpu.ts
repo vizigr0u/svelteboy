@@ -82,16 +82,17 @@ export class Cpu {
 
     static Tick(): u8 {
         const wasHalted = Cpu.isHalted;
-        const t_cycles: u8 = wasHalted ? 4 : Cpu.executeNextInstruction();
-        Cpu.CycleCount += t_cycles;
+        let t_cycles: u8 = wasHalted ? 4 : Cpu.executeNextInstruction();
 
         if (wasHalted && (Interrupt.Requests() & Interrupt.GetEnabled()) != 0) {
             Cpu.isHalted = false;
         }
 
         if (Interrupt.masterEnabled) {
-            if (Interrupt.HandleInterrupts())
-                Cpu.CycleCount += 20;
+            if (Interrupt.HandleInterrupts()) {
+                // ISR dispatch: 2 wait states + 2 push + 1 set PC = 5 M-cycles = 20 T-cycles
+                t_cycles += 20;
+            }
             Cpu.isEnablingIME = false;
         }
 
@@ -101,6 +102,7 @@ export class Cpu {
             Interrupt.masterEnabled = true;
         }
 
+        Cpu.CycleCount += t_cycles;
         return t_cycles;
     }
 
@@ -148,6 +150,7 @@ export class Cpu {
                 break;
             case Op.DI:
                 Interrupt.masterEnabled = false;
+                Cpu.isEnablingIME = false;
                 break;
             case Op.EI:
                 Cpu.isEnablingIME = true; // don't enable IME right away, wait one loop
