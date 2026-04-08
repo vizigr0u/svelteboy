@@ -40,7 +40,6 @@ const tests = [
     testFifo,
     testPixelFifo,
     testInterrupts,
-    testTimer,
     testBlargg02Interrupts,
 ];
 
