@@ -16,8 +16,11 @@ import { AudioData } from "./AudioData";
 
 @final
 export class AudioRender {
+    static masterToggle: boolean = true;
+
     static AudioOn: boolean = false;
     static outBuffer: AudioOutBuffer = new AudioOutBuffer();
+    static renderingPaused: boolean = false;
 
     static channel1: PulseChannel = new PulseChannel(AudioData.channel1Buffer);
     static channel2: PulseChannel = new PulseChannel(AudioData.channel2Buffer);
@@ -42,6 +45,7 @@ export class AudioRender {
         AudioRender.sampleIndex = 0;
         AudioRender.initialCycles = 0;
         AudioRender.AudioOn = MemoryMap.useBootRom ? false : true;
+        AudioRender.renderingPaused = false;
         if (Logger.verbose >= 3) {
             const leftP = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Left).dataStart;
             const rightP = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Right).dataStart;
@@ -57,6 +61,10 @@ export class AudioRender {
     }
 
     static EnqueueEvent(type: u8, value: u8): boolean {
+        if (!AudioRender.masterToggle) {
+            return true;
+        }
+
         if (Logger.verbose >= 2) { // TODO: tone down
             log(`AudioEvent: ${type} = ${value}`);
         }
@@ -293,10 +301,17 @@ export class AudioRender {
             }
             if (spaceLeft <= samplesThisBuffer) {
                 if (!AudioRender.outBuffer.hasSpaceForNextBuffer()) {
-                    log('Stop rendering audio: Queue Full');
+                    if (!AudioRender.renderingPaused) {
+                        AudioRender.renderingPaused = true;
+                        log('Audio Render paused: Queue Full');
+                    }
                     break;
                 }
                 AudioRender.outBuffer.nextWorkingBuffers();
+                if (AudioRender.renderingPaused) {
+                    AudioRender.renderingPaused = false;
+                    log('Audio Render resumed: new buffer available');
+                }
             }
         }
         if (Logger.verbose >= 2)
@@ -321,6 +336,10 @@ export function setMuteChannel(channel: u8, setMute: boolean = false): void {
         default:
             break;
     }
+}
+
+export function setMasterAudioToggle(on: boolean): void {
+    AudioRender.masterToggle = on;
 }
 
 export function getAudioSampleRate(): f64 {
