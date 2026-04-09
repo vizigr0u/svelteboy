@@ -40,20 +40,29 @@ export class Timer {
         if (Logger.verbose >= 2) {
             log('Timer running ' + (tCycles >> 2).toString() + ' m-cycle(s)')
         }
-        let prevDiv = Timer.internalDiv;
+        const prevDiv = Timer.internalDiv;
         Timer.internalDiv += tCycles;
-        if (Timer.Enabled && (prevDiv & Timer.DivWatchBit) != 0 && (Timer.internalDiv & Timer.DivWatchBit) == 0) {
-            if (Logger.verbose >= 2) {
-                log(`Timer enabled, relevant bit was reset: ${Timer.DivWatchBit.toString(2)} in ${uToHex<u16>(Timer.internalDiv)}. Tima = ${uToHex<u8>(Timer.Tima)}`)
-            }
-            if (Timer.Tima == 0xFF) {
-                Timer.Tima = Timer.Tma;
-                Interrupt.Request(IntType.Timer);
+        if (Timer.Enabled) {
+            // Count the number of falling edges of DivWatchBit in [prevDiv, prevDiv+tCycles).
+            // A falling edge occurs at every multiple of (DivWatchBit << 1).
+            // Simple check (prev & bit != 0 && new & bit == 0) misses edges when tCycles
+            // is large enough to skip a complete high+low half-period inside the increment.
+            const period: u16 = Timer.DivWatchBit << 1;
+            const offset: u16 = prevDiv & (period - 1);
+            const edges: u16 = (offset + tCycles) / period;
+            for (let i: u16 = 0; i < edges; i++) {
                 if (Logger.verbose >= 2) {
-                    log(`Requested Int Timer and set Tima to ${uToHex<u8>(Timer.Tma)}`)
+                    log(`Timer edge: DivWatchBit=${Timer.DivWatchBit.toString(2)} internalDiv=${uToHex<u16>(Timer.internalDiv)} Tima=${uToHex<u8>(Timer.Tima)}`)
                 }
-            } else {
-                Timer.Tima++;
+                if (Timer.Tima == 0xFF) {
+                    Timer.Tima = Timer.Tma;
+                    Interrupt.Request(IntType.Timer);
+                    if (Logger.verbose >= 2) {
+                        log(`Requested Int Timer and set Tima to ${uToHex<u8>(Timer.Tma)}`)
+                    }
+                } else {
+                    Timer.Tima++;
+                }
             }
         }
     }

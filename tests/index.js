@@ -1,3 +1,5 @@
+import { test } from "./framework.js";
+
 import {
     testRegisters,
     testMemory,
@@ -12,54 +14,36 @@ import {
     testMisc,
     testFifo,
     dumpLogToConsole,
-    setVerbose,
     testPixelFifo,
-    testUint4Array
+    testUint4Array,
+    testInterrupts,
 } from "../build/backend.js";
+
+import { testBlargg02Interrupts } from "./blargg.js";
+
 
 console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
 
-function colorString(str, colorCode) {
-    return '\u001b[' + colorCode + 'm' + str + '\u001b[0m';
-}
-
-const okString = colorString('✓', 92);
-const failString = colorString('✖', 91);
-const ignoreString = colorString('-', 93);
-
-function test(testableFunc, ignored = false) {
-    if (ignored) {
-        console.log(ignoreString + ' ' + testableFunc.name + ' (ignored)');
-        return;
-    }
-    const result = testableFunc();
-    console.log((result ? okString : failString) + ' ' + colorString(testableFunc.name, result ? 32 : 31));
-}
-
 dumpLogToConsole();
-
-test(testUint4Array);
-
 resetCpuTestSession();
 
-test(testVideo);
+const tests = [
+    testUint4Array,
+    testVideo,
+    testRegisters,
+    testMemory,
+    testCpu,
+    testNop,
+    testInstructions,
+    testPrograms,
+    testMisc,
+    testFifo,
+    testPixelFifo,
+    testInterrupts,
+    testTimer,
+    testBlargg02Interrupts,
+];
 
-test(testRegisters);
-
-test(testMemory);
-
-test(testCpu);
-
-test(testNop);
-
-test(testInstructions);
-
-test(testPrograms);
-
-test(testMisc);
-
-test(testFifo);
-
-test(testPixelFifo);
+tests.forEach(fn => test(fn));
 
 console.log(getCpuTestSessionSummary());
