@@ -9,12 +9,6 @@ Per 128 Hz DIV-APU tick: calc new period, overflow check, write back if ≤ 2047
 Overflow disables CH1 even if pace = 0 (as long as individual step ≠ 0) — this means triggering a note with step > 0 can immediately kill CH1
 Clearing direction bit (NR10 bit 3) after a subtracting sweep iteration immediately disables CH1
 
-2. Retrigger While Already Enabled — Wrong
-render.ts:195, 213, 229, 247:
-
-if (!channel1.Enabled && (ev.Value & 0x80) != 0) trigger();
-Should trigger even when channel is already active. Retrigger reloads period divider, envelope timer, volume — without the !Enabled gate.
-
 3. Length Timer Formula — Likely Wrong
 AudioChannelBase.ts:30:
 
@@ -28,6 +22,7 @@ No DAC enabled/disabled state per channel
 DAC for CH1/CH2/CH4: enabled iff NRx2 & 0xF8 != 0 — if DAC off, channel must be force-disabled and retrigger is ineffective
 CH3 DAC controlled by NR30 bit 7 independently of channel enabled state
 Currently render.ts:217 (NR30_C3Enable) directly sets enabled, which conflates DAC and channel active state
+
 5. High-Pass Filter — Not Implemented
 The output is missing the HPF that removes DC offset. Per spec (Audio_details.md):
 
