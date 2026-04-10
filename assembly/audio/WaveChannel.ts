@@ -2,7 +2,7 @@ import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
 import { AudioChannelBase } from "./AudioChannelBase";
-import { SAMPLE_RATE } from "./audioRegisters";
+import { SAMPLE_RATE } from "./constants";
 import { Uint4Array } from "./Uint4Array";
 
 export enum OutputLevel {
@@ -14,7 +14,6 @@ export enum OutputLevel {
 
 @final
 export class WaveChannel extends AudioChannelBase {
-    SweepPace: u8 = 0;
     Level: OutputLevel = OutputLevel.Quarter;
 
     private waveData: Uint4Array = new Uint4Array(0);

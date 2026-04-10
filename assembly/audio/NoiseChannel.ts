@@ -2,11 +2,10 @@ import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
 import { AudioChannelBase } from "./AudioChannelBase";
-import { SAMPLE_RATE } from "./audioRegisters";
+import { SAMPLE_RATE } from "./constants";
 
 @final
 export class NoiseChannel extends AudioChannelBase {
-    SweepPace: u8 = 0;
     ShortMode: boolean = false;
     Lsfr: u16 = 0;
 
@@ -44,12 +43,20 @@ export class NoiseChannel extends AudioChannelBase {
     }
 
     Render(start: i32, end: i32): void {
-        for (let i: i32 = start; i < end; i++) {
-            if (this.Enabled) {
-                assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
-                this.Buffer[i] = (this.Lsfr & 1) != 0 ? this.InitialVolume : 0;
+        let i: i32 = start;
+        assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
+        while (i < end) {
+            if (!this.Enabled) {
+                return;
+            }
+            const numSamplesUntilEnvelopeChange: i32 = this.GetNumSamplesUntilEnvelopeVolumeChange();
+            const volume: u8 = this.GetCurrentEnvelopeVolume();
+            const segEnd: i32 = numSamplesUntilEnvelopeChange > 0 && numSamplesUntilEnvelopeChange < (end - i) ? i + numSamplesUntilEnvelopeChange : end;
+
+            for (let j: i32 = i; j < segEnd; j++) {
+                this.Buffer[j] = (this.Lsfr & 1) != 0 ? volume : 0;
                 if (Logger.verbose >= 4)
-                    log(`c4Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
+                    log(`c4Sound[${j}] = ${uToHex<u8>(this.Buffer[j])}`);
                 this.lsfrSampleCount++;
                 const timeElapsed: f64 = this.lsfrTimeOffset + <f64>this.lsfrSampleCount / SAMPLE_RATE;
                 const dt: f64 = timeElapsed - this.lsfrPeriod;
@@ -62,7 +69,10 @@ export class NoiseChannel extends AudioChannelBase {
                     this.lsfrTimeOffset = dt;
                 }
             }
+            this.updateTimer(segEnd - i);
+
+            i = segEnd;
         }
-        this.updateTimer(end - start);
+        // this.updateTimer(end - start); // TODO: handle timer better?
     }
 }
