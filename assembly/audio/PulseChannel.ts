@@ -2,7 +2,7 @@ import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
 import { AudioChannelBase } from "./AudioChannelBase";
-import { SAMPLE_RATE } from "./audioRegisters";
+import { SAMPLE_RATE } from "./constants";
 
 export enum DutyCycle {
     VeryHigh = 0,
@@ -30,9 +30,6 @@ function DutyCycleHighRatio(dc: DutyCycle): f32 {
 
 @final
 export class PulseChannel extends AudioChannelBase {
-    SweepPace: u8 = 0;
-    EnvelopeIncreasing: boolean = false;
-
     private waveHighRatio: f32 = DutyCycleHighRatio(DutyCycle.Medium);
     private frequencyBits: u16 = 1750; // A440
     private angularFrequency: f64;
@@ -78,11 +75,18 @@ export class PulseChannel extends AudioChannelBase {
     }
 
     Render(start: i32, end: i32): void {
-        for (let i: i32 = start; i < end; i++) {
-            if (this.Enabled) {
-                assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
-                const x: u8 = this.phase >= this.waveHighRatio ? this.InitialVolume : 0;
-                this.Buffer[i] = x;
+        let i: i32 = start;
+        assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
+        while (i < end) {
+            if (!this.Enabled) {
+                return;
+            }
+            const numSamplesUntilEnvelopeChange: i32 = this.GetNumSamplesUntilEnvelopeVolumeChange();
+            const volume: u8 = this.GetCurrentEnvelopeVolume();
+            const segEnd: i32 = numSamplesUntilEnvelopeChange > 0 && numSamplesUntilEnvelopeChange < (end - i) ? i + numSamplesUntilEnvelopeChange : end;
+
+            for (let j: i32 = i; j < segEnd; j++) {
+                this.Buffer[j] = this.phase >= this.waveHighRatio ? volume : 0;
                 if (Logger.verbose >= 3)
                     log(`pulse Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
                 this.phase += this.angularFrequency;
@@ -93,7 +97,11 @@ export class PulseChannel extends AudioChannelBase {
                     this.phase -= 1.0;
                 }
             }
+
+            this.updateTimer(segEnd - i);
+
+            i = segEnd;
         }
-        this.updateTimer(end - start);
+        // this.updateTimer(end - start); // TODO: handle timer better?
     }
 }

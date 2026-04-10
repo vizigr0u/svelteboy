@@ -7,7 +7,8 @@ import { NoiseChannel } from "./NoiseChannel";
 import { DutyCycle, PulseChannel } from "./PulseChannel";
 import { log } from "./apu";
 import { AudioOutBuffer } from "./audioBuffer";
-import { SAMPLE_RATE, SoundDataPtr, SoundDataSize } from "./audioRegisters";
+import { SAMPLE_RATE, CYCLES_PER_SAMPLE } from "./constants";
+import { SoundDataPtr, SoundDataSize } from "./audioRegisters";
 import { AudioChannel, AudioEvent, AudioRegisterType, getRegisterIndex } from "./audioTypes";
 import { AudioEventQueue } from "./eventQueue";
 
@@ -69,7 +70,7 @@ export class AudioRender {
             log(`AudioEvent: ${type} = ${value}`);
         }
         const cycleDiff: u32 = <u32>(Cpu.CycleCount - AudioRender.initialCycles);
-        const frameSampleIndex: u32 = <u32>Math.round((cycleDiff * SAMPLE_RATE) / CYCLES_PER_SECOND);
+        const frameSampleIndex: u32 = <u32>Math.round(<f64>cycleDiff / CYCLES_PER_SAMPLE);
         return AudioEventQueue.Enqueue(frameSampleIndex, type, value);
     }
 
@@ -185,11 +186,7 @@ export class AudioRender {
                     AudioRender.channel1.LengthTimer = ev.Value & 0b00111111;
                     break;
                 case AudioRegisterType.NR12_C1Volume:
-                    if (AudioRender.channel1.Enabled && (ev.Value & 0b11111000) == 0)
-                        AudioRender.channel1.disable();
-                    AudioRender.channel1.InitialVolume = ev.Value >> 4;
-                    AudioRender.channel1.SweepPace = ev.Value & 0b111;
-                    AudioRender.channel1.EnvelopeIncreasing = (ev.Value & 8) != 0;
+                    AudioRender.channel1.HandleEnvelopeEvent(ev.Value);
                     break;
                 case AudioRegisterType.NR13_C1PeriodLo:
                     AudioRender.channel1.PeriodLow = ev.Value;
@@ -205,11 +202,7 @@ export class AudioRender {
                     AudioRender.channel2.LengthTimer = ev.Value & 0b00111111;
                     break;
                 case AudioRegisterType.NR22_C2Volume:
-                    if (AudioRender.channel2.Enabled && (ev.Value & 0b11111000) == 0)
-                        AudioRender.channel2.disable();
-                    AudioRender.channel2.InitialVolume = ev.Value >> 4;
-                    AudioRender.channel2.SweepPace = ev.Value & 0b111;
-                    AudioRender.channel2.EnvelopeIncreasing = (ev.Value & 8) != 0;
+                    AudioRender.channel2.HandleEnvelopeEvent(ev.Value);
                     break;
                 case AudioRegisterType.NR23_C2PeriodLo:
                     AudioRender.channel2.PeriodLow = ev.Value;
@@ -242,10 +235,7 @@ export class AudioRender {
                     AudioRender.channel4.LengthTimer = ev.Value & 0b00111111;
                     break;
                 case AudioRegisterType.NR42_C4Volume:
-                    if (AudioRender.channel4.Enabled && (ev.Value & 0b11111000) == 0)
-                        AudioRender.channel4.disable();
-                    AudioRender.channel4.InitialVolume = ev.Value >> 4;
-                    AudioRender.channel4.SweepPace = ev.Value & 0b111;
+                    AudioRender.channel4.HandleEnvelopeEvent(ev.Value);
                     break;
                 case AudioRegisterType.NR43_C4Freq:
                     const shift: u8 = (ev.Value >> 4) & 0x0F;
@@ -280,7 +270,8 @@ export class AudioRender {
 
     static Render(currentCycles: u64): void {
         const t_cycles: u64 = currentCycles - AudioRender.initialCycles;
-        const samplesToWrite: i32 = <i32>Math.round((<f64>t_cycles * SAMPLE_RATE) / <f64>CYCLES_PER_SECOND);
+        assert(<f64>CYCLES_PER_SAMPLE > 0, `CYCLES_PER_SAMPLE should be > 0, got ${CYCLES_PER_SAMPLE}`);
+        const samplesToWrite: i32 = <i32>Math.round(<f64>t_cycles / <f64>CYCLES_PER_SAMPLE);
         if (Logger.verbose >= 2)
             log(`${samplesToWrite} samples = ${samplesToWrite >> 9} buffers of ${AudioOutBuffer.BufferSize}.i = ${AudioRender.sampleIndex} `);
         if (Logger.verbose >= 2 && AudioEventQueue.Size > 0) { // TODO: tone down
