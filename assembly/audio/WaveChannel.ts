@@ -86,6 +86,6 @@ export class WaveChannel extends AudioChannelBase {
                 }
             }
         }
-        this.updateTimer(end - start);
+        this.TickSamples(end - start);
     }
 }

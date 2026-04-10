@@ -192,7 +192,7 @@ export class AudioRender {
                     AudioRender.channel1.PeriodLow = ev.Value;
                     break;
                 case AudioRegisterType.NR14_C1PeriodHi:
-                    if (!AudioRender.channel1.Enabled && (ev.Value & 0x80) != 0)
+                    if ((ev.Value & 0x80) != 0)
                         AudioRender.channel1.trigger();
                     AudioRender.channel1.LengthEnabled = (ev.Value & 0x40) != 0;
                     AudioRender.channel1.PeriodHigh = ev.Value & 0b111;
@@ -208,7 +208,7 @@ export class AudioRender {
                     AudioRender.channel2.PeriodLow = ev.Value;
                     break;
                 case AudioRegisterType.NR24_C2PeriodHi:
-                    if (!AudioRender.channel2.Enabled && (ev.Value & 0x80) != 0)
+                    if ((ev.Value & 0x80) != 0)
                         AudioRender.channel2.trigger();
                     AudioRender.channel2.LengthEnabled = (ev.Value & 0x40) != 0;
                     AudioRender.channel2.PeriodHigh = ev.Value & 0b111;
@@ -226,7 +226,7 @@ export class AudioRender {
                     AudioRender.channel3.PeriodLow = ev.Value;
                     break;
                 case AudioRegisterType.NR34_C3PeriodHi:
-                    if (!AudioRender.channel3.Enabled && (ev.Value & 0x80) != 0)
+                    if ((ev.Value & 0x80) != 0)
                         AudioRender.channel3.trigger();
                     AudioRender.channel3.LengthEnabled = (ev.Value & 0x40) != 0;
                     AudioRender.channel3.PeriodHigh = ev.Value & 0b111;
@@ -244,7 +244,7 @@ export class AudioRender {
                     AudioRender.channel4.setLsfrClock(shift, divider);
                     break;
                 case AudioRegisterType.NR44_C4Control:
-                    if (!AudioRender.channel4.Enabled && (ev.Value & 0x80) != 0)
+                    if ((ev.Value & 0x80) != 0)
                         AudioRender.channel4.trigger();
                     break;
                 case AudioRegisterType.NR50_Volume:

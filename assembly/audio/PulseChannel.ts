@@ -98,7 +98,7 @@ export class PulseChannel extends AudioChannelBase {
                 }
             }
 
-            this.updateTimer(segEnd - i);
+            this.TickSamples(segEnd - i);
 
             i = segEnd;
         }
