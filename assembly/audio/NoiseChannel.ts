@@ -69,7 +69,7 @@ export class NoiseChannel extends AudioChannelBase {
                     this.lsfrTimeOffset = dt;
                 }
             }
-            this.updateTimer(segEnd - i);
+            this.TickSamples(segEnd - i);
 
             i = segEnd;
         }

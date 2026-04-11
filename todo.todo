@@ -1,135 +1,22 @@
-☐ Audio:
-    ☐ Channel 3 (wave)
-    ☐ Finish Channel 4 Noise
-    ☐ Channels 1-2-4 Enveloppe
-    ☐ Channel 1-2 Period Sweeps
+☐ Architecture:
+    ☐ Migrate to scheduler model for PPU (see todo.architecture.md for more details)
+☐ Audio (see todo.audio.md for more details):
+    ☐ CH1 sweep entirely missing	Many games (Mario, Zelda) use pitch sweeps
+    ☐ Mixer wrong	All output volume balance is off
+    ☐ No retrigger	Notes that restart same channel break
+    ☐ Length timer formula	Notes cut at wrong times
+    ☐ DACs not tracked	Spurious channel enables/disables
+    ☐ LFSR shift 14/15	Noise channel doesn't silence correctly
+    ☐ No HPF	Audio pops on every DAC/volume change
+    ☐ Envelope period 0	Fast envelope decay broken
+    ☐ NR52 status bits	Games that poll channel state break
+    ☐ APU power-off	APU reset sequence incorrect
+    ☐ Period delay	Very slight pitch timing inaccuracy
+    ☐ CH3 last-sample	CH3 retrigger has brief wrong output
+    ☐ Obscure DIV-APU edge cases	Rarely noticeable
 ☐ Check timing test roms
 ☐ disassemble dynamic parts (WRAM, HRAM)
 ☐ Use webgl for display + shader to choose coloring?
 ☐ Improve overall UX for saving loading etc.
 ☐ ???
 ☐ PROFIT
-
-
-Archicture: migrate to scheduler model for PPU:
-
-Overview
-6 phases, each independently testable. The core idea: add the scheduler infrastructure first, then migrate Timer, PPU, and DMA one at a time, with the old per-instruction loop still running in parallel for validation during each phase.
-
-Scheduler Data Structure
-SoA layout (avoids AssemblyScript's unmanaged struct complexity — matches the InlinedArray<AudioEvent> pattern in eventQueue.ts):
-
-
-// assembly/scheduler/scheduler.ts
-const CAPACITY: i32 = 16; // at most ~6 live events ever
-
-@final export class Scheduler {
-    private static cycles: StaticArray<u64> = new StaticArray<u64>(CAPACITY);
-    private static types:  StaticArray<u8>  = new StaticArray<u8>(CAPACITY);
-    private static count:  i32 = 0;
-
-    // sorted insertion, cancels any existing event of same type first
-    static Schedule(type: u8, atCycle: u64): void { ... }
-    static Cancel(type: u8): void { ... }
-    @inline static Peek(): u64 / PeekType(): u8 { ... }
-    static Dequeue(): void { ... }
-}
-Max queue depth is ~6 simultaneous events (OAMScan, Transfer, HBlank, Timer, DMA, EndOfFrame). Linear scan over 16 slots beats a heap for this size.
-
-Phase 0 — Infrastructure, No Behavior Change
-Goal: ship new files, no tests broken.
-
-New files:
-
-assembly/scheduler/scheduler.ts — SoA sorted array
-assembly/scheduler/schedulerEventType.ts — event type enum
-Stub additions:
-
-Timer.CyclesUntilNextOverflow(): u64 — arithmetic stub returning u64.MAX_VALUE
-Cpu.RunUntil(target: u64): void — wraps existing Tick() loop, unused
-Verify: pnpm test, pnpm run asbuild:debug clean.
-
-Phase 1 — Timer Integration
-Goal: replace Timer.Tick() per-instruction with a scheduled TimerOverflow event.
-
-The key calculation (purely arithmetic on existing fields in timer.ts):
-
-
-// cycles until the next falling edge of DivWatchBit in internalDiv
-const period: u32 = <u32>DivWatchBit << 1;
-const phase: u32  = <u32>internalDiv % period;
-const toFall: u32 = (phase < DivWatchBit) ? (DivWatchBit - phase) : (period - phase + DivWatchBit);
-// cycles until TIMA overflow
-const ticksToOverflow: u32 = 0xFF - Tima + 1;
-const cyclesUntil = toFall + (ticksToOverflow - 1) * period;
-Hook Timer.RescheduleEvent() at the end of all four cases in Timer.Store() — writing any of DIV/TIMA/TMA/TAC can change the overflow time.
-
-The double-call pattern in Emulator.Tick() (emulator.ts:54-60) is the most fragile thing here: Timer.Tick(t_cycles) + Timer.Tick(t_cycles - 4) models the falling-edge check at both start and end of the M-cycle. The overflow calculation must replicate this exactly. Run both paths in parallel during this phase and assert the precomputed cycle matches the actual fire cycle.
-
-Verify: blargg interrupt_time, timer_tima, timer_tma; Mooneye timer suite.
-
-Phase 2 — PPU Integration (Scanline Path)
-Goal: replace 69,905 Ppu.Tick() calls with ~850 event firings (scanline path only, useScanline = true).
-
-All four PPU phases have fixed duration in the scanline path:
-
-OAMScan: exactly 80 dots
-Transfer: exactly 172 dots (fixed in ppuTransfer.ts scanline branch)
-HBlank: dot 456 − (80 + 172) = 204 dots
-VBlank: 10 scanlines × 456 = 4560 dots
-Ppu.ScheduleScanlineEvents(scanlineStartCycle) pushes three events per visible line, one per VBlank segment. Ppu.lastScanlineStartCycle: u64 tracks where the current scanline started.
-
-Event handlers replace the logic currently inside enterMode() / tickOAMScan() / tickHblank() / tickVblank() — each handler fires the STAT interrupt if configured, advances LY, swaps buffers, and schedules the next event.
-
-ScanlineRenderer.Render() currently called in enterMode(Transfer) — moves to firePpuOamScanEnd().
-
-Critical correctness constraint: Ppu.currentMode must reflect the correct mode at the cycle any CPU instruction reads STAT. This is guaranteed by the scheduler loop structure: Cpu.RunUntil(eventCycle) runs the CPU up to but not past the event cycle, then the event fires and updates mode before the next RunUntil segment.
-
-Verify: Mooneye stat_irq_blocking, intr_1_2_timing-GS; visual output of sprite-heavy and scroll-effect ROMs.
-
-Phase 3 — DMA Integration
-Straightforward: Dma.Start() schedules DmaComplete at Cpu.CycleCount + 648 T-cycles. The event handler bulk-copies 160 bytes to OAM and clears Dma.active. The Dma.active lockout in memoryMap.ts remains unchanged — it will be true for exactly the correct window.
-
-The per-dot Dma.Tick() call inside the inner loop (emulator.ts:63-64) is removed.
-
-Verify: OAM DMA test ROMs; sprite-heavy visual output.
-
-Phase 4 — Debugger Compatibility
-Breakpoints: move the Debugger.breakpoints.has(PC) check to the top of Cpu.RunUntil()'s inner loop — same cost as current GetStopReason(), no regression.
-
-PPU-mode breaks: each firePpu* handler checks Debugger.PPuModeBreaks[newMode] after transitioning mode.
-
-Debugger.Step(): keep a Debugger.attached fast-path that uses the old per-instruction Tick() loop during debugger sessions. Correctness over performance when debugging.
-
-GetStopReason() elimination: EndOfFrame and TargetCyclesReached become scheduled events. CpuStop check moves into Cpu.RunUntil(). GetStopReason() goes away.
-
-Phase 5 — Accurate FIFO Transfer Mode (Deferred)
-The pixel FIFO path has variable Mode 3 duration. When OAMScanEnd fires, enter a dot-by-dot mini-loop calling PpuTransfer.Tick() until pushedX == LCD_WIDTH. At completion, fire TransferEnd dynamically and schedule HBlankEnd at the actual dot reached.
-
-This mini-loop must also check the scheduler — Timer or DMA events may fire mid-Transfer. Recommend deferring until the rest of the migration is stable.
-
-New Main Loop
-
-static Run(timeMilliSec: f64): EmulatorStopReason {
-    Emulator.targetCycles = Cpu.CycleCount + <u64>Math.round(timeMilliSec * CYCLES_PER_SECOND / 1000);
-    AudioRender.Prepare(Cpu.CycleCount);
-    Scheduler.Schedule(EndOfFrame, Emulator.targetCycles);
-
-    while (!Scheduler.IsEmpty()) {
-        Cpu.RunUntil(Scheduler.PeekCycle());
-        if (Emulator.pendingStop != None) break;
-        Emulator.FireEvent(Scheduler.DequeueType());
-        if (Emulator.pendingStop != None) break;
-    }
-
-    AudioRender.Render(Cpu.CycleCount);
-    return Emulator.pendingStop;
-}
-Hardest Parts
-Timer falling-edge arithmetic (Phase 1) — the double-call pattern models a hardware subtlety. The precomputed cycle must match exactly. Run both paths in parallel and assert equality before removing the old calls.
-
-STAT interrupt cycle accuracy (Phase 2) — fires on mode transitions; some games probe STAT within 1–2 T-cycles of a boundary. The event must fire at the exact right cycle, not dot 80 ± 1.
-
-Mode visibility during RunUntil (Phase 2) — any CPU instruction between events that reads STAT must see the correct mode. The scheduler loop structure guarantees this but requires careful verification.
-
-Transfer mini-loop scheduler interaction (Phase 5) — the only genuinely hard architectural problem. Reason to defer it.
