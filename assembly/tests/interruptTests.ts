@@ -38,7 +38,7 @@ function testInt1(): void {
     for (let i = 0; Cpu.ProgramCounter != 0x0010; i++) {
         Cpu.Tick();
     }
-    console.log(`A = ${Cpu.A()}`)
+    assert(Cpu.A() == 50, `Expected A=50, got A=${Cpu.A()}`);
 }
 
 // ISR dispatch must cost exactly 5 M-cycles (20 T-cycles):
