@@ -1,9 +1,11 @@
+☐ Video:
+    ☐ fix PPU - e.g. Zelda beach parallax scrolling
+    ☐ (check) Support mid-line changes
 ☐ Architecture:
     ☐ Migrate to scheduler model for PPU (see todo.architecture.md for more details)
 ☐ Audio (see todo.audio.md for more details):
     ☐ CH1 sweep entirely missing	Many games (Mario, Zelda) use pitch sweeps
     ☐ Mixer wrong	All output volume balance is off
-    ☐ No retrigger	Notes that restart same channel break
     ☐ Length timer formula	Notes cut at wrong times
     ☐ DACs not tracked	Spurious channel enables/disables
     ☐ LFSR shift 14/15	Noise channel doesn't silence correctly
