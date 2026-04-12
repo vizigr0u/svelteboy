@@ -1,12 +1,21 @@
+import { AudioData } from "./AudioData";
 import { Uint4Array } from "./Uint4Array";
 import { SAMPLE_RATE } from "./constants";
 
 const SAMPLES_PER_ENVELOPE_TICK: f64 = SAMPLE_RATE / 64.0;
 
+export enum AudioChannelId {
+    Channel1 = 1,
+    Channel2 = 2,
+    Channel3 = 3,
+    Channel4 = 4
+}
+
 export class AudioChannelBase {
     LengthTimer: f32 = 0;
-    Buffer: Uint4Array;
+    Buffer: Uint4Array = AudioData.channel1Buffer;
 
+    private channel: AudioChannelId = AudioChannelId.Channel1;
     private InitialVolume: u8 = 0xF;
     private SweepPace: u8 = 0;
     private EnvelopeDirection: i8 = -1;
@@ -17,8 +26,26 @@ export class AudioChannelBase {
     private samplesUntilStop: i32 = 0;
     private lengthEnabled: boolean = false;
 
-    constructor(buffer: Uint4Array) {
-        this.Buffer = buffer;
+    constructor(type: AudioChannelId) {
+        // Buffer must be assigned before any other use of 'this' (AS non-nullable field constraint).
+        switch (type) {
+            case AudioChannelId.Channel1:
+                this.Buffer = AudioData.channel1Buffer;
+                break;
+            case AudioChannelId.Channel2:
+                this.Buffer = AudioData.channel2Buffer;
+                break;
+            case AudioChannelId.Channel3:
+                this.Buffer = AudioData.channel3Buffer;
+                break;
+            case AudioChannelId.Channel4:
+                this.Buffer = AudioData.channel4Buffer;
+                break;
+            default:
+                assert(false, `Unexpected channel type: ${type}`);
+                unreachable();
+        }
+        this.channel = type;
     }
 
     @inline get Enabled(): boolean { return this.enabled; }

@@ -14,6 +14,7 @@ import { AudioEventQueue } from "./eventQueue";
 
 import { OutputLevel, WaveChannel } from "./WaveChannel";
 import { AudioData } from "./AudioData";
+import { AudioChannelId } from "./AudioChannelBase";
 
 @final
 export class AudioRender {
@@ -23,10 +24,10 @@ export class AudioRender {
     static outBuffer: AudioOutBuffer = new AudioOutBuffer();
     static renderingPaused: boolean = false;
 
-    static channel1: PulseChannel = new PulseChannel(AudioData.channel1Buffer);
-    static channel2: PulseChannel = new PulseChannel(AudioData.channel2Buffer);
-    static channel3: WaveChannel = WaveChannel.Create(AudioData.channel3Buffer, AudioData.channel4Wave);
-    static channel4: NoiseChannel = new NoiseChannel(AudioData.channel4Buffer);
+    static channel1: PulseChannel = new PulseChannel(AudioChannelId.Channel1);
+    static channel2: PulseChannel = new PulseChannel(AudioChannelId.Channel2);
+    static channel3: WaveChannel = WaveChannel.Create();
+    static channel4: NoiseChannel = new NoiseChannel(AudioChannelId.Channel4);
     static sampleIndex: u64;
     static initialCycles: u64;
 
@@ -179,7 +180,7 @@ export class AudioRender {
             }
             switch (t) {
                 case AudioRegisterType.NR10_C1Sweep:
-                    // TODO
+                    AudioRender.channel1.HandleSweepEvent(ev.Value);
                     break;
                 case AudioRegisterType.NR11_C1Length:
                     AudioRender.channel1.setDutyCycle(<DutyCycle>(ev.Value >> 6));
