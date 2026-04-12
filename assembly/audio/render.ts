@@ -193,10 +193,12 @@ export class AudioRender {
                     AudioRender.channel1.PeriodLow = ev.Value;
                     break;
                 case AudioRegisterType.NR14_C1PeriodHi:
+                    // Period bits must be applied before trigger so the shadow register
+                    // captures the full new period (NR14 write is atomic on real hardware).
+                    AudioRender.channel1.PeriodHigh = ev.Value & 0b111;
+                    AudioRender.channel1.LengthEnabled = (ev.Value & 0x40) != 0;
                     if ((ev.Value & 0x80) != 0)
                         AudioRender.channel1.trigger();
-                    AudioRender.channel1.LengthEnabled = (ev.Value & 0x40) != 0;
-                    AudioRender.channel1.PeriodHigh = ev.Value & 0b111;
                     break;
                 case AudioRegisterType.NR21_C2Length:
                     AudioRender.channel2.setDutyCycle(<DutyCycle>(ev.Value >> 6));
@@ -209,10 +211,10 @@ export class AudioRender {
                     AudioRender.channel2.PeriodLow = ev.Value;
                     break;
                 case AudioRegisterType.NR24_C2PeriodHi:
+                    AudioRender.channel2.PeriodHigh = ev.Value & 0b111;
+                    AudioRender.channel2.LengthEnabled = (ev.Value & 0x40) != 0;
                     if ((ev.Value & 0x80) != 0)
                         AudioRender.channel2.trigger();
-                    AudioRender.channel2.LengthEnabled = (ev.Value & 0x40) != 0;
-                    AudioRender.channel2.PeriodHigh = ev.Value & 0b111;
                     break;
                 case AudioRegisterType.NR30_C3Enable:
                     AudioRender.channel3.setEnabled((ev.Value & 0x80) != 0);
@@ -227,10 +229,10 @@ export class AudioRender {
                     AudioRender.channel3.PeriodLow = ev.Value;
                     break;
                 case AudioRegisterType.NR34_C3PeriodHi:
+                    AudioRender.channel3.PeriodHigh = ev.Value & 0b111;
+                    AudioRender.channel3.LengthEnabled = (ev.Value & 0x40) != 0;
                     if ((ev.Value & 0x80) != 0)
                         AudioRender.channel3.trigger();
-                    AudioRender.channel3.LengthEnabled = (ev.Value & 0x40) != 0;
-                    AudioRender.channel3.PeriodHigh = ev.Value & 0b111;
                     break;
                 case AudioRegisterType.NR41_C4Length:
                     AudioRender.channel4.LengthTimer = ev.Value & 0b00111111;
