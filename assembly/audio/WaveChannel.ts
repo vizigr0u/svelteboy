@@ -1,7 +1,8 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
-import { AudioChannelBase } from "./AudioChannelBase";
+import { AudioChannelBase, AudioChannelId } from "./AudioChannelBase";
+import { AudioData } from "./AudioData";
 import { SAMPLE_RATE } from "./constants";
 import { Uint4Array } from "./Uint4Array";
 
@@ -21,9 +22,9 @@ export class WaveChannel extends AudioChannelBase {
     private angularFrequency: f64;
     private phase: f64 = 1.0; // Apparently the very first sample is always skipped
 
-    static Create(buffer: Uint4Array, waveData: Uint4Array): WaveChannel {
-        const c = new WaveChannel(buffer);
-        c.waveData = waveData;
+    static Create(): WaveChannel {
+        const c = new WaveChannel(AudioChannelId.Channel3);
+        c.waveData = AudioData.channel3Wave;
         return c;
     }
 

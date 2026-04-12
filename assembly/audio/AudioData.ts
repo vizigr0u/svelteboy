@@ -13,7 +13,6 @@ export class AudioData {
     static channel1Buffer: Uint4Array = Uint4Array.wrap(AudioData.channelSound.buffer, 0 * HalfBufferSize, HalfBufferSize);
     static channel2Buffer: Uint4Array = Uint4Array.wrap(AudioData.channelSound.buffer, 1 * HalfBufferSize, HalfBufferSize);
     static channel3Buffer: Uint4Array = Uint4Array.wrap(AudioData.channelSound.buffer, 2 * HalfBufferSize, HalfBufferSize);
-    static channel4Wave: Uint4Array = Uint4Array.wrap(AudioData.registers.buffer, getRegisterIndex(AudioRegisterType.WaveStart), AudioRegisterType.Offset);
+    static channel3Wave: Uint4Array = Uint4Array.wrap(AudioData.registers.buffer, getRegisterIndex(AudioRegisterType.WaveStart), AudioRegisterType.Offset);
     static channel4Buffer: Uint4Array = Uint4Array.wrap(AudioData.channelSound.buffer, 3 * HalfBufferSize, HalfBufferSize);
-
 }
