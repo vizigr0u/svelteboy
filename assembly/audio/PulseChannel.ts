@@ -70,7 +70,10 @@ export class PulseChannel extends AudioChannelBase {
         // For CH2 this is a no-op since sweepPace=0 and sweepStep=0 always,
         // so sweepEnabled will be false and all sweep paths remain inactive.
         this.sweepShadowPeriod = this.frequencyBits;
-        this.sweepSamplesLeft = <f64>this.sweepPace * SAMPLES_PER_SWEEP_TICK;
+        // Per obscure behavior: sweep timer treats pace=0 as 8 when loading.
+        // This matters if pace is later changed to non-zero mid-playback.
+        const effectivePace: u8 = this.sweepPace == 0 ? 8 : this.sweepPace;
+        this.sweepSamplesLeft = <f64>effectivePace * SAMPLES_PER_SWEEP_TICK;
         this.sweepEnabled = this.sweepPace != 0 || this.sweepStep != 0;
         this.sweepNegateUsed = false;
         // If step is non-zero, perform immediate frequency calculation + overflow check.
@@ -126,12 +129,17 @@ export class PulseChannel extends AudioChannelBase {
     }
 
     // Advances the sweep timer by `elapsed` samples and fires if it expires.
+    // Timer always runs when sweepEnabled (even with pace=0, treating it as 8).
+    // Frequency calculation is only performed when pace != 0 (per spec).
     private tickSweep(elapsed: i32): void {
-        if (!this.sweepEnabled || this.sweepPace == 0 || !this.Enabled) return;
+        if (!this.sweepEnabled || !this.Enabled) return;
         this.sweepSamplesLeft -= <f64>elapsed;
         if (this.sweepSamplesLeft <= 0) {
-            // Reload the sweep timer for the next iteration.
-            this.sweepSamplesLeft += <f64>this.sweepPace * SAMPLES_PER_SWEEP_TICK;
+            // Reload: treat pace=0 as 8 per obscure behavior (timer always runs).
+            const effectivePace: u8 = this.sweepPace == 0 ? 8 : this.sweepPace;
+            this.sweepSamplesLeft += <f64>effectivePace * SAMPLES_PER_SWEEP_TICK;
+            // Pace=0 disables iterations: timer ticked but no frequency calculation.
+            if (this.sweepPace == 0) return;
             const newPeriod: u16 = this.sweepCalcNewPeriod();
             if (newPeriod > 2047) {
                 this.disable();
