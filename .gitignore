@@ -12,6 +12,7 @@ build
 node_modules
 roms
 profiling
+pandocs
 dist
 dist-ssr
 *.local
