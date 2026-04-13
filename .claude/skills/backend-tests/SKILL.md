@@ -145,7 +145,7 @@ import { MemoryMap } from "../memory/memoryMap";
 MemoryMap.GBstore<u8>(0xFF05, 0x00);   // write TIMA
 const val = MemoryMap.GBload<u8>(0xFF05);
 
-// Raw WASM linear memory (bypass MMU)
+// Raw WASM linear memory (bypass MMU) - very rarely needed
 store<u8>(ptr, value);
 load<u8>(ptr);
 memory.copy(dest, src, length);
@@ -205,10 +205,7 @@ export { testMyModule } from "./tests/myFeatureTests";
 
 **Step 3** — add a call in `tests/index.js`:
 
-```javascript
-const { testMyModule } = wasm;
-test(testMyModule);
-```
+Follow the pattern of existing tests.
 
 **Step 4** — rebuild and run:
 
