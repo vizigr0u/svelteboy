@@ -1,59 +1,69 @@
 import { Cpu, Flag } from "../cpu/cpu";
+import { describe, it, assertReg, assertEquals, assertFlags } from "./framework";
 
 function testDecomposition(): void {
-    Cpu.AF = 0xAAFF;
-    Cpu.BC = 0xBBCC;
-    Cpu.DE = 0xDDEE;
-    Cpu.HL = 0x1122;
-    assert(Cpu.A() == 0xAA);
-    assert(Cpu.F() == 0xFF);
-    assert(Cpu.B() == 0xBB);
-    assert(Cpu.C() == 0xCC);
-    assert(Cpu.D() == 0xDD);
-    assert(Cpu.E() == 0xEE);
-    assert(Cpu.H() == 0x11);
-    assert(Cpu.L() == 0x22);
+    it("register decomposition", () => {
+        Cpu.AF = 0xAAFF;
+        Cpu.BC = 0xBBCC;
+        Cpu.DE = 0xDDEE;
+        Cpu.HL = 0x1122;
+        assertReg(Cpu.A(), 0xAA, "A");
+        assertReg(Cpu.F(), 0xFF, "F");
+        assertReg(Cpu.B(), 0xBB, "B");
+        assertReg(Cpu.C(), 0xCC, "C");
+        assertReg(Cpu.D(), 0xDD, "D");
+        assertReg(Cpu.E(), 0xEE, "E");
+        assertReg(Cpu.H(), 0x11, "H");
+        assertReg(Cpu.L(), 0x22, "L");
+    });
 }
 
 function testComposition(): void {
-    Cpu.Init();
+    it("SetA/SetF compose AF", () => {
+        Cpu.Init();
+        Cpu.AF = 0;
+        Cpu.SetA(0xAA);
+        assertReg(Cpu.A(), 0xAA, "A");
+        assertEquals<u16>(Cpu.AF, 0xAA00, "AF");
 
-    Cpu.AF = 0;
-    Cpu.SetA(0xAA);
-    assert(Cpu.A() == 0xAA);
-    assert(Cpu.AF == 0xAA00);
+        Cpu.SetF(0xFF);
+        assertReg(Cpu.F(), 0xFF, "F");
+        assertReg(Cpu.A(), 0xAA, "A");
+        assertEquals<u16>(Cpu.AF, 0xAAFF, "AF");
+    });
 
-    Cpu.SetF(0xFF);
-    assert(Cpu.F() == 0xFF);
-    assert(Cpu.A() == 0xAA);
-    assert(Cpu.AF == 0xAAFF);
+    it("SetB/SetC compose BC", () => {
+        Cpu.BC = 0;
+        Cpu.SetB(0xBB);
+        assertReg(Cpu.B(), 0xBB, "B");
 
-    Cpu.BC = 0;
-    Cpu.SetB(0xBB);
-    assert(Cpu.B() == 0xBB);
+        Cpu.SetC(0xCC);
+        assertReg(Cpu.C(), 0xCC, "C");
+        assertReg(Cpu.B(), 0xBB, "B");
+        assertEquals<u16>(Cpu.BC, 0xBBCC, "BC");
+    });
 
-    Cpu.SetC(0xCC);
-    assert(Cpu.C() == 0xCC);
-    assert(Cpu.B() == 0xBB);
-    assert(Cpu.BC == 0xBBCC);
+    it("SetD/SetE compose DE", () => {
+        Cpu.DE = 0;
+        Cpu.SetD(0xDD);
+        assertReg(Cpu.D(), 0xDD, "D");
 
-    Cpu.DE = 0;
-    Cpu.SetD(0xDD);
-    assert(Cpu.D() == 0xDD);
+        Cpu.SetE(0xEE);
+        assertReg(Cpu.E(), 0xEE, "E");
+        assertReg(Cpu.D(), 0xDD, "D");
+        assertEquals<u16>(Cpu.DE, 0xDDEE, "DE");
+    });
 
-    Cpu.SetE(0xEE);
-    assert(Cpu.E() == 0xEE);
-    assert(Cpu.D() == 0xDD);
-    assert(Cpu.DE == 0xDDEE);
+    it("SetH/SetL compose HL", () => {
+        Cpu.HL = 0;
+        Cpu.SetH(0x11);
+        assertReg(Cpu.H(), 0x11, "H");
 
-    Cpu.HL = 0;
-    Cpu.SetH(0x11);
-    assert(Cpu.H() == 0x11);
-
-    Cpu.SetL(0x22);
-    assert(Cpu.L() == 0x22);
-    assert(Cpu.H() == 0x11);
-    assert(Cpu.HL == 0x1122);
+        Cpu.SetL(0x22);
+        assertReg(Cpu.L(), 0x22, "L");
+        assertReg(Cpu.H(), 0x11, "H");
+        assertEquals<u16>(Cpu.HL, 0x1122, "HL");
+    });
 }
 
 function testSetFlag(initialFlags: u8, flag: Flag, enabled: boolean): u8 {
@@ -64,30 +74,37 @@ function testSetFlag(initialFlags: u8, flag: Flag, enabled: boolean): u8 {
 }
 
 function testFlags(): void {
-    Cpu.AF = 0xAAFF;
-    assert(Cpu.FlagZ());
-    assert(Cpu.FlagN());
-    assert(Cpu.FlagH());
-    assert(Cpu.FlagC());
-    assert(testSetFlag(0b11110000, Flag.Z_Zero, false) == 0b001110000);
-    assert(testSetFlag(0b11110000, Flag.N_Sub, false) == 0b010110000);
-    assert(testSetFlag(0b11110000, Flag.H_HalfC, false) == 0b011010000);
-    assert(testSetFlag(0b11110000, Flag.C_Carry, false) == 0b011100000);
-    assert(testSetFlag(0, Flag.Z_Zero, true) == <u8>Flag.Z_Zero);
-    assert(testSetFlag(0, Flag.N_Sub, true) == <u8>Flag.N_Sub);
-    assert(testSetFlag(0, Flag.H_HalfC, true) == <u8>Flag.H_HalfC);
-    assert(testSetFlag(0, Flag.C_Carry, true) == <u8>Flag.C_Carry);
+    it("all flags set when F=0xFF", () => {
+        Cpu.AF = 0xAAFF;
+        assertFlags(true, true, true, true);
+    });
+    it("SetFlag clears individual flags", () => {
+        assertEquals<u8>(testSetFlag(0b11110000, Flag.Z_Zero, false), 0b001110000, "clear Z");
+        assertEquals<u8>(testSetFlag(0b11110000, Flag.N_Sub, false), 0b010110000, "clear N");
+        assertEquals<u8>(testSetFlag(0b11110000, Flag.H_HalfC, false), 0b011010000, "clear H");
+        assertEquals<u8>(testSetFlag(0b11110000, Flag.C_Carry, false), 0b011100000, "clear C");
+    });
+    it("SetFlag sets individual flags", () => {
+        assertEquals<u8>(testSetFlag(0, Flag.Z_Zero, true), <u8>Flag.Z_Zero, "set Z");
+        assertEquals<u8>(testSetFlag(0, Flag.N_Sub, true), <u8>Flag.N_Sub, "set N");
+        assertEquals<u8>(testSetFlag(0, Flag.H_HalfC, true), <u8>Flag.H_HalfC, "set H");
+        assertEquals<u8>(testSetFlag(0, Flag.C_Carry, true), <u8>Flag.C_Carry, "set C");
+    });
 }
 
-function testZeroFlaginAF(): void {
-    Cpu.AF = 0x00FF;
-    assert(Cpu.FlagZ());
+function testZeroFlagInAF(): void {
+    it("Z flag visible from AF", () => {
+        Cpu.AF = 0x00FF;
+        assert(Cpu.FlagZ());
+    });
 }
 
 export function testRegisters(): boolean {
-    testComposition();
-    testDecomposition();
-    testFlags();
-    testZeroFlaginAF();
+    describe("Registers", () => {
+        testComposition();
+        testDecomposition();
+        testFlags();
+        testZeroFlagInAF();
+    });
     return true;
 }

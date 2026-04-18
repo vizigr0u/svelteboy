@@ -2,12 +2,13 @@ import { Cpu, Flag } from "../../cpu/cpu";
 import { MemoryMap } from "../../memory/memoryMap";
 import { BOOT_ROM_START } from "../../memory/memoryConstants";
 import { PC, setTestRom } from "../cpuTests";
+import { describe, it, assertEquals, assertCycles } from "../framework";
 
 function RunJr(opCode: u8, offset: u8, flags: u8, expectedCycles: u32 = 12): void {
     setTestRom([opCode, offset]);
     Cpu.SetF(flags);
     Cpu.Tick();
-    assert(Cpu.CycleCount == expectedCycles, `CycleCount = ${Cpu.CycleCount}, expected ${expectedCycles} (opcode 0x${opCode.toString(16)})`);
+    assertCycles(expectedCycles);
 }
 
 function RunJrNeg(opCode: u8, startPc: u16, offset: u8, flags: u8, expectedCycles: u32 = 12): void {
@@ -21,39 +22,51 @@ function RunJrNeg(opCode: u8, startPc: u16, offset: u8, flags: u8, expectedCycle
     Cpu.SetF(flags);
     Cpu.ProgramCounter = startPc;
     Cpu.Tick();
-    assert(Cpu.CycleCount == expectedCycles, `CycleCount = ${Cpu.CycleCount}, expected ${expectedCycles} (opcode 0x${opCode.toString(16)})`);
+    assertCycles(expectedCycles);
 }
 
 export function testJr(): boolean {
-    RunJr(0x20, 2, <u8>Flag.Z_Zero, 8); // JR NZ fail
-    assert(Cpu.ProgramCounter == 0x2, `PC = ${PC().toString(16)}, expected 0x2`);
-
-    RunJr(0x20, 0x8, <u8>Flag.C_Carry); // JR NZ
-    assert(Cpu.ProgramCounter == 0x2 + 0x8, `PC = ${PC().toString(16)}, expected 0x8`);
-
-    RunJrNeg(0x20, 0x30, <u8>(-0x10), <u8>Flag.C_Carry); // JR NZ
-    assert(Cpu.ProgramCounter == 0x2 + 0x30 - 0x10, `PC = ${PC().toString(16)}, expected 0x20`);
-
-    RunJr(0x30, 2, <u8>Flag.C_Carry, 8); // JR NC fail
-    assert(Cpu.ProgramCounter == 0x2, `PC = ${PC().toString(16)}, expected 0x2`);
-
-    RunJr(0x30, 0x8, <u8>Flag.Z_Zero); // JR NC
-    assert(Cpu.ProgramCounter == 0x2 + 0x8, `PC = ${PC().toString(16)}, expected 0x8`);
-
-    RunJr(0x28, 2, <u8>Flag.C_Carry, 8); // JR Z fail
-    assert(Cpu.ProgramCounter == 0x2, `PC = ${PC().toString(16)}, expected 0x2`);
-
-    RunJr(0x28, 0x8, <u8>Flag.Z_Zero); // JR Z
-    assert(Cpu.ProgramCounter == 0x2 + 0x8, `PC = ${PC().toString(16)}, expected 0x8`);
-
-    RunJr(0x38, 2, <u8>Flag.Z_Zero, 8); // JR C fail
-    assert(Cpu.ProgramCounter == 0x2, `PC = ${PC().toString(16)}, expected 0x2`);
-
-    RunJr(0x38, 0x8, <u8>Flag.C_Carry); // JR C
-    assert(Cpu.ProgramCounter == 0x2 + 0x8, `PC = ${PC().toString(16)}, expected 0x8`);
-
-    RunJr(0x18, 0x8, 0); // JR e8
-    assert(Cpu.ProgramCounter == 0x2 + 0x8, `PC = ${PC().toString(16)}, expected 0x8`);
-
+    describe("JR", () => {
+        it("JR NZ fail (Z set)", () => {
+            RunJr(0x20, 2, <u8>Flag.Z_Zero, 8);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2, "PC");
+        });
+        it("JR NZ taken", () => {
+            RunJr(0x20, 0x8, <u8>Flag.C_Carry);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2 + 0x8, "PC");
+        });
+        it("JR NZ taken (negative offset)", () => {
+            RunJrNeg(0x20, 0x30, <u8>(-0x10), <u8>Flag.C_Carry);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2 + 0x30 - 0x10, "PC");
+        });
+        it("JR NC fail (C set)", () => {
+            RunJr(0x30, 2, <u8>Flag.C_Carry, 8);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2, "PC");
+        });
+        it("JR NC taken", () => {
+            RunJr(0x30, 0x8, <u8>Flag.Z_Zero);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2 + 0x8, "PC");
+        });
+        it("JR Z fail (Z clear)", () => {
+            RunJr(0x28, 2, <u8>Flag.C_Carry, 8);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2, "PC");
+        });
+        it("JR Z taken", () => {
+            RunJr(0x28, 0x8, <u8>Flag.Z_Zero);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2 + 0x8, "PC");
+        });
+        it("JR C fail (C clear)", () => {
+            RunJr(0x38, 2, <u8>Flag.Z_Zero, 8);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2, "PC");
+        });
+        it("JR C taken", () => {
+            RunJr(0x38, 0x8, <u8>Flag.C_Carry);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2 + 0x8, "PC");
+        });
+        it("JR e8 (unconditional)", () => {
+            RunJr(0x18, 0x8, 0);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x2 + 0x8, "PC");
+        });
+    });
     return true;
 }

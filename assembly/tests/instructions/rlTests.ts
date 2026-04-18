@@ -1,6 +1,7 @@
 import { ClearHLDerefTest, HLDeref, SetHLDeref } from ".";
 import { Cpu, Flag } from "../../cpu/cpu";
 import { setTestRom } from "../cpuTests";
+import { describe, it, assertReg, assertCycles } from "../framework";
 
 function RunRl(opCode: u8, carry: bool, b: u8, setB: (a: u8) => void, expectedCycles: u32 = 8): void {
     setTestRom([0xCB, opCode]);
@@ -8,53 +9,64 @@ function RunRl(opCode: u8, carry: bool, b: u8, setB: (a: u8) => void, expectedCy
     Cpu.SetFlag(Flag.C_Carry, carry);
     Cpu.Tick();
     // expect 4 more for PREFIX op
-    assert(Cpu.CycleCount == expectedCycles + 4, `CycleCount = ${Cpu.CycleCount}, expected ${expectedCycles + 4} (opcode 0x${opCode.toString(16)})`);
+    assertCycles(expectedCycles + 4);
 }
 
 export function testRl(): boolean {
-    RunRl(0x10, 0, 0b10101110, Cpu.SetB); // RL B
-    assert(Cpu.B() == 0b01011100, `B = 0b${Cpu.B().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x10, 1, 0b10101110, Cpu.SetB); // RL B
-    assert(Cpu.B() == 0b01011101, `B = 0b${Cpu.B().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x11, 1, 0b10101110, Cpu.SetC); // RL C
-    assert(Cpu.C() == 0b01011101, `C = 0b${Cpu.C().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x12, 1, 0b00101110, Cpu.SetD); // RL D
-    assert(Cpu.D() == 0b01011101, `D = 0b${Cpu.D().toString(2)}, expected 0b01011100`);
-    assert(!Cpu.FlagC(), `expected non Carry`);
-
-    RunRl(0x13, 1, 0b10101110, Cpu.SetE); // RL E
-    assert(Cpu.E() == 0b01011101, `E = 0b${Cpu.E().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x14, 1, 0b10101110, Cpu.SetH); // RL H
-    assert(Cpu.H() == 0b01011101, `H = 0b${Cpu.H().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x15, 1, 0b10101110, Cpu.SetL); // RL L
-    assert(Cpu.L() == 0b01011101, `L = 0b${Cpu.L().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x16, 1, 0b10101110, SetHLDeref, 16); // RL [HL]
-    assert(HLDeref() == 0b01011101, `[HL] = 0b${HLDeref().toString(2)}, expected 0b10011101`);
-    assert(Cpu.FlagC(), `expected Carry`);
-
-    RunRl(0x17, 0, 0b10101110, Cpu.SetA); // RL A
-    assert(Cpu.A() == 0b01011100, `A = 0b${Cpu.A().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-    assert(!Cpu.FlagZ(), `expected Non zero`);
-
-    RunRl(0x17, 0, 0b10000000, Cpu.SetA); // RL A
-    assert(Cpu.A() == 0b00000000, `A = 0b${Cpu.A().toString(2)}, expected 0b01011100`);
-    assert(Cpu.FlagC(), `expected Carry`);
-    assert(Cpu.FlagZ(), `expected zero`);
-
-    ClearHLDerefTest();
-
+    describe("RL", () => {
+        it("RL B carry-in=0, MSB=1 → carry-out=1", () => {
+            RunRl(0x10, 0, 0b10101110, Cpu.SetB);
+            assertReg(Cpu.B(), 0b01011100, "B");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL B carry-in=1, MSB=1", () => {
+            RunRl(0x10, 1, 0b10101110, Cpu.SetB);
+            assertReg(Cpu.B(), 0b01011101, "B");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL C carry-in=1", () => {
+            RunRl(0x11, 1, 0b10101110, Cpu.SetC);
+            assertReg(Cpu.C(), 0b01011101, "C");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL D carry-in=1, MSB=0 → carry-out=0", () => {
+            RunRl(0x12, 1, 0b00101110, Cpu.SetD);
+            assertReg(Cpu.D(), 0b01011101, "D");
+            assert(!Cpu.FlagC(), `expected non Carry`);
+        });
+        it("RL E carry-in=1", () => {
+            RunRl(0x13, 1, 0b10101110, Cpu.SetE);
+            assertReg(Cpu.E(), 0b01011101, "E");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL H carry-in=1", () => {
+            RunRl(0x14, 1, 0b10101110, Cpu.SetH);
+            assertReg(Cpu.H(), 0b01011101, "H");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL L carry-in=1", () => {
+            RunRl(0x15, 1, 0b10101110, Cpu.SetL);
+            assertReg(Cpu.L(), 0b01011101, "L");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL [HL] carry-in=1", () => {
+            RunRl(0x16, 1, 0b10101110, SetHLDeref, 16);
+            assertReg(<u8>HLDeref(), 0b01011101, "[HL]");
+            assert(Cpu.FlagC(), `expected Carry`);
+        });
+        it("RL A carry-in=0, non-zero result", () => {
+            RunRl(0x17, 0, 0b10101110, Cpu.SetA);
+            assertReg(Cpu.A(), 0b01011100, "A");
+            assert(Cpu.FlagC(), `expected Carry`);
+            assert(!Cpu.FlagZ(), `expected Non zero`);
+        });
+        it("RL A carry-in=0, zero result", () => {
+            RunRl(0x17, 0, 0b10000000, Cpu.SetA);
+            assertReg(Cpu.A(), 0b00000000, "A");
+            assert(Cpu.FlagC(), `expected Carry`);
+            assert(Cpu.FlagZ(), `expected zero`);
+        });
+        ClearHLDerefTest();
+    });
     return true;
 }
