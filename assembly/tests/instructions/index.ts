@@ -17,6 +17,7 @@ import { Cpu } from "../../cpu/cpu";
 import { MemoryMap } from "../../memory/memoryMap";
 import { testRl } from './rlTests';
 import { testRr } from './rrTests';
+import { testAlu } from './aluTests';
 
 export function SetHLDeref(value: u8): void {
     MemoryMap.GBstore(0xFF82, value);
@@ -49,5 +50,6 @@ export function testInstructions(): boolean {
     testPop();
     testRl();
     testRr();
+    testAlu();
     return true;
 }

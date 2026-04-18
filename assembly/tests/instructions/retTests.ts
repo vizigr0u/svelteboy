@@ -1,4 +1,5 @@
 import { Cpu, Flag } from "../../cpu/cpu";
+import { Interrupt } from "../../cpu/interrupts";
 import { MemoryMap } from "../../memory/memoryMap";
 import { PC, SP, setTestRom } from "../cpuTests";
 import { describe, it, assertEquals, assertCycles } from "../framework";
@@ -64,6 +65,17 @@ export function testRet(): boolean {
             RunRet(0xC9, 0xFFFC, <u8>(Flag.C_Carry | Flag.Z_Zero), 0x42FA, 16);
             assertEquals<u16>(Cpu.StackPointer, 0xFFFE, "SP");
             assertEquals<u16>(Cpu.ProgramCounter, 0x42FA, "PC");
+        });
+        it("RETI pops PC and re-enables IME immediately", () => {
+            setTestRom([0xD9]);
+            Cpu.StackPointer = 0xFFFC;
+            MemoryMap.GBstore<u16>(0xFFFC, 0x1234);
+            Interrupt.masterEnabled = false;
+            Cpu.Tick();
+            MemoryMap.GBstore<u16>(0xFFFC, 0);
+            assertEquals<u16>(Cpu.ProgramCounter, 0x1234, "PC after RETI");
+            assertEquals<u16>(Cpu.StackPointer, 0xFFFE, "SP after RETI");
+            assert(Interrupt.masterEnabled, "RETI must re-enable IME immediately");
         });
     });
     return true;

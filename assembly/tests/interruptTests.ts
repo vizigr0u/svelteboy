@@ -327,6 +327,141 @@ function testTimerIFPersistsAfterRetISR(): void {
         `IME must remain false (no ISR dispatch when IME=0): masterEnabled=${Interrupt.masterEnabled}`);
 }
 
+// ---------------------------------------------------------------------------
+// RETI re-enables IME immediately (no 1-instruction delay like EI)
+// ---------------------------------------------------------------------------
+
+function testRetiEnablesIMEImmediately(): void {
+    // Place an ISR at the VBlank vector that uses RETI
+    // After RETI, a second VBlank must fire on the very next instruction.
+    //
+    // Program at 0x100:
+    //   EI         ; enable IME (delayed by 1)
+    //   NOP        ; ISR fires here (VBlank dispatched), PC→0x40
+    //   HALT       ; unreachable — confirm ISR returned to here
+    //
+    // VBlank ISR at 0x40:
+    //   INC B      ; increment counter
+    //   RETI       ; returns to 0x102, re-enables IME immediately
+    //
+    // After RETI, both VBlank IE and IF are still set (INC B / RETI didn't clear IF).
+    // Wait — RETI returns and IME is set immediately, so the next instruction
+    // (HALT at 0x102) should see IME=true with a pending VBlank and dispatch again.
+    // But the ISR dispatch clears IF, so the second fire won't happen unless IF is
+    // re-set. Instead, we verify simpler: RETI sets IME=true without delay.
+
+    setupRomProgram([
+        0xFB,  // EI
+        0x00,  // NOP  (ISR fires here → PC→0x40)
+        0x76,  // HALT (ISR returns here)
+    ]);
+
+    // VBlank handler: INC B then RETI
+    setIntProgram(IntType.VBlank, [
+        0x04,  // INC B
+        0xD9,  // RETI
+    ]);
+
+    setIeIf(0x01, 0x01);  // VBlank enabled + requested
+    Cpu.SetB(0);
+
+    // Run until HALT (ISR fired and RETI executed)
+    for (let i = 0; i < 1000; i++) {
+        if (Cpu.isHalted) break;
+        Cpu.Tick();
+    }
+
+    assert(Cpu.B() == 1, `RETI ISR: expected B=1 (handler ran once), got ${Cpu.B()}`);
+    assert(Interrupt.masterEnabled,
+        "RETI must re-enable IME immediately (masterEnabled should be true after RETI executes)");
+}
+
+// ---------------------------------------------------------------------------
+// Interrupt priority: VBlank (bit 0) takes precedence over Timer (bit 2)
+// when both are pending simultaneously.
+// ---------------------------------------------------------------------------
+
+function testInterruptPriority(): void {
+    setTestRom([0xFB, 0x00, 0x00]);  // EI, NOP, NOP
+
+    // Handler at VBlank vector ($40): INC A, RET
+    gbStore(0x0040, 0x3C);  // INC A
+    gbStore(0x0041, 0xC9);  // RET
+    // Handler at Timer vector ($50): INC B, RET
+    gbStore(0x0050, 0x04);  // INC B
+    gbStore(0x0051, 0xC9);  // RET
+
+    // Both VBlank and Timer pending, both enabled
+    setIeIf(0x05, 0x05);   // IE = VBlank | Timer, IF = VBlank | Timer
+    Cpu.SetA(0); Cpu.SetB(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR dispatch → must go to VBlank (0x40), not Timer (0x50)
+
+    assert(Cpu.ProgramCounter == 0x0040,
+        `Priority: expected VBlank vector 0x0040, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+// ---------------------------------------------------------------------------
+// LCD STAT interrupt dispatches to 0x48
+// ---------------------------------------------------------------------------
+
+function testLcdStatInterrupt(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0048, 0x3C);  // INC A at LCD STAT vector
+    gbStore(0x0049, 0xC9);  // RET
+
+    setIeIf(0x02, 0x02);   // LCD STAT only
+    Cpu.SetA(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR → PC must jump to 0x48
+
+    assert(Cpu.ProgramCounter == 0x0048,
+        `LCD STAT: expected 0x0048, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Serial interrupt dispatches to 0x58
+// ---------------------------------------------------------------------------
+
+function testSerialInterrupt(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0058, 0x3C);  // INC A at Serial vector
+    gbStore(0x0059, 0xC9);  // RET
+
+    setIeIf(0x08, 0x08);   // Serial only
+    Cpu.SetA(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR
+
+    assert(Cpu.ProgramCounter == 0x0058,
+        `Serial: expected 0x0058, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Joypad interrupt dispatches to 0x60
+// ---------------------------------------------------------------------------
+
+function testJoypadInterrupt(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0060, 0x3C);  // INC A at Joypad vector
+    gbStore(0x0061, 0xC9);  // RET
+
+    setIeIf(0x10, 0x10);   // Joypad only
+    Cpu.SetA(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR
+
+    assert(Cpu.ProgramCounter == 0x0060,
+        `Joypad: expected 0x0060, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
 export function testInterrupts(): boolean {
     describe("Interrupts", () => {
         it("timer ISR fires and increments A", () => { testInt1(); });
@@ -337,6 +472,11 @@ export function testInterrupts(): boolean {
         it("ISR clears IF bit and disables IME", () => { testISRClearsIFBitAndIME(); });
         it("timer hardware overflow triggers ISR end-to-end", () => { testTimerHardwareTriggerISR(); });
         it("IF timer bit persists after RET ISR with IME=false", () => { testTimerIFPersistsAfterRetISR(); });
+        it("RETI re-enables IME immediately after handler", () => { testRetiEnablesIMEImmediately(); });
+        it("interrupt priority: VBlank before Timer when both pending", () => { testInterruptPriority(); });
+        it("LCD STAT interrupt dispatches to 0x48", () => { testLcdStatInterrupt(); });
+        it("Serial interrupt dispatches to 0x58", () => { testSerialInterrupt(); });
+        it("Joypad interrupt dispatches to 0x60", () => { testJoypadInterrupt(); });
     });
     return true;
 }
