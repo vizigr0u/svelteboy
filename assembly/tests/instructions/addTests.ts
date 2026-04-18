@@ -47,28 +47,28 @@ function RunAddDerefHL_0x86(a: u8, b: u8): void {
 export function testAdd(): boolean {
     RunAddToA(0x80, 2, 5, Cpu.SetB);
     assert(Cpu.A() == 7);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.C_Carry));
+    assert(!Cpu.FlagZ());
+    assert(!Cpu.FlagC());
 
     RunAddToA(0x80, 0, 0, Cpu.SetB);
     assert(Cpu.A() == 0);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagZ());
+    assert(!Cpu.FlagC());
 
     RunAddToA(0x80, 0xFE, 1, Cpu.SetB);
     assert(Cpu.A() == 0xFF);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.C_Carry));
+    assert(!Cpu.FlagZ());
+    assert(!Cpu.FlagC());
 
     RunAddToA(0x80, 0xFF, 1, Cpu.SetB);
     assert(Cpu.A() == 0);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagZ());
+    assert(Cpu.FlagC());
 
     RunAddToA(0x80, 0xFF, 0xFF, Cpu.SetB);
     assert(Cpu.A() == 0xFE, Cpu.A().toString(16));
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagC());
 
     RunAddToA(0x81, 25, 17, Cpu.SetC);
     assert(Cpu.A() == 42);
@@ -93,7 +93,7 @@ export function testAdd(): boolean {
 
     RunAddDerefHL_0x86(5, 255);
     assert(Cpu.A() == 4, `Cpu.A = ${Cpu.A()}`);
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagC());
 
     RunAddToA(0x87, 21, 21, Cpu.SetA);
     assert(Cpu.A() == 42, `Cpu.A = ${Cpu.A()}`);
@@ -106,11 +106,11 @@ export function testAdd(): boolean {
 
     RunAddValue_0xC6(255, 2);
     assert(Cpu.A() == 1, `Cpu.A = ${Cpu.A()}`);
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagC());
 
     RunAddValue_0xC6(2, 255);
     assert(Cpu.A() == 1, `Cpu.A = ${Cpu.A()}`);
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagC());
 
     RunAddToHL(0x09, 25, 17, (v: u16) => Cpu.BC = v);
     assert(Cpu.HL == 42, `Cpu.HL = ${Cpu.HL}`);
@@ -127,20 +127,20 @@ export function testAdd(): boolean {
         Cpu.StackPointer = v;
     });
     assert(Cpu.HL == 42, `Cpu.HL = ${Cpu.HL}`);
-    assert(Cpu.HasFlag(Flag.Z_Zero))
+    assert(Cpu.FlagZ())
 
     RunAddToHL(0x39, 0, 0, (v: u16) => Cpu.StackPointer = v);
     assert(Cpu.HL == 0, `Cpu.HL = ${Cpu.HL}`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
+    assert(Cpu.FlagZ());
 
     RunAddToSP(0, 0);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.N_Sub));
+    assert(!Cpu.FlagZ());
+    assert(!Cpu.FlagN());
     assert(Cpu.StackPointer == 0, `Cpu.StackPointer = ${Cpu.StackPointer}`);
 
     RunAddToSP(17, 25, () => Cpu.SetF(<u8>Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.N_Sub));
+    assert(!Cpu.FlagZ());
+    assert(!Cpu.FlagN());
     assert(Cpu.StackPointer == 42, `Cpu.StackPointer = ${Cpu.StackPointer}`);
     return true;
 }

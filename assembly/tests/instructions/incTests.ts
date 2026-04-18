@@ -54,23 +54,23 @@ export function testInc(): boolean {
 
     RunInc(0x14, 41, Cpu.SetD) // INC D
     assert(Cpu.D() == 42, `D = ${Cpu.D()}, expected ${42}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
+    assert(!Cpu.FlagZ());
 
     RunInc(0x14, 41, v => { Cpu.SetD(v); Cpu.SetFlag(Flag.N_Sub) }) // INC D
     assert(Cpu.D() == 42, `D = ${Cpu.D()}, expected ${42}`);
-    assert(!Cpu.HasFlag(Flag.N_Sub));
-    assert(!Cpu.HasFlag(Flag.H_HalfC));
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(!Cpu.FlagN());
+    assert(!Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     RunInc(0x14, 0xFF, v => { Cpu.SetD(v); Cpu.SetFlag(Flag.C_Carry, false); }) // INC D
     assert(Cpu.D() == 0, `D = ${Cpu.D()}, expected ${0}`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.H_HalfC));
-    assert(!Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(!Cpu.FlagC());
 
     RunInc(0x14, 0xF, Cpu.SetD) // INC D
     assert(Cpu.D() == 0x10, `D = ${Cpu.D()}, expected ${0x10}`);
-    assert(Cpu.HasFlag(Flag.H_HalfC), 'HalfCarry flag not set');
+    assert(Cpu.FlagH(), 'HalfCarry flag not set');
 
     RunInc(0x1C, 41, Cpu.SetE) // INC E
     assert(Cpu.E() == 42, `E = ${Cpu.E()}, expected ${42}`);

@@ -7,7 +7,7 @@ function RunDec(opCode: u8, a: u8, setA: (a: u8) => void, expectedCycles: u32 = 
     setA(a);
     Cpu.Tick();
     assert(Cpu.CycleCount == expectedCycles);
-    assert(Cpu.HasFlag(Flag.N_Sub));
+    assert(Cpu.FlagN());
 }
 
 function RunDec16(opCode: u8, a: u16, setA: (a: u16) => void): void {
@@ -55,22 +55,22 @@ export function testDec(): boolean {
 
     RunDec(0x15, 43, Cpu.SetD) // DEC D
     assert(Cpu.D() == 42, `D = ${Cpu.D()}, expected ${42}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
+    assert(!Cpu.FlagZ());
 
     RunDec(0x15, 1, v => { Cpu.SetD(v); Cpu.SetFlag(Flag.N_Sub) }) // DEC D
     assert(Cpu.D() == 0, `D = ${Cpu.D()}, expected ${0}`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.H_HalfC));
+    assert(Cpu.FlagZ());
+    assert(!Cpu.FlagH());
 
     RunDec(0x15, 0, Cpu.SetD) // DEC D
     assert(Cpu.D() == 0xFF, `D = ${Cpu.D()}, expected 0xFF`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.H_HalfC), 'HalfCarry flag not set');
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH(), 'HalfCarry flag not set');
 
     RunDec(0x15, 0x10, Cpu.SetD) // DEC D
     assert(Cpu.D() == 0xF, `D = ${Cpu.D()}, expected ${0xF}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.H_HalfC), 'HalfCarry flag set');
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH(), 'HalfCarry flag set');
 
     RunDec(0x1D, 43, Cpu.SetE) // DEC E
     assert(Cpu.E() == 42, `E = ${Cpu.E()}, expected ${42}`);
