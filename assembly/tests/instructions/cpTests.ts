@@ -1,4 +1,4 @@
-import { Cpu, Flag } from "../../cpu/cpu";
+import { Cpu } from "../../cpu/cpu";
 import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
@@ -8,7 +8,7 @@ function RunCp(opCode: u8, a: u8, b: u8, setB: (a: u8) => void, expectedCycles: 
     setB(b);
     Cpu.Tick();
     assert(Cpu.CycleCount == expectedCycles);
-    assert(Cpu.HasFlag(Flag.N_Sub));
+    assert(Cpu.FlagN());
 }
 
 function RunCpValue(opCode: u8, a: u8, b: u8): void {
@@ -16,61 +16,61 @@ function RunCpValue(opCode: u8, a: u8, b: u8): void {
     Cpu.SetA(a);
     Cpu.Tick();
     assert(Cpu.CycleCount == 8);
-    assert(Cpu.HasFlag(Flag.N_Sub));
+    assert(Cpu.FlagN());
 }
 
 
 export function testCp(): boolean {
     RunCp(0xB8, 22, 24, Cpu.SetB); // CP A, B
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == true);
-    assert(Cpu.HasFlag(Flag.C_Carry) == true);
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     RunCp(0xB9, 42, 42, Cpu.SetC); // CP A, C
-    assert(Cpu.HasFlag(Flag.Z_Zero) == true);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == false);
-    assert(Cpu.HasFlag(Flag.C_Carry) == false);
+    assert(Cpu.FlagZ());
+    assert(!Cpu.FlagH());
+    assert(!Cpu.FlagC());
 
     RunCp(0xBA, 22, 24, Cpu.SetD); // CP A, D
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == true);
-    assert(Cpu.HasFlag(Flag.C_Carry) == true);
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     RunCp(0xBB, 0xFA, 0x12, Cpu.SetE); // CP A, E
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == false);
-    assert(Cpu.HasFlag(Flag.C_Carry) == false);
+    assert(!Cpu.FlagZ());
+    assert(!Cpu.FlagH());
+    assert(!Cpu.FlagC());
 
     RunCp(0xBC, 22, 24, Cpu.SetH); // CP A, H
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == true);
-    assert(Cpu.HasFlag(Flag.C_Carry) == true);
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     RunCp(0xBD, 22, 24, Cpu.SetL); // CP A, L
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == true);
-    assert(Cpu.HasFlag(Flag.C_Carry) == true);
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     RunCp(0xBF, 42, 0xFE, Cpu.SetA); // CP A, A
-    assert(Cpu.HasFlag(Flag.Z_Zero) == true);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == false);
-    assert(Cpu.HasFlag(Flag.C_Carry) == false);
+    assert(Cpu.FlagZ());
+    assert(!Cpu.FlagH());
+    assert(!Cpu.FlagC());
 
     RunCp(0xBE, 22, 25, v => { MemoryMap.GBstore<u8>(0xFF82, v); Cpu.HL = 0xFF82 }, 8); // CP A, [HL]
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == true);
-    assert(Cpu.HasFlag(Flag.C_Carry) == true);
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     RunCp(0xBE, 42, 42, v => { MemoryMap.GBstore<u8>(0xFF82, v); Cpu.HL = 0xFF82 }, 8); // CP A, [HL]
-    assert(Cpu.HasFlag(Flag.Z_Zero) == true);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == false);
-    assert(Cpu.HasFlag(Flag.C_Carry) == false);
+    assert(Cpu.FlagZ());
+    assert(!Cpu.FlagH());
+    assert(!Cpu.FlagC());
 
     // CP A, n8
     RunCpValue(0xFE, 22, 25); // CP A, n8
-    assert(Cpu.HasFlag(Flag.Z_Zero) == false);
-    assert(Cpu.HasFlag(Flag.H_HalfC) == true);
-    assert(Cpu.HasFlag(Flag.C_Carry) == true);
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
 
     return true;
 }

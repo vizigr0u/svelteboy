@@ -1,4 +1,4 @@
-import { Cpu, Flag } from "../../cpu/cpu";
+import { Cpu } from "../../cpu/cpu";
 import { MemoryMap } from "../../memory/memoryMap";
 import { setTestRom } from "../cpuTests";
 
@@ -20,11 +20,11 @@ function RunXorValue(a: u8, b: u8): void {
 export function testXor(): boolean {
     RunXor(0xA8, 17, 25, Cpu.SetB); // XOR A, B
     assert(Cpu.A() == <u8>((17 ^ 25) & 0xFF), `A = ${Cpu.A()}, expected ${(17 ^ 25) & 0xFF}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
+    assert(!Cpu.FlagZ());
 
     RunXor(0xA8, 42, 42, Cpu.SetB); // XOR A, B
     assert(Cpu.A() == 0, `A = ${Cpu.A()}, expected 0`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
+    assert(Cpu.FlagZ());
 
     RunXor(0xA9, 17, 25, Cpu.SetC); // XOR A, C
     assert(Cpu.A() == <u8>((17 ^ 25) & 0xFF), `A = ${Cpu.A()}, expected ${(17 ^ 25) & 0xFF}`);
@@ -48,15 +48,15 @@ export function testXor(): boolean {
 
     RunXor(0xAF, 17, 25, Cpu.SetB); // XOR A, A
     assert(Cpu.A() == 0, `A = ${Cpu.A()}, expected 0`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
+    assert(Cpu.FlagZ());
 
     RunXorValue(17, 25); // XOR A, n8
     assert(Cpu.A() == <u8>((17 ^ 25) & 0xFF), `A = ${Cpu.A()}, expected ${(17 ^ 25) & 0xFF}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
+    assert(!Cpu.FlagZ());
 
     RunXorValue(25, 25); // XOR A, n8
     assert(Cpu.A() == 0, `A = ${Cpu.A()}, expected 0`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
+    assert(Cpu.FlagZ());
 
     return true;
 }

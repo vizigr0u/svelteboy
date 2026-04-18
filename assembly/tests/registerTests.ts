@@ -65,10 +65,10 @@ function testSetFlag(initialFlags: u8, flag: Flag, enabled: boolean): u8 {
 
 function testFlags(): void {
     Cpu.AF = 0xAAFF;
-    assert(Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.N_Sub));
-    assert(Cpu.HasFlag(Flag.H_HalfC));
-    assert(Cpu.HasFlag(Flag.C_Carry));
+    assert(Cpu.FlagZ());
+    assert(Cpu.FlagN());
+    assert(Cpu.FlagH());
+    assert(Cpu.FlagC());
     assert(testSetFlag(0b11110000, Flag.Z_Zero, false) == 0b001110000);
     assert(testSetFlag(0b11110000, Flag.N_Sub, false) == 0b010110000);
     assert(testSetFlag(0b11110000, Flag.H_HalfC, false) == 0b011010000);
@@ -81,7 +81,7 @@ function testFlags(): void {
 
 function testZeroFlaginAF(): void {
     Cpu.AF = 0x00FF;
-    assert(Cpu.HasFlag(Flag.Z_Zero));
+    assert(Cpu.FlagZ());
 }
 
 export function testRegisters(): boolean {

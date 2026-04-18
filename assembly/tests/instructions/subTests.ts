@@ -8,7 +8,7 @@ function RunSub(opCode: u8, a: u8, b: u8, setB: (a: u8) => void, expectedCycles:
     setB(b);
     Cpu.Tick();
     assert(Cpu.CycleCount == expectedCycles, `Cycles: ${Cpu.CycleCount}, expected ${expectedCycles}`);
-    assert(Cpu.HasFlag(Flag.N_Sub));
+    assert(Cpu.FlagN());
 }
 
 function RunSubValue(a: u8, b: u8): void {
@@ -16,7 +16,7 @@ function RunSubValue(a: u8, b: u8): void {
     Cpu.SetA(a);
     Cpu.Tick();
     assert(Cpu.CycleCount == 8, `Cycles: ${Cpu.CycleCount}, expected ${8}`);
-    assert(Cpu.HasFlag(Flag.N_Sub));
+    assert(Cpu.FlagN());
 }
 
 export function testSub(): boolean {
@@ -37,22 +37,22 @@ export function testSub(): boolean {
 
     RunSub(0x92, 53, 11, Cpu.SetD) // SUB A, D
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected ${42}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
+    assert(!Cpu.FlagZ());
 
     RunSub(0x92, 53, 53, v => { Cpu.SetD(v); Cpu.SetFlag(Flag.N_Sub) }) // SUB A, D
     assert(Cpu.A() == 0, `A = ${Cpu.A()}, expected ${0}`);
-    assert(Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.H_HalfC));
+    assert(Cpu.FlagZ());
+    assert(!Cpu.FlagH());
 
     RunSub(0x92, 0xF2, 3, Cpu.SetD) // SUB A, D
     assert(Cpu.A() == 0xEF, `A = ${Cpu.A()}, expected 0xEF`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(Cpu.HasFlag(Flag.H_HalfC), 'HalfCarry flag not set');
+    assert(!Cpu.FlagZ());
+    assert(Cpu.FlagH(), 'HalfCarry flag not set');
 
     RunSub(0x92, 0xF5, 3, Cpu.SetD) // SUB A, D
     assert(Cpu.A() == 0xF2, `A = ${Cpu.A()}, expected ${0xF2}`);
-    assert(!Cpu.HasFlag(Flag.Z_Zero));
-    assert(!Cpu.HasFlag(Flag.H_HalfC), 'HalfCarry flag set');
+    assert(!Cpu.FlagZ());
+    assert(!Cpu.FlagH(), 'HalfCarry flag set');
 
     RunSub(0x93, 53, 11, Cpu.SetE) // SUB A, E
     assert(Cpu.A() == 42, `A = ${Cpu.A()}, expected ${42}`);

@@ -57,6 +57,11 @@ export class Cpu {
 
     @inline static HasFlag(f: Flag): boolean { return (Cpu.F() & <u8>f) != 0 };
 
+    @inline static FlagZ(): bool { return Cpu.HasFlag(Flag.Z_Zero); }
+    @inline static FlagN(): bool { return Cpu.HasFlag(Flag.N_Sub); }
+    @inline static FlagH(): bool { return Cpu.HasFlag(Flag.H_HalfC); }
+    @inline static FlagC(): bool { return Cpu.HasFlag(Flag.C_Carry); }
+
     static SetFlag(f: Flag, enabled: bool = 1): void {
         Cpu.SetF(enabled ? <u8>(Cpu.F() | <u8>f) : <u8>(Cpu.F() & <u8>(~f)));
     }
