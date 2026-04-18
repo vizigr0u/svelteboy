@@ -1,59 +1,24 @@
 import { suite, test, printTotals } from "./framework.js";
-
-import {
-    testRegisters,
-    testMemory,
-    TOTAL_MEMORY_SIZE,
-    testCpu,
-    testInstructions,
-    testNop,
-    testPrograms,
-    resetCpuTestSession,
-    getCpuTestSessionSummary,
-    testVideo,
-    testMisc,
-    testFifo,
-    dumpLogToConsole,
-    testPixelFifo,
-    testUint4Array,
-    testInterrupts,
-} from "../build/backend.js";
-
+import * as backend from "../build/backend.js";
 import { testBlargg02Interrupts } from "./blargg.js";
 
+console.log("Total memory size: " + backend.TOTAL_MEMORY_SIZE);
 
-console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
+backend.dumpLogToConsole();
+backend.resetCpuTestSession();
 
-dumpLogToConsole();
-resetCpuTestSession();
+const testFns = Object.entries(backend)
+    .filter(([name]) => /^test[A-Z]/.test(name))
+    .map(([, fn]) => fn);
 
-suite('Data Structures', () => {
-    test(testUint4Array);
-    test(testFifo);
-    test(testPixelFifo);
-});
-
-suite('CPU', () => {
-    test(testRegisters);
-    test(testCpu);
-    test(testNop);
-    test(testInstructions);
-    test(testPrograms);
-    test(testInterrupts);
-});
-
-suite('Memory', () => {
-    test(testMemory);
-});
-
-suite('Video', () => {
-    test(testVideo);
-    test(testMisc);
+suite('WASM', () => {
+    testFns.forEach(fn => test(fn));
 });
 
 suite('Integration', () => {
     test(testBlargg02Interrupts);
 });
 
-console.log(getCpuTestSessionSummary());
 printTotals();
+
+console.log(backend.getCpuTestSessionSummary());

@@ -42,11 +42,12 @@ export function test(fn, ignored = false) {
 }
 
 export function printTotals() {
-    console.log('');
+    console.log('-------------------------------');
     if (totalFailed === 0) {
         console.log(`  ${okString} ${totalPassed} passed`);
     } else {
         console.log(`  ${okString} ${totalPassed} passed`);
         console.log(`  ${failString} ${totalFailed} failed`);
     }
+    console.log('-------------------------------');
 }
