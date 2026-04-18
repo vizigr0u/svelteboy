@@ -1,4 +1,4 @@
-import { test } from "./framework.js";
+import { suite, test, printTotals } from "./framework.js";
 
 import {
     testRegisters,
@@ -27,22 +27,33 @@ console.log("Total memory size: " + TOTAL_MEMORY_SIZE);
 dumpLogToConsole();
 resetCpuTestSession();
 
-const tests = [
-    testUint4Array,
-    testVideo,
-    testRegisters,
-    testMemory,
-    testCpu,
-    testNop,
-    testInstructions,
-    testPrograms,
-    testMisc,
-    testFifo,
-    testPixelFifo,
-    testInterrupts,
-    testBlargg02Interrupts,
-];
+suite('Data Structures', () => {
+    test(testUint4Array);
+    test(testFifo);
+    test(testPixelFifo);
+});
 
-tests.forEach(fn => test(fn));
+suite('CPU', () => {
+    test(testRegisters);
+    test(testCpu);
+    test(testNop);
+    test(testInstructions);
+    test(testPrograms);
+    test(testInterrupts);
+});
+
+suite('Memory', () => {
+    test(testMemory);
+});
+
+suite('Video', () => {
+    test(testVideo);
+    test(testMisc);
+});
+
+suite('Integration', () => {
+    test(testBlargg02Interrupts);
+});
 
 console.log(getCpuTestSessionSummary());
+printTotals();
