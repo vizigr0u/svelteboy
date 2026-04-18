@@ -5,6 +5,7 @@ import { SP, setTestRom } from "./cpuTests";
 import { MemoryMap } from "../memory/memoryMap";
 import { Emulator } from "../emulator";
 import { Timer } from "../io/timer";
+import { describe, it, assertEquals } from "./framework";
 
 function setIntProgram(int: IntType, instructions: Array<u8>): void {
     const intGbAddress: u16 = Interrupt.GetHandlerAddress(int);
@@ -327,13 +328,15 @@ function testTimerIFPersistsAfterRetISR(): void {
 }
 
 export function testInterrupts(): boolean {
-    testInt1();
-    testIsrDispatchCycles();
-    testEiDiCancelsIME();
-    testEiEnablesAfterOneInstruction();
-    testISRDispatchTakes20TCycles();
-    testISRClearsIFBitAndIME();
-    testTimerHardwareTriggerISR();
-    testTimerIFPersistsAfterRetISR();
+    describe("Interrupts", () => {
+        it("timer ISR fires and increments A", () => { testInt1(); });
+        it("ISR dispatch costs 24 T-cycles (4 NOP + 20 dispatch)", () => { testIsrDispatchCycles(); });
+        it("EI+DI cancels pending IME enable", () => { testEiDiCancelsIME(); });
+        it("EI enables IME after one instruction", () => { testEiEnablesAfterOneInstruction(); });
+        it("ISR dispatch tick costs exactly 24 T-cycles", () => { testISRDispatchTakes20TCycles(); });
+        it("ISR clears IF bit and disables IME", () => { testISRClearsIFBitAndIME(); });
+        it("timer hardware overflow triggers ISR end-to-end", () => { testTimerHardwareTriggerISR(); });
+        it("IF timer bit persists after RET ISR with IME=false", () => { testTimerIFPersistsAfterRetISR(); });
+    });
     return true;
 }

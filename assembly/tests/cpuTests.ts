@@ -5,6 +5,7 @@ import { BOOT_ROM_START } from "../memory/memoryConstants";
 import { Op, Instruction, unprefixedOpCodes, prefixedOpCodes } from "../cpu/opcodes";
 import { getMnemonicName } from "../debug/disassemble";
 import { Emulator } from "../emulator";
+import { describe, it, assertCycles, assertEquals } from "./framework";
 
 const testedOpcodes: Set<u8> = new Set<u8>();
 const testedPrefixedOpcodes: Set<u8> = new Set<u8>();
@@ -120,61 +121,59 @@ export function PC(): u16 {
     return Cpu.ProgramCounter;
 }
 
-function testEi(): void {
-    setTestRom([0xFB, 0x00]);
-    Interrupt.masterEnabled = false;
-    Cpu.Tick();
-    assert(Interrupt.masterEnabled);
-    assert(Cpu.CycleCount == 4, `Cycles = ${Cpu.CycleCount}, expected 8`);
-}
-
-function testDi(): void {
-    setTestRom([0xF3]);
-    Interrupt.masterEnabled = true;
-    Cpu.Tick();
-    assert(!Interrupt.masterEnabled);
-    assert(Cpu.CycleCount == 4, `Cycles = ${Cpu.CycleCount}, expected 4`);
-}
-
-function testHalt(): void {
-    setTestRom([0x76, 0x00,]);
-    Cpu.Tick();
-    assert(Cpu.isHalted);
-    assert(Cpu.CycleCount == 4, `Cycles = ${Cpu.CycleCount}, expected 4`);
-}
-
 function testNops(n: i32): void {
     setTestRom(new Array<u8>(n).fill(0x00));
     const oldPC = Cpu.ProgramCounter;
     for (let i = 0; i < n; i++) {
         Cpu.Tick();
     }
-    assert(Cpu.CycleCount == n * 4, `Cycles = ${Cpu.CycleCount}, expected ${n * 4}`);
+    assertCycles(n * 4);
     assert(Cpu.ProgramCounter = oldPC + <u16>n);
 }
 
 export function testNop(): boolean {
-    testNops(2);
-    testNops(10);
-    testNops(1000);
+    describe("NOP", () => {
+        it("2 NOPs", () => { testNops(2); });
+        it("10 NOPs", () => { testNops(10); });
+        it("1000 NOPs", () => { testNops(1000); });
+    });
     return true;
 }
 
-function testStack(): boolean {
-    Cpu.StackPointer = 0xFFFE;
-    Cpu.PushToSP(0x42FA);
-    assert(Cpu.StackPointer == 0xFFFC, `SP = ${Cpu.StackPointer} but expected 0xFFFC`);
-    const popped: u16 = Cpu.PopSP();
-    assert(Cpu.StackPointer == 0xFFFE, `SP = ${Cpu.StackPointer} but expected 0xFFFE`);
-    assert(popped == 0x42FA, `popped = ${popped} but expected 0x42FA`);
-    return true;
+function testStack(): void {
+    it("push/pop round-trip", () => {
+        Cpu.StackPointer = 0xFFFE;
+        Cpu.PushToSP(0x42FA);
+        assertEquals<u16>(Cpu.StackPointer, 0xFFFC, "SP after push");
+        const popped: u16 = Cpu.PopSP();
+        assertEquals<u16>(Cpu.StackPointer, 0xFFFE, "SP after pop");
+        assertEquals<u16>(popped, 0x42FA, "popped value");
+    });
 }
 
 export function testCpu(): boolean {
-    testEi();
-    testDi();
-    testHalt();
-    testStack();
-
+    describe("CPU", () => {
+        it("EI enables interrupts", () => {
+            setTestRom([0xFB, 0x00]);
+            Interrupt.masterEnabled = false;
+            Cpu.Tick();
+            assert(Interrupt.masterEnabled);
+            assertCycles(4);
+        });
+        it("DI disables interrupts", () => {
+            setTestRom([0xF3]);
+            Interrupt.masterEnabled = true;
+            Cpu.Tick();
+            assert(!Interrupt.masterEnabled);
+            assertCycles(4);
+        });
+        it("HALT halts CPU", () => {
+            setTestRom([0x76, 0x00]);
+            Cpu.Tick();
+            assert(Cpu.isHalted);
+            assertCycles(4);
+        });
+        testStack();
+    });
     return true;
 }
