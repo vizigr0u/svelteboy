@@ -228,12 +228,12 @@ export class Lcd {
     }
 
     static NextLine(): void {
+        const data = Lcd.data;
+        data.lY++;
         Lcd._windowVisible = Lcd.isWindowVisible();
         if (Lcd._windowVisible) {
             Lcd.windowLy++;
         }
-        const data = Lcd.data;
-        data.lY++;
         if (data.lY == data.lYcompare) {
             data.stat = data.stat | 0b100;  // set STAT LYC=LY Flag
             if (data.stat & 0b1000000)      // request STAT int on LY=LYC

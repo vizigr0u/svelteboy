@@ -291,7 +291,7 @@ function scanlineTransferInit(): void {
 }
 
 function scanlineTransferTick(): boolean {
-    return (Ppu.currentDot < TRANSFER_MIN_DOTS);
+    return (Ppu.currentDot < OAM_SCAN_DOTS + TRANSFER_MIN_DOTS);
 }
 
 export function getGameFrame(): Uint8ClampedArray {
