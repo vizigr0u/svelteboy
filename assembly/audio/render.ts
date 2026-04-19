@@ -260,6 +260,11 @@ export class AudioRender {
                     break;
                 case AudioRegisterType.NR52_SoundOnOff:
                     AudioRender.AudioOn = (ev.Value & 0x80) != 0;
+                    if (!AudioRender.AudioOn) {
+                        // Pan Docs: turning APU off clears all registers NR10-NR51
+                        memory.fill(SoundDataPtr, 0, 0x16);
+                        AudioData.registers.fill(0, 0, 0x16);
+                    }
                     if (Logger.verbose >= 1) {
                         log('Sound ' + (AudioRender.AudioOn ? 'ON' : 'OFF'))
                     }

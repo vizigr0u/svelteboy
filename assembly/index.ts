@@ -43,6 +43,7 @@ export { testInterrupts } from './tests/interruptTests';
 export { testFifo } from './tests/fifoTests';
 export { testPixelFifo } from './tests/pixelFifoTests';
 export { testUint4Array } from './tests/Uint4ArrayTests';
+export { testAudioRegisters } from './tests/audioRegisterTests';
 
 export {
   getGameboyTileExampleData,
