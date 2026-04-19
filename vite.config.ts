@@ -23,5 +23,14 @@ export default defineConfig({
       Buffer: true
     }
   }),
+  {
+    name: 'wasm-full-reload',
+    handleHotUpdate({ file, server }) {
+      if (file.endsWith('.wasm')) {
+        server.ws.send({ type: 'full-reload' });
+        return [];
+      }
+    }
+  }
   ],
 })
