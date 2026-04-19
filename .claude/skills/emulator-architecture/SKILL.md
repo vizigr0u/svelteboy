@@ -3,134 +3,60 @@ name: emulator-architecture
 description: Prime context for architectural discussions about SvelteBoy's design patterns, component interactions, timing model, and trade-offs vs. general emulator approaches
 ---
 
-You are discussing the **architecture** of SvelteBoy, a GameBoy DMG emulator. Use this as a reference for how the system is structured and why.
+## Main loop (`assembly/emulator.ts`)
 
----
-
-## Main Loop: Instruction-Granular Catch-Up
-
-`Emulator.Tick()` in `assembly/emulator.ts` — one call per CPU instruction:
-
+`Emulator.Tick()`: CPU-driven catch-up per instruction.
 ```
-Cpu.Tick()               → executes one instruction, returns T-cycles (4–16)
-Timer.Tick(t_cycles)     → updates internalDiv, checks for TIMA overflow
-for i in 0..t_cycles:
-    Ppu.Tick()           → advances one dot
-    Dma.Tick()           → if active, every 4 T-cycles
+cycles = Cpu.Tick()
+Timer.Tick(cycles)
+Ppu.Tick() × cycles   (1 dot/T-cycle)
+Dma.Tick() if active
 ```
+`Run(timeMs)` / `RunFrames(n)` loop on `Tick()` until `GetStopReason() != None`.
 
-`Emulator.Run(timeMs)` / `RunFrames(n)` loop on `Tick()` until `GetStopReason()` returns non-None.
+## Component sync strategies
 
-**Pattern**: CPU drives timing; all other components catch up per instruction. This is the most common practical approach for GB emulators — accurate enough for all commercial games, avoids the overhead of true cycle-by-cycle lockstep.
+**CPU/PPU/Timer/DMA**: instruction-boundary catch-up; tightly coupled via returned cycle count.
 
----
+**APU**: decoupled event-queue. CPU writes to audio registers → `AudioRender.EnqueueEvent(type, val)` with timestamp `(CycleCount - init) * SAMPLE_RATE / CYCLES_PER_SECOND`. End-of-frame `AudioRender.Render()` replays queue, synthesizing between event timestamps. Decouples synthesis from emulation speed.
 
-## Component Synchronization: Two Different Strategies
+## PPU (`assembly/io/video/ppu.ts`)
 
-### CPU / PPU / Timer / DMA — Instruction-Boundary Catch-Up
-Tightly coupled: after each CPU instruction, Timer and PPU are advanced by the exact cycle count returned. PPU is ticked once per T-cycle (4 times per M-cycle) for dot-accurate mode transitions.
+Full pixel FIFO pipeline, not scanline-at-end. State machine: OAMScan (80 dots) → Transfer (172–289 dots, variable due to sprite/window stalls) → HBlank → VBlank (lines 144–153). Variable Mode 3 duration captures mid-scanline effects correctly.
 
-### APU — Retroactive Event Queue (Decoupled)
-`AudioRender` in `assembly/audio/render.ts` operates offline:
-- During emulation, CPU writes to audio registers → `AudioRender.EnqueueEvent(type, value)` timestamps each write as a sample index: `(Cpu.CycleCount - initialCycles) * SAMPLE_RATE / CYCLES_PER_SECOND`
-- Queue is a simple FIFO (`assembly/audio/eventQueue.ts`, capacity 512) — events always arrive in chronological order
-- At end of frame, `AudioRender.Render()` replays the queue, synthesizing audio in chunks between event timestamps
+## Timer (`assembly/io/timer.ts`)
 
-**Inner loop of `RenderSamples()` is a mini-scheduler**:
-```
-while end < bufferEnd:
-    end = min(bufferEnd, nextEvent.sampleIndex)
-    render all channels from start → end
-    apply dequeued event
-    start = end
-```
+16-bit `internalDiv` increments every T-cycle. TIMA increments on watched-bit 1→0 transition:
 
-This pattern decouples audio synthesis speed from emulation speed — synthesis happens once per frame regardless of how many CPU instructions ran.
+| TAC | bit | freq |
+|-----|-----|------|
+| 00 | 9 | 4 kHz |
+| 01 | 3 | 256 kHz |
+| 10 | 5 | 64 kHz |
+| 11 | 7 | 16 kHz |
 
----
+Writing DIV resets `internalDiv` to 0 — can spuriously increment TIMA if watched bit was 1.
 
-## PPU: Full Pixel FIFO Pipeline
+## Memory bus (`assembly/memory/memoryMap.ts`)
 
-PPU state machine in `assembly/io/video/ppu.ts`:
+- Raw `load`/`store` for VRAM/WRAM/OAM/HRAM (precomputed WASM offsets, no dispatch)
+- `GBload`/`GBstore` dispatched gate for IO/cartridge/bootrom → `io.ts` routes by address
+- MBC1/2/3 in `assembly/memory/mbc*.ts` behind common interface
 
-```
-OAMScan  (80 dots, fixed)
-    ↓
-Transfer (172–289 dots, VARIABLE — depends on sprites + window)
-    ↓
-HBlank   (remainder to dot 456)
-    ↓  [repeat 144 lines]
-VBlank   (lines 144–153, 10 scanlines = 4560 dots)
-```
+## Component model
 
-Mode-specific tick functions: `tickOAMScan()`, `tickTransfer()`, `tickHblank()`, `tickVblank()`. Transfer duration is variable because the pixel FIFO stalls on sprite fetches and window activation — this is the full pipeline implementation, not the simpler scanline-at-end approach. Captures variable Mode 3 duration and mid-scanline effects correctly.
+All components (`Cpu`, `Ppu`, `Apu`, `Timer`, `MemoryMap`, `AudioRender`) are `@final` static classes — no instantiation. Circular references (CPU↔MMU↔PPU) are direct static calls. Static fields at known WASM offsets; cache-friendly.
 
----
+## Timing accuracy
 
-## Timer: Bit-Watch on Internal Div Counter
+- PPU ticked 4×/M-cycle (required for STAT interrupt timing)
+- Conditional branches return actual cycles taken
+- EI delay: `Cpu.isEnablingIME` — IME takes effect after next instruction
+- Interrupts: all components call `Interrupt.Request(IntType.X)`; CPU polls `Interrupt.HandleInterrupts()` each tick
+- Register writes land immediately; Transfer reads current values — raster effects work correctly
 
-`assembly/io/timer.ts` — **does not use a fixed prescaler**. Tracks a 16-bit `internalDiv` that increments every T-cycle. TIMA increments when a specific bit of `internalDiv` transitions 1→0:
+## Per-frame call counts (~69,905 T-cycles, ~17,476 instructions)
 
-| TAC bits | Watched bit | Effective frequency |
-|---|---|---|
-| 00 | bit 9 | 4 kHz |
-| 01 | bit 3 | 256 kHz |
-| 10 | bit 5 | 64 kHz |
-| 11 | bit 7 | 16 kHz |
-
-Writing to DIV resets the entire 16-bit `internalDiv` to 0, which can cause a spurious TIMA increment if the watched bit was 1 at the time of reset. This models the hardware accurately.
-
----
-
-## Memory Bus: Tiered Hybrid
-
-`assembly/memory/memoryMap.ts`:
-
-- **Direct WASM memory** for pure RAM regions (VRAM, WRAM, OAM, HRAM) — zero dispatch, raw `load<u8>` / `store<u8>` into flat linear memory at precomputed offsets
-- **Dispatched gate** (`GBload` / `GBstore`) for IO, cartridge, bootrom — checks address range, routes to specialized handler
-- **IO dispatcher** (`assembly/io/io.ts`) routes IO-range accesses to PPU, APU, Timer, Serial, Joypad by address
-
-MBC (Memory Bank Controllers) in `assembly/memory/mbc1/2/3.ts` abstract cartridge ROM/RAM banking behind a common interface.
-
----
-
-## Component Organization: Static Singletons
-
-All major components (`Cpu`, `Ppu`, `Apu`, `Timer`, `MemoryMap`, `AudioRender`, etc.) are `@final` static classes. No instantiation — all state lives in static fields.
-
-**Why**: AssemblyScript has no ownership constraints, so circular references between components (CPU ↔ MemoryMap ↔ PPU) work without `Rc<RefCell<>>` overhead. Static fields live at known WASM memory offsets, improving cache behavior. The tradeoff is tight coupling via direct static calls rather than interfaces, which is acceptable for this target.
-
----
-
-## Timing Accuracy
-
-- **T-cycle granularity**: PPU ticked 4× per M-cycle; this is required for STAT interrupt timing
-- **Variable-length instructions**: conditional branches (JR, JP, CALL, RET) return actual cycles taken
-- **EI delay**: `Cpu.isEnablingIME` flag in `assembly/cpu/cpu.ts` — interrupt enable takes effect after the *next* instruction
-- **Interrupt system**: all components call `Interrupt.Request(IntType.X)` to signal events; CPU polls `Interrupt.HandleInterrupts()` each tick
-
----
-
-## Overhead Profile (per frame, ~69,905 T-cycles ≈ 17,476 instructions)
-
-| Site | Calls/frame |
-|---|---|
-| `Cpu.Tick()` | ~17,476 |
-| `Timer.Tick()` | ~17,476–34,952 |
-| `Ppu.Tick()` | ~69,905 |
-| `GetStopReason()` | ~17,476 (5 conditions each) |
-| APU `EnqueueEvent` | only on audio register writes |
-
-The dominant cost is the `Ppu.Tick()` inner loop. Most of those calls during OAMScan and HBlank increment `currentDot` and return with no side effects.
-
----
-
-## Raster Effects and Timing Correctness
-
-Games change SCX, palette, window position, LCDC during HBlank or VBlank interrupt handlers. This works correctly because:
-- The CPU executes all instructions even when PPU is in HBlank/VBlank — no instructions are skipped
-- Register writes land in `Lcd` / IO memory immediately at the cycle they occur
-- When Transfer begins for the next scanline, it reads current register values
-- Transfer (Mode 3) is the only period where mid-render timing matters, and it runs dot-by-dot via the pixel FIFO
+`Ppu.Tick()` dominates (~69,905 calls). Most OAMScan/HBlank calls are no-ops (dot increment only).
 
 $ARGUMENTS
