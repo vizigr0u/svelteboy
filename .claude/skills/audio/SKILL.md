@@ -1,7 +1,7 @@
 ---
 name: audio
 description: Prime context for working on the SvelteBoy APU — architecture, channel implementations, register layout, event queue, render pipeline, and test patterns
-argument-hint: [optional: specific area, e.g. "pulse", "sweep", "envelope", "wave", "noise", "tests"]
+argument-hint: "optional: specific area, e.g. pulse, sweep, envelope, wave, noise, tests"
 ---
 
 Working on `assembly/audio/`. Read files directly for API; this skill captures non-obvious invariants and derived lookup data only.

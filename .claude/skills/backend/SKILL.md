@@ -1,7 +1,7 @@
 ---
 name: backend
 description: Prime context for working on the AssemblyScript/WASM GameBoy emulator backend in /assembly/
-argument-hint: [optional: specific area, e.g. "cpu", "ppu", "audio", "memory"]
+argument-hint: "optional: specific area, e.g. cpu, ppu, audio, memory"
 ---
 
 You are working on the **AssemblyScript backend** of SvelteBoy, a GameBoy DMG emulator that compiles to WebAssembly.
