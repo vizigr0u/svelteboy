@@ -6,6 +6,7 @@ import { testLcdc } from "./lcdcTests";
 import { testDma } from "./dmaTests";
 import { testBgRendering } from "./bgRenderingTests";
 import { testWindowRendering } from "./windowRenderingTests";
+import { testSprites } from "./spriteTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -16,5 +17,6 @@ export function testVideo(): boolean {
     testDma();
     testBgRendering();
     testWindowRendering();
+    testSprites();
     return true;
 }
