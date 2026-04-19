@@ -79,13 +79,14 @@ export class ScanlineRenderer {
             }
         }
 
-        // sprites
-        if (Lcd.SpritesVisible) {
+        // BGP always applies to BG pixels; sprite compositing only when OBJ enabled
+        {
+            const spritesVisible = Lcd.SpritesVisible;
             const spriteHeight = Lcd.SpriteHeight;
             for (let x: u8 = 0; x < LCD_WIDTH; x++) {
-                const numSpritesThisFetch: i32 = <i32>PpuOamFifo.GetSpriteIndicesFor(x);
                 const bgColorId = unchecked(pixels[x]);
                 let color: u8 = Ppu.applyPalette(Lcd.BGandWindowVisible ? bgColorId : 0, BgPalette);
+                const numSpritesThisFetch: i32 = spritesVisible ? <i32>PpuOamFifo.GetSpriteIndicesFor(x) : 0;
                 for (let i = 0; i < numSpritesThisFetch; i++) {
                     const oam = PpuOamFifo.Peek(i);
 

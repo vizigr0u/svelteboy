@@ -229,9 +229,10 @@ export class Lcd {
 
     static NextLine(): void {
         const data = Lcd.data;
+        const wasWindowVisible = Lcd._windowVisible;
         data.lY++;
         Lcd._windowVisible = Lcd.isWindowVisible();
-        if (Lcd._windowVisible) {
+        if (wasWindowVisible) {
             Lcd.windowLy++;
         }
         if (data.lY == data.lYcompare) {
