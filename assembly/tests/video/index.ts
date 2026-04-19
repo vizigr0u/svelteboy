@@ -3,6 +3,7 @@ import { testScanlineTiming } from "./scanlineTimingTests";
 import { testLyLyc } from "./lyLycTests";
 import { testStatInterrupts } from "./statInterruptTests";
 import { testLcdc } from "./lcdcTests";
+import { testDma } from "./dmaTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -10,5 +11,6 @@ export function testVideo(): boolean {
     testLyLyc();
     testStatInterrupts();
     testLcdc();
+    testDma();
     return true;
 }
