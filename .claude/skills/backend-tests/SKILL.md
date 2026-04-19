@@ -18,6 +18,7 @@ tests/index.js                       ← JS harness
 ```
 
 Each suite exports one `testXxx(): boolean`. Uses `describe`/`it` blocks. Returns `true`; a failed assert aborts immediately.
+the js harness calls all test functions based on name (starts with 'test'), reports pass/fail, and tracks opcode coverage via `setTestRom`.
 
 ## Framework (`assembly/tests/framework.ts`)
 
