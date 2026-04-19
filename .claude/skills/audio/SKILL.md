@@ -63,6 +63,19 @@ CH3 length: `round((256 − timer) × 44100/256)`.
 
 **Sweep safety with step=1 (add)**: trigger immediate check requires `period + period/2 ≤ 2047` → **period ≤ 1364**. Use step=4 for high-frequency sweep tests.
 
+## Uint4Array — Channel Buffer Storage
+
+`Buffer` in each channel is `Uint4Array`: two 4-bit samples packed per byte.
+
+- `length` = `internal.length × 2` (128-sample buffer → 64 bytes internal)
+- `get(i)`: byte = `i>>1`; shift = `(i%2)<<2` (0 for even, 4 for odd); return `(byte >> shift) & 0xF`
+- `set(i, v)`: masks out target nibble, ORs in `v << shift`; asserts `v ≤ 0xF`
+- `wrap(buffer, byteOffset, length)`: zero-copy view over existing `ArrayBuffer`; `length` is byte count, not nibble count → `Uint4Array.wrap` with 64 gives 128-element array
+
+Non-obvious: even index → **low nibble** (bits 3:0); odd index → **high nibble** (bits 7:4). Order is little-nibble-first within each byte.
+
+When reading `Buffer[i]` expect `u8` in range 0–15 (raw volume, not scaled). Scaling happens in `MixChannels` at render time.
+
 ## Test Setup Pattern
 
 ```typescript
