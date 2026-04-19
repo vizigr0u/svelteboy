@@ -176,7 +176,7 @@ export const Audio = {
     },
     Play: () => {
         let audioContextTimestamp = audioCtx.getOutputTimestamp();
-        audioContextStartOffset = audioContextTimestamp.contextTime;
+        audioContextStartOffset = audioContextTimestamp.contextTime ?? 0;
     }
 }
 
@@ -239,14 +239,17 @@ function playBuffer(buffer: AudioBuffer, startTime: number): AudioBufferSourceNo
 }
 
 
-function getAudioBuffer(ptr: number, sampleCount: number): Float32Array {
-    return new Float32Array(backendMemory.buffer, ptr, sampleCount);
+function getAudioBuffer(ptr: number, sampleCount: number): Float32Array<ArrayBuffer> {
+    return new Float32Array(backendMemory.buffer as ArrayBuffer, ptr, sampleCount);
 }
 
-async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer> {
+async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer | undefined> {
     if (isStoredRom(rom)) {
         const storedRom: StoredRom = rom;
-        return Buffer.from(storedRom.contentBase64, "base64");
+        const bin = atob(storedRom.contentBase64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes.buffer;
     }
     if (isLocalRom(rom)) {
         const localRom: LocalRom = rom;
@@ -261,6 +264,7 @@ async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer> {
 
 async function playRom(rom: RomReference): Promise<void> {
     const buffer = await getRomBuffer(rom);
+    if (!buffer) return;
     const loaded = await new Promise<boolean>((r) =>
         r(Emulator.LoadCartridgeRom(buffer))
     );

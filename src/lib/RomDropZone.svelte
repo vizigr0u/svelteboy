@@ -3,7 +3,6 @@
   import { cartRomStore } from "stores/romStores";
   import { DragState, type LocalRom, type StoredRom } from "../types";
   import { humanReadableSize } from "../utils";
-  import { Buffer } from "buffer";
 
   let {
     dragState = $bindable(DragState.Idle),
@@ -49,7 +48,7 @@
       const newStoredRom: StoredRom = {
         name: newRom.name,
         sha1: newRom.sha1,
-        contentBase64: Buffer.from(buffer).toString("base64"),
+        contentBase64: btoa(String.fromCharCode(...new Uint8Array(buffer))),
         fileSize: file.size,
       };
       cartRomStore.update((store) => [newStoredRom, ...store]);
