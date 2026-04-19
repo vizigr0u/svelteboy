@@ -52,6 +52,7 @@ export { testMbc } from './tests/mbcTests';
 export { testSerial } from './tests/serialTests';
 export { testEmulator } from './tests/emulatorTests';
 export { testTimer } from './tests/timerTests';
+export { testJoypad } from './tests/joypadTests';
 
 export {
   getGameboyTileExampleData,
