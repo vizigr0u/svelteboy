@@ -18,6 +18,7 @@ import { MemoryMap } from "../../memory/memoryMap";
 import { testRl } from './rlTests';
 import { testRr } from './rrTests';
 import { testAlu } from './aluTests';
+import { testJpRst } from './jpRstTests';
 
 export function SetHLDeref(value: u8): void {
     MemoryMap.GBstore(0xFF82, value);
@@ -51,5 +52,6 @@ export function testInstructions(): boolean {
     testRl();
     testRr();
     testAlu();
+    testJpRst();
     return true;
 }
