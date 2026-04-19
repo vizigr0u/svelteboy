@@ -22,6 +22,19 @@ export class APU {
 
     @inline
     static Load(gbAddress: u16): u8 {
+        const low: u8 = <u8>(gbAddress & 0xFF);
+        if (low == 0x15 || low == 0x1F || (low >= 0x27 && low < 0x30))
+            return 0xFF;
+        if (gbAddress == 0xFF26) {
+            const stored = load<u8>(GB_IO_START + 0x26);
+            const chBits = <u8>(
+                (AudioRender.channel1.Enabled ? 1 : 0) |
+                (AudioRender.channel2.Enabled ? 2 : 0) |
+                (AudioRender.channel3.Enabled ? 4 : 0) |
+                (AudioRender.channel4.Enabled ? 8 : 0)
+            );
+            return (stored & 0xF0) | chBits;
+        }
         return load<u8>(GB_IO_START + gbAddress - 0xFF00);
     }
 
