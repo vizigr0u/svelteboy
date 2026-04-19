@@ -1,7 +1,7 @@
 import { ClearHLDerefTest, SetHLDeref, HLDeref } from ".";
 import { Cpu, Flag } from "../../cpu/cpu";
 import { setTestRom } from "../cpuTests";
-import { describe, it, assertReg, assertEquals, assertFlags } from "../framework";
+import { describe, it, assertReg, assertEquals, assertFlags, assertCycles } from "../framework";
 
 // ---------------------------------------------------------------------------
 // ADC
@@ -188,6 +188,35 @@ function testSbc(): void {
             Cpu.Tick();
             assertReg(Cpu.A(), 0x0F, "A");
             assertFlags(false, true, true, false); // H=true: low nibble 0-1 < 0
+        });
+        it("SBC A,r8: 4 cycles", () => {
+            setTestRom([0x98]);
+            Cpu.SetA(0x10); Cpu.SetB(0x05); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertCycles(4);
+        });
+        it("SBC A,[HL]: 8 cycles", () => {
+            setTestRom([0x9E]);
+            SetHLDeref(0x01);
+            Cpu.SetA(0x05); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x04, "A");
+            assertCycles(8);
+            ClearHLDerefTest();
+        });
+        it("SBC A,n8: 8 cycles", () => {
+            setTestRom([0xDE, 0x02]);
+            Cpu.SetA(0x05); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x03, "A");
+            assertCycles(8);
+        });
+        it("SBC A,B carry-in causes underflow from zero (0x00-0x00-1=0xFF)", () => {
+            setTestRom([0x98]);
+            Cpu.SetA(0x00); Cpu.SetB(0x00); Cpu.SetFlag(Flag.C_Carry, 1);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0xFF, "A");
+            assertFlags(false, true, true, true); // H: 0-0-1<0; C: borrow
         });
     });
 }
@@ -392,6 +421,40 @@ function testCplCcfScf(): void {
             assert(!Cpu.FlagN(), "N cleared by CCF");
             assert(!Cpu.FlagH(), "H cleared by CCF");
         });
+        it("CPL preserves Z and C flags", () => {
+            setTestRom([0x2F]);
+            Cpu.SetA(0xFF);
+            Cpu.SetFlag(Flag.Z_Zero, 1); Cpu.SetFlag(Flag.C_Carry, 1);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x00, "A");
+            assert(Cpu.FlagZ(), "Z preserved by CPL");
+            assert(Cpu.FlagC(), "C preserved by CPL");
+            assert(Cpu.FlagN(), "N set by CPL");
+            assert(Cpu.FlagH(), "H set by CPL");
+            assertCycles(4);
+        });
+        it("SCF preserves Z flag", () => {
+            setTestRom([0x37]);
+            Cpu.SetFlag(Flag.Z_Zero, 1); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.SetFlag(Flag.N_Sub, 1); Cpu.SetFlag(Flag.H_HalfC, 1);
+            Cpu.Tick();
+            assert(Cpu.FlagZ(), "Z preserved by SCF");
+            assert(Cpu.FlagC(), "C set by SCF");
+            assert(!Cpu.FlagN(), "N cleared by SCF");
+            assert(!Cpu.FlagH(), "H cleared by SCF");
+            assertCycles(4);
+        });
+        it("CCF preserves Z flag", () => {
+            setTestRom([0x3F]);
+            Cpu.SetFlag(Flag.Z_Zero, 1); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.SetFlag(Flag.N_Sub, 1); Cpu.SetFlag(Flag.H_HalfC, 1);
+            Cpu.Tick();
+            assert(Cpu.FlagZ(), "Z preserved by CCF");
+            assert(Cpu.FlagC(), "C flipped to 1");
+            assert(!Cpu.FlagN(), "N cleared by CCF");
+            assert(!Cpu.FlagH(), "H cleared by CCF");
+            assertCycles(4);
+        });
     });
 }
 
@@ -436,6 +499,64 @@ function testDaa(): void {
             Cpu.Tick();
             assertReg(Cpu.A(), 0x19, "A after sub DAA");
             assert(Cpu.FlagN(), "N preserved in sub-mode DAA");
+        });
+        it("DAA after ADD: H set (no nibble overflow) → lower correction", () => {
+            // 0x09+0x09=0x12 raw: H=1, N=0, C=0 → +6 → 0x18
+            setTestRom([0x27]);
+            Cpu.SetA(0x12);
+            Cpu.SetFlag(Flag.N_Sub, 0); Cpu.SetFlag(Flag.H_HalfC, 1); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x18, "A after H-correction");
+            assert(!Cpu.FlagH(), "H always cleared by DAA");
+            assert(!Cpu.FlagC(), "no carry");
+        });
+        it("DAA after ADD: upper nibble >9, no H, no C → +0x60 → carry set", () => {
+            // simulate 0x90+0x15=0xA5: lower nibble 5 not >9, H=0 → no low fix; A>0x99 → +0x60
+            setTestRom([0x27]);
+            Cpu.SetA(0xA5);
+            Cpu.SetFlag(Flag.N_Sub, 0); Cpu.SetFlag(Flag.H_HalfC, 0); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x05, "A after upper correction");
+            assert(Cpu.FlagC(), "C set on upper correction");
+            assert(!Cpu.FlagH(), "H cleared by DAA");
+            assert(!Cpu.FlagZ(), "Z clear (result 0x05 != 0)");
+        });
+        it("DAA after ADD: H + upper correction → double fix", () => {
+            // A=0xA2, H=1: lower fix: 0xA2+6=0xA8; upper fix: 0xA8>0x99 → +0x60 → 0x08, C=1
+            setTestRom([0x27]);
+            Cpu.SetA(0xA2);
+            Cpu.SetFlag(Flag.N_Sub, 0); Cpu.SetFlag(Flag.H_HalfC, 1); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x08, "A after double correction");
+            assert(Cpu.FlagC(), "C set");
+            assert(!Cpu.FlagH(), "H cleared by DAA");
+        });
+        it("DAA after SUB: C flag → -0x60, C unchanged", () => {
+            // simulate borrow: N=1, C=1, H=0 → A-=0x60
+            setTestRom([0x27]);
+            Cpu.SetA(0x72);
+            Cpu.SetFlag(Flag.N_Sub, 1); Cpu.SetFlag(Flag.H_HalfC, 0); Cpu.SetFlag(Flag.C_Carry, 1);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x12, "A after sub C correction");
+            assert(Cpu.FlagN(), "N preserved");
+            assert(Cpu.FlagC(), "C unchanged in sub mode");
+            assert(!Cpu.FlagH(), "H cleared by DAA");
+        });
+        it("DAA after SUB: C and H → -6 and -0x60", () => {
+            // N=1, C=1, H=1 → A=0x6E: -6 → 0x68; -0x60 → 0x08
+            setTestRom([0x27]);
+            Cpu.SetA(0x6E);
+            Cpu.SetFlag(Flag.N_Sub, 1); Cpu.SetFlag(Flag.H_HalfC, 1); Cpu.SetFlag(Flag.C_Carry, 1);
+            Cpu.Tick();
+            assertReg(Cpu.A(), 0x08, "A after sub C+H correction");
+            assert(!Cpu.FlagH(), "H cleared by DAA");
+        });
+        it("DAA: 4 cycles", () => {
+            setTestRom([0x27]);
+            Cpu.SetA(0x00);
+            Cpu.SetFlag(Flag.N_Sub, 0); Cpu.SetFlag(Flag.H_HalfC, 0); Cpu.SetFlag(Flag.C_Carry, 0);
+            Cpu.Tick();
+            assertCycles(4);
         });
     });
 }

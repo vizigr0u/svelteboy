@@ -76,6 +76,16 @@ export function testRet(): boolean {
             assertEquals<u16>(Cpu.ProgramCounter, 0x1234, "PC after RETI");
             assertEquals<u16>(Cpu.StackPointer, 0xFFFE, "SP after RETI");
             assert(Interrupt.masterEnabled, "RETI must re-enable IME immediately");
+            assertCycles(16);
+        });
+        it("RETI enables IME even when previously disabled by DI", () => {
+            setTestRom([0xD9]);
+            Cpu.StackPointer = 0xFFFC;
+            MemoryMap.GBstore<u16>(0xFFFC, 0x0300);
+            Interrupt.masterEnabled = false;
+            Cpu.Tick();
+            MemoryMap.GBstore<u16>(0xFFFC, 0);
+            assert(Interrupt.masterEnabled, "IME set by RETI regardless of prior DI");
         });
     });
     return true;
