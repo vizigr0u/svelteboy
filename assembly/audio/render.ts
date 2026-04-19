@@ -163,8 +163,8 @@ export class AudioRender {
                 right[bufferStart + i] *= r / numChans;
             }
         } else {
-            memory.fill(left.dataStart + bufferStart, 0, numSamples);
-            memory.fill(right.dataStart + bufferStart, 0, numSamples);
+            left.fill(0, bufferStart, bufferStart + numSamples);
+            right.fill(0, bufferStart, bufferStart + numSamples);
         }
     }
 
@@ -303,14 +303,18 @@ export class AudioRender {
                 if (!AudioRender.outBuffer.hasSpaceForNextBuffer()) {
                     if (!AudioRender.renderingPaused) {
                         AudioRender.renderingPaused = true;
-                        log('Audio Render paused: Queue Full');
+                        if (Logger.verbose >= 1) {
+                            log('Audio Render paused: Queue Full');
+                        }
                     }
                     break;
                 }
                 AudioRender.outBuffer.nextWorkingBuffers();
                 if (AudioRender.renderingPaused) {
                     AudioRender.renderingPaused = false;
-                    log('Audio Render resumed: new buffer available');
+                    if (Logger.verbose >= 1) {
+                        log('Audio Render resumed: new buffer available');
+                    }
                 }
             }
         }
