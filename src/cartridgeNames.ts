@@ -1,7 +1,7 @@
 
 let fetching = false;
-let gbNames = undefined;
-let gbcNames = undefined;
+let gbNames: any = undefined;
+let gbcNames: any = undefined;
 
 export async function getGbNames(): Promise<any> {
     if (!fetching && gbNames == undefined) {

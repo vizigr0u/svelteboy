@@ -27,7 +27,7 @@ RemoteRomsListUri.subscribe((uri) => {
     }
 });
 
-async function getList(uri): Promise<RemoteRom[]> {
+async function getList(uri: string): Promise<RemoteRom[]> {
     const res = await fetch(uri);
     const list = (await res.json()) as RemoteRomsList;
     const roms: RemoteRom[] = list.roms.map((r) => ({

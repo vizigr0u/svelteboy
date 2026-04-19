@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import path from 'path';
 
 // https://vitejs.dev/config/
@@ -15,14 +14,7 @@ export default defineConfig({
       'stores': path.resolve(__dirname, './src/stores'),
     },
   },
-  plugins: [svelte(), nodePolyfills({
-    exclude: [
-      'fs', 'process'
-    ],
-    globals: {
-      Buffer: true
-    }
-  }),
+  plugins: [svelte(),
   {
     name: 'wasm-full-reload',
     handleHotUpdate({ file, server }) {

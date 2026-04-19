@@ -107,9 +107,9 @@ export enum PPUMode {
 }
 
 class PpuInfo {
-    currentDot: number;
-    currentMode: PPUMode;
-    lineSpritesIndices: Array<number>;
+    currentDot: number = 0;
+    currentMode: PPUMode = PPUMode.HBlank;
+    lineSpritesIndices: Array<number> = [];
 }
 
 export type GbDebugInfo = {

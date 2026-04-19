@@ -68,7 +68,7 @@ export async function fetchDisassembly(rom: RomReference, region: MemoryRegion =
             rom.programLines = rom.programLines.concat(lines);
             return rom;
         });
-        pc = lines.at(-1).pc + lines.at(-1).byteSize;
+        pc = lines.at(-1)!.pc + lines.at(-1)!.byteSize;
         // console.log(
         //     `fetched ${lines.length} lines of  $${oldPc.toString(
         //         16
