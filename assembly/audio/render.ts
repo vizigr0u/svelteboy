@@ -247,6 +247,7 @@ export class AudioRender {
                     AudioRender.channel4.setLsfrClock(shift, divider);
                     break;
                 case AudioRegisterType.NR44_C4Control:
+                    AudioRender.channel4.LengthEnabled = (ev.Value & 0x40) != 0;
                     if ((ev.Value & 0x80) != 0)
                         AudioRender.channel4.trigger();
                     break;
