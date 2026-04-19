@@ -23,8 +23,8 @@ export class AudioChannelBase {
     private EnvelopeLeft: f64 = 0;
 
     protected enabled: boolean = false;
-    private samplesUntilStop: i32 = 0;
-    private lengthEnabled: boolean = false;
+    protected samplesUntilStop: i32 = 0;
+    protected lengthEnabled: boolean = false;
 
     constructor(type: AudioChannelId) {
         // Buffer must be assigned before any other use of 'this' (AS non-nullable field constraint).

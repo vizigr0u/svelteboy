@@ -20,7 +20,7 @@ export class WaveChannel extends AudioChannelBase {
     private waveData: Uint4Array = new Uint4Array(0);
     private frequencyBits: u16 = 1750; // A440
     private angularFrequency: f64;
-    private phase: f64 = 1.0; // Apparently the very first sample is always skipped
+    private phase: f64 = 1.0; // first sample always skipped (Pan Docs: trigger starts at index 1)
 
     static Create(): WaveChannel {
         const c = new WaveChannel(AudioChannelId.Channel3);
@@ -46,8 +46,19 @@ export class WaveChannel extends AudioChannelBase {
         this.updateFrequency();
     }
 
+    // Pan Docs: trigger resets sample index to 1 (skipping sample 0).
     trigger(): void {
+        this.phase = 1.0;
         this.baseTrigger();
+    }
+
+    // Pan Docs: CH3 length timer is 8-bit (0–255), channel plays for (256–NR31)/256 sec.
+    // Override base class which uses 64 (CH1/CH2 formula).
+    set LengthEnabled(enabled: boolean) {
+        if (enabled) {
+            this.samplesUntilStop = <i32>Math.round((256.0 - <f64>this.LengthTimer) * (SAMPLE_RATE / 256.0));
+        }
+        this.lengthEnabled = enabled;
     }
 
     private updateFrequency(): void {
@@ -73,17 +84,19 @@ export class WaveChannel extends AudioChannelBase {
                 if (this.Enabled) {
                     assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
                     const waveIndex: u8 = <u8>Math.floor(this.phase);
-                    const x: u8 = this.waveData[waveIndex]; // TODO
+                    const x: u8 = this.waveData[waveIndex];
                     this.Buffer[i] = x >> shift;
                     if (Logger.verbose >= 3)
                         log(`Wave Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
                     this.phase += this.angularFrequency;
-                    if (this.phase >= 32.0) {
+                    while (this.phase >= 32.0) {
                         if (Logger.verbose >= 2) {
-                            log(`C4 (at ${start + i}) SinPhase from ${this.phase} to ${this.phase - 1.0}`)
+                            log(`C4 (at ${start + i}) SinPhase from ${this.phase} to ${this.phase - 32.0}`)
                         }
                         this.phase -= 32.0;
                     }
+                } else {
+                    this.Buffer[i] = 0;
                 }
             }
         }
