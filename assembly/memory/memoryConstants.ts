@@ -37,7 +37,7 @@ export const BOOT_ROM_SIZE: u32 = 0xa00; // largest known supported bios
 
 export const ROM_BANK_SIZE: u32 = 0x4000;
 export const CARTRIDGE_ROM_START: u32 = BOOT_ROM_START + BOOT_ROM_SIZE;
-export const CARTRIDGE_ROM_SIZE: u32 = 0x7e0400; // largest supported rom = 8MB
+export const CARTRIDGE_ROM_SIZE: u32 = 0x800000; // 512 banks × 16KiB = 8MiB (MBC5 max)
 
 export const ROM_STORAGE_END: u32 = CARTRIDGE_ROM_START + CARTRIDGE_ROM_SIZE;
 

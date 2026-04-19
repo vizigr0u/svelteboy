@@ -276,32 +276,39 @@ export function testMbc(): boolean {
 
         describe("ROM bank bit 8 (0x3000-0x3FFF)", () => {
             it("bit 8 set maps 0x4000 to bank 256", () => {
-                setupMBCCart(CartridgeType.MBC5, 7, 0); // 256 banks
+                setupMBCCart(CartridgeType.MBC5, 8, 0); // 512 banks
                 mbcWrite(0x2000, 0x00);
                 mbcWrite(0x3000, 0x01); // bit 8 = 1 → bank 256
                 assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 256 * ROM_BANK_SIZE, "MapRom = bank 256");
             });
 
             it("bit 8 + low bits combine for 9-bit bank number", () => {
-                setupMBCCart(CartridgeType.MBC5, 7, 0);
+                setupMBCCart(CartridgeType.MBC5, 8, 0);
                 mbcWrite(0x2000, 5);
                 mbcWrite(0x3000, 1); // bank 261
                 assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 261 * ROM_BANK_SIZE, "MapRom = bank 261");
             });
 
             it("only bit 0 of 0x3000 write used for bit 8", () => {
-                setupMBCCart(CartridgeType.MBC5, 7, 0);
+                setupMBCCart(CartridgeType.MBC5, 8, 0);
                 mbcWrite(0x2000, 0x01);
                 mbcWrite(0x3000, 0xFE); // bit 0 = 0 → bit 8 cleared → bank 1
                 assertEquals<u8>(readRomBank1Sentinel(), 1, "bit 0 of 0x3000 = 0 → bit 8 clear");
             });
 
             it("clearing bit 8 goes back to low-bank", () => {
-                setupMBCCart(CartridgeType.MBC5, 7, 0);
+                setupMBCCart(CartridgeType.MBC5, 8, 0);
                 mbcWrite(0x2000, 0x05);
                 mbcWrite(0x3000, 0x01); // bank 261
                 mbcWrite(0x3000, 0x00); // clear bit 8 → bank 5
                 assertEquals<u8>(readRomBank1Sentinel(), 5, "bit 8 cleared → bank 5");
+            });
+
+            it("can select bank 511 (max 9-bit bank)", () => {
+                setupMBCCart(CartridgeType.MBC5, 8, 0); // 512 banks
+                mbcWrite(0x2000, 0xFF); // low 8 = 255
+                mbcWrite(0x3000, 0x01); // bit 8 = 1 → bank 511
+                assertEquals<u8>(readRomBank1Sentinel(), 0xFF, "bank 511 sentinel = 255");
             });
         });
 
