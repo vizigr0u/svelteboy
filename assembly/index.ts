@@ -45,6 +45,7 @@ export { testPixelFifo } from './tests/pixelFifoTests';
 export { testUint4Array } from './tests/Uint4ArrayTests';
 export { testAudioRegisters } from './tests/audioRegisterTests';
 export { testPulseChannel } from './tests/pulseChannelTests';
+export { testWaveChannel } from './tests/waveChannelTests';
 
 export {
   getGameboyTileExampleData,
