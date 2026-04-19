@@ -111,5 +111,60 @@ export function testMbc(): boolean {
         });
 
     });
+
+    describe("MBC2", () => {
+
+        describe("RAM enable/disable", () => {
+            it("enable RAM: write 0x0A to addr with bit 8 clear (0x0000)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                assertEquals<bool>(isRamEnabled(), false, "initially disabled");
+                mbcWrite(0x0000, 0x0A);
+                assertEquals<bool>(isRamEnabled(), true, "enabled after 0x0A");
+            });
+
+            it("disable RAM: write non-0x0A to addr with bit 8 clear", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x0000, 0x00);
+                assertEquals<bool>(isRamEnabled(), false, "disabled after 0x00");
+            });
+        });
+
+        describe("ROM bank switching", () => {
+            it("ROM bank select: write bank 3 to addr with bit 8 set (0x2100)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0); // 16 banks
+                mbcWrite(0x2100, 3);
+                assertEquals<u8>(readRomBank1Sentinel(), 3, "bank 3 selected");
+            });
+
+            it("bank 0 write to addr with bit 8 set remaps to bank 1", () => {
+                setupMBCCart(CartridgeType.MBC2, 1, 0); // 4 banks
+                mbcWrite(0x2100, 0);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bank 0 → bank 1");
+            });
+
+            it("MapRom: bank 0 range always fixed regardless of selected bank", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x2100, 3);
+                assertEquals<u8>(readRomBank0Sentinel(), 0, "bank 0 range fixed at sentinel 0");
+            });
+        });
+
+        describe("RAM mapping", () => {
+            it("MapRam always maps to bank 0 base regardless of ROM bank", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x2100, 3);
+                assertEquals<u32>(MBC.MapRam(0xA000), GB_EXT_RAM_START, "MapRam(0xA000) = bank 0 base");
+            });
+
+            it("MapRam offset within bank 0 is fixed", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x2100, 5);
+                assertEquals<u32>(MBC.MapRam(0xA100), GB_EXT_RAM_START + 0x100, "MapRam(0xA100) offset correct");
+            });
+        });
+
+    });
+
     return true;
 }
