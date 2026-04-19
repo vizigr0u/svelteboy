@@ -62,6 +62,16 @@ export function testCp(): boolean {
             RunCpValue(0xFE, 22, 25);
             assertFlags(false, true, true, true);
         });
+        it("CP A,D H=1 C=0: lower borrows, upper does not (0x20-0x11)", () => {
+            // 0x20-0x11: lower 0-1=-1<0 → H=1; 0x20>0x11 → C=0
+            RunCp(0xBA, 0x20, 0x11, Cpu.SetD);
+            assertFlags(false, true, true, false);
+        });
+        it("CP A,n8 BCD digits: 0x43-0x29 → H=1 C=0", () => {
+            // lower nibble: 3-9=-6<0 → H=1; 0x43>0x29 → C=0
+            RunCpValue(0xFE, 0x43, 0x29);
+            assertFlags(false, true, true, false);
+        });
     });
     return true;
 }
