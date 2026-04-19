@@ -36,6 +36,19 @@ export class Timer {
         Timer.Enabled = false;
     }
 
+    // Falling edge on the watched bit -> increment TIMA (or overflow to TMA + request interrupt).
+    private static fallingEdgeTick(): void {
+        if (Timer.Tima == 0xFF) {
+            Timer.Tima = Timer.Tma;
+            Interrupt.Request(IntType.Timer);
+            if (Logger.verbose >= 2) {
+                log(`Requested Int Timer and set Tima to ${uToHex<u8>(Timer.Tma)}`)
+            }
+        } else {
+            Timer.Tima++;
+        }
+    }
+
     static Tick(tCycles: u8 = 4): void {
         if (Logger.verbose >= 2) {
             log('Timer running ' + (tCycles >> 2).toString() + ' m-cycle(s)')
@@ -54,15 +67,7 @@ export class Timer {
                 if (Logger.verbose >= 2) {
                     log(`Timer edge: DivWatchBit=${Timer.DivWatchBit.toString(2)} internalDiv=${uToHex<u16>(Timer.internalDiv)} Tima=${uToHex<u8>(Timer.Tima)}`)
                 }
-                if (Timer.Tima == 0xFF) {
-                    Timer.Tima = Timer.Tma;
-                    Interrupt.Request(IntType.Timer);
-                    if (Logger.verbose >= 2) {
-                        log(`Requested Int Timer and set Tima to ${uToHex<u8>(Timer.Tma)}`)
-                    }
-                } else {
-                    Timer.Tima++;
-                }
+                Timer.fallingEdgeTick();
             }
         }
     }
@@ -78,7 +83,11 @@ export class Timer {
                 if (Logger.verbose >= 2) {
                     log(`DIV reset`)
                 }
-                Timer.internalDiv = 0; // take into account LDH op
+                // Pandocs: writing DIV triggers a TIMA tick if the watched bit was 1 (falling edge).
+                if (Timer.Enabled && (Timer.internalDiv & Timer.DivWatchBit) != 0) {
+                    Timer.fallingEdgeTick();
+                }
+                Timer.internalDiv = 0;
                 break;
             case TIMA_ADDRESS:
                 Timer.Tima = value;
@@ -92,21 +101,31 @@ export class Timer {
                     log(`TMA set to ${uToHex<u8>(value)}`)
                 }
                 break;
-            case TAC_ADDRESS:
+            case TAC_ADDRESS: {
+                const newEnabled: boolean = (value & 0b100) != 0;
+                const newBit: u16 = Timer.getDivWatchBit(value);
+                // Pandocs: changing clock select or disabling timer while the watched bit is 1
+                // causes a falling edge -> one TIMA tick (DMG behaviour).
+                const oldSignal: boolean = Timer.Enabled && (Timer.internalDiv & Timer.DivWatchBit) != 0;
+                const newSignal: boolean = newEnabled && (Timer.internalDiv & newBit) != 0;
+                if (oldSignal && !newSignal) {
+                    Timer.fallingEdgeTick();
+                }
                 Timer.Tac = (Timer.Tac & 0b11111000) | (value & 0b111);
-                Timer.Enabled = (value & 0b100) != 0;
-                Timer.DivWatchBit = Timer.getDivWatchBit(value);
+                Timer.Enabled = newEnabled;
+                Timer.DivWatchBit = newBit;
                 if (Logger.verbose >= 2) {
                     log(`TAC set to ${uToHex<u8>(Timer.Tac)}: Timer enabled: ${Timer.Enabled}, bit mask: ${Timer.DivWatchBit}`)
                 }
                 break;
+            }
         }
     }
 
     static Load(gbAddress: u16): u8 {
         switch (gbAddress) {
             case DIV_ADDRESS:
-                return Timer.Div + 8; // take into account LDH op
+                return Timer.Div;
             case TIMA_ADDRESS:
                 return Timer.Tima;
             case TMA_ADDRESS:
