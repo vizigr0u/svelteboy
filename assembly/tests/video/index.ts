@@ -4,6 +4,8 @@ import { testLyLyc } from "./lyLycTests";
 import { testStatInterrupts } from "./statInterruptTests";
 import { testLcdc } from "./lcdcTests";
 import { testDma } from "./dmaTests";
+import { testBgRendering } from "./bgRenderingTests";
+import { testWindowRendering } from "./windowRenderingTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -12,5 +14,7 @@ export function testVideo(): boolean {
     testStatInterrupts();
     testLcdc();
     testDma();
+    testBgRendering();
+    testWindowRendering();
     return true;
 }
