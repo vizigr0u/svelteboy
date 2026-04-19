@@ -174,7 +174,7 @@ export class Lcd {
         }
         if (gbAddress == LcdGbData.getControlAddress()
             && Lcd._ppuEnabled
-            && (value & LcdControlBit.LCDandPPUenabled) == 0
+            && (value & (1 << <u8>LcdControlBit.LCDandPPUenabled)) == 0
             && Ppu.currentMode != PpuMode.VBlank) {
             if (Logger.verbose >= 1)
                 log('Ignoring disabling PPU outside of VBlank ' + Cpu.GetTrace())
