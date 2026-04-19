@@ -3,6 +3,7 @@ import { CartridgeType } from "../metadata";
 import { MBC1_Handler } from "./mbc1";
 import { MBC2_Handler } from "./mbc2";
 import { MBC3_Handler } from "./mbc3";
+import { MBC5_Handler } from "./mbc5";
 import { MBC_Handler, MBC_Mapper, MBC_Write, log } from "./mbcTypes";
 import { NoMBCHandler } from "./noMbc";
 
@@ -29,6 +30,7 @@ function getHandler(t: CartridgeType): MBC_Handler {
         case CartridgeType.MBC5_RUMBLE:
         case CartridgeType.MBC5_RUMBLE_RAM:
         case CartridgeType.MBC5_RUMBLE_RAM_BATTERY:
+            return MBC5_Handler;
         case CartridgeType.MBC6:
         case CartridgeType.MBC7_SENSOR_RUMBLE_RAM_BATTERY:
         case CartridgeType.POCKET_CAMERA:

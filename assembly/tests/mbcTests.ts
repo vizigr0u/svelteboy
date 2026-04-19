@@ -224,6 +224,124 @@ export function testMbc(): boolean {
 
     });
 
+    describe("MBC5", () => {
+
+        describe("RAM enable/disable", () => {
+            it("enable RAM: write 0x0A to 0x0000", () => {
+                setupMBCCart(CartridgeType.MBC5_RAM, 3, 2);
+                assertEquals<bool>(isRamEnabled(), false, "initially disabled");
+                mbcWrite(0x0000, 0x0A);
+                assertEquals<bool>(isRamEnabled(), true, "enabled after 0x0A");
+            });
+
+            it("disable RAM: write 0x00 to 0x0000", () => {
+                setupMBCCart(CartridgeType.MBC5_RAM, 3, 2);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x0000, 0x00);
+                assertEquals<bool>(isRamEnabled(), false, "disabled after 0x00");
+            });
+
+            it("enable RAM via 0x1FFF", () => {
+                setupMBCCart(CartridgeType.MBC5_RAM, 3, 2);
+                mbcWrite(0x1FFF, 0x0A);
+                assertEquals<bool>(isRamEnabled(), true, "enabled via 0x1FFF");
+            });
+        });
+
+        describe("ROM bank switching low 8 bits (0x2000-0x2FFF)", () => {
+            it("write bank 1 selects bank 1", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0);
+                mbcWrite(0x2000, 1);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bank 1 selected");
+            });
+
+            it("write bank 5 selects bank 5", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0);
+                mbcWrite(0x2000, 5);
+                assertEquals<u8>(readRomBank1Sentinel(), 5, "bank 5 selected");
+            });
+
+            it("bank 0 is selectable (no 0->1 remapping)", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0);
+                mbcWrite(0x2000, 0);
+                assertEquals<u8>(readRomBank1Sentinel(), 0, "bank 0 selectable in MBC5");
+            });
+
+            it("ROM bank 0 window always fixed at physical bank 0", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0);
+                mbcWrite(0x2000, 5);
+                assertEquals<u8>(readRomBank0Sentinel(), 0, "bank 0 window always physical bank 0");
+            });
+        });
+
+        describe("ROM bank bit 8 (0x3000-0x3FFF)", () => {
+            it("bit 8 set maps 0x4000 to bank 256", () => {
+                setupMBCCart(CartridgeType.MBC5, 7, 0); // 256 banks
+                mbcWrite(0x2000, 0x00);
+                mbcWrite(0x3000, 0x01); // bit 8 = 1 → bank 256
+                assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 256 * ROM_BANK_SIZE, "MapRom = bank 256");
+            });
+
+            it("bit 8 + low bits combine for 9-bit bank number", () => {
+                setupMBCCart(CartridgeType.MBC5, 7, 0);
+                mbcWrite(0x2000, 5);
+                mbcWrite(0x3000, 1); // bank 261
+                assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 261 * ROM_BANK_SIZE, "MapRom = bank 261");
+            });
+
+            it("only bit 0 of 0x3000 write used for bit 8", () => {
+                setupMBCCart(CartridgeType.MBC5, 7, 0);
+                mbcWrite(0x2000, 0x01);
+                mbcWrite(0x3000, 0xFE); // bit 0 = 0 → bit 8 cleared → bank 1
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bit 0 of 0x3000 = 0 → bit 8 clear");
+            });
+
+            it("clearing bit 8 goes back to low-bank", () => {
+                setupMBCCart(CartridgeType.MBC5, 7, 0);
+                mbcWrite(0x2000, 0x05);
+                mbcWrite(0x3000, 0x01); // bank 261
+                mbcWrite(0x3000, 0x00); // clear bit 8 → bank 5
+                assertEquals<u8>(readRomBank1Sentinel(), 5, "bit 8 cleared → bank 5");
+            });
+        });
+
+        describe("RAM bank switching (0x4000-0x5FFF)", () => {
+            it("banks 0-3 hold independent data", () => {
+                setupMBCCart(CartridgeType.MBC5_RAM, 3, 3); // 4 RAM banks
+                mbcWrite(0x0000, 0x0A);
+                for (let b: u8 = 0; b < 4; b++) {
+                    mbcWrite(0x4000, b);
+                    writeRam(<u8>(0xB0 + b));
+                }
+                for (let b: u8 = 0; b < 4; b++) {
+                    mbcWrite(0x4000, b);
+                    assertEquals<u8>(readRam(), <u8>(0xB0 + b), "RAM bank " + b.toString());
+                }
+            });
+
+            it("write to 0x4000 selects RAM bank via lower 4 bits", () => {
+                setupMBCCart(CartridgeType.MBC5_RAM, 3, 3);
+                mbcWrite(0x4000, 0xF2); // lower 4 bits = 2
+                assertEquals<u32>(MBC.MapRam(0xA000), GB_EXT_RAM_START + 2 * GB_EXT_RAM_BANK_SIZE, "bank 2 via masked write");
+            });
+        });
+
+        describe("MapRom", () => {
+            it("0x0000 always maps to physical bank 0", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0);
+                mbcWrite(0x2000, 7);
+                assertEquals<u32>(MBC.MapRom(0x0000), CARTRIDGE_ROM_START, "bank 0 window = ROM start");
+            });
+
+            it("0x4000 maps to selected ROM bank", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0);
+                mbcWrite(0x2000, 7);
+                assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 7 * ROM_BANK_SIZE, "MapRom(0x4000) = bank 7");
+            });
+        });
+
+    });
+
     describe("SaveGame", () => {
         it("WrapToCartridgeSize sizes buffer to ramBankCount × GB_EXT_RAM_BANK_SIZE", () => {
             setupMBCCart(CartridgeType.MBC1_RAM, 0, 3); // ramSizeByte=3 → 4 banks
