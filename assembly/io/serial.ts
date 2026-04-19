@@ -1,6 +1,7 @@
 import { MemoryMap } from "../memory/memoryMap";
 import { Logger } from "../debug/logger";
 import { IO } from "./io";
+import { IntType, Interrupt } from "../cpu/interrupts";
 
 const SB_ADDRESS: u16 = 0xFF01;
 const SC_ADDRESS: u16 = 0xFF02;
@@ -32,7 +33,10 @@ export class Serial {
             if (Logger.verbose >= 2) {
                 log(Serial.message)
             }
-            value = 0; // change the value to store to 0 so that we don't read SB_ADDRESS again
+            // Transfer complete: SB = $FF (no device = all 1s incoming), SC bit 7 cleared, serial interrupt
+            IO.MemStore<u8>(SB_ADDRESS, 0xFF);
+            Interrupt.Request(IntType.Serial);
+            value = 0; // SC bit 7 cleared
         }
         IO.MemStore<u8>(gbAddress, value);
     }

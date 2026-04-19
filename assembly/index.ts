@@ -49,6 +49,7 @@ export { testWaveChannel } from './tests/waveChannelTests';
 export { testNoiseChannel } from './tests/noiseChannelTests';
 export { testAudioRender } from './tests/audioRenderTests';
 export { testMbc } from './tests/mbcTests';
+export { testSerial } from './tests/serialTests';
 
 export {
   getGameboyTileExampleData,
