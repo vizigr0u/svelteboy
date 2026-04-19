@@ -47,6 +47,7 @@ export class NoiseChannel extends AudioChannelBase {
         assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
         while (i < end) {
             if (!this.Enabled) {
+                for (let j = i; j < end; j++) this.Buffer[j] = 0;
                 return;
             }
             const numSamplesUntilEnvelopeChange: i32 = this.GetNumSamplesUntilEnvelopeVolumeChange();
