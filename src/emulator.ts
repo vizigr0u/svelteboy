@@ -370,3 +370,9 @@ function unPauseEmulator(): void {
     audioCtx.resume();
     lastRenderTime = -1;
 }
+
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        window.cancelAnimationFrame(runningAnimationFrameHandle);
+    });
+}
