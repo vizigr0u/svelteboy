@@ -15,7 +15,7 @@ class MBC2 {
     }
 
     static HandleWrite(gbAddress: u16, value: u8): void {
-        if ((gbAddress & 0x1000) == 0) { // Ram enabled register bit
+        if ((gbAddress & 0x0100) == 0) { // bit 8 of address: 0=RAM enable, 1=ROM bank select (Pan Docs)
             enableRam(value == 0xA);
         } else {
             const newRomBank = value == 0 ? 1 : value;
