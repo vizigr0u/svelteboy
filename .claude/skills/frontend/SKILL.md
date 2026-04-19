@@ -1,7 +1,7 @@
 ---
 name: frontend
 description: Prime context for working on the Svelte 5 frontend in /src/ — components, stores, WASM bridge, audio, canvas rendering
-argument-hint: [optional: specific area, e.g. "debugger", "audio", "canvas", "stores"]
+argument-hint: "optional: specific area, e.g. debugger, audio, canvas, stores"
 ---
 
 You are working on the **Svelte 5 frontend** of SvelteBoy, a GameBoy DMG emulator.

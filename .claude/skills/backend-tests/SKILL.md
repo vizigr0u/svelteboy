@@ -1,7 +1,7 @@
 ---
 name: backend-tests
 description: Guide for writing AssemblyScript backend tests in assembly/tests/ — patterns, helpers, ROM setup, and wiring
-argument-hint: [optional: what you're testing, e.g. "timer", "interrupt", "new opcode"]
+argument-hint: "optional: what you're testing, e.g. timer, interrupt, new opcode"
 ---
 
 Always consult Pan Docs (`pandocs/src/`, via `gameboy-docs` skill) for expected flag effects, cycle counts, and register behavior. Never guess hardware behavior.
