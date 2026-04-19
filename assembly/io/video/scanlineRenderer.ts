@@ -33,7 +33,8 @@ export class ScanlineRenderer {
         const pixels = ScanlineRenderer.pixels;
         const lcd = Lcd.data;
         const y = lcd.lY;
-        const tileY = ((lcd.lY + lcd.scrollY) & 7) << 1;
+        const bgTileY  = ((lcd.lY + lcd.scrollY) & 7) << 1;
+        const winTileY = (Lcd.WindowLineY & 7) << 1;
 
         const winX = lcd.windowX;
         const winVisible = Lcd.IsWindowVisible;
@@ -48,6 +49,7 @@ export class ScanlineRenderer {
                 const mapBase = inWindow ? Lcd.WindowTileMapBaseAddress : Lcd.BgTileMapBaseAddress;
                 const mapX: u8 = inWindow ? x + 7 - lcd.windowX : x + lcd.scrollX;
                 const mapY: u8 = inWindow ? Lcd.WindowLineY : lcd.lY + lcd.scrollY;
+                const tileY = inWindow ? winTileY : bgTileY;
 
                 const dataIndex: u8 = load<u8>(mapBase + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
                 const bgTileOffset: i16 = tileBaseIsLow ? <i16>dataIndex : <i16><u8>(dataIndex + 128);
