@@ -73,7 +73,11 @@ export const Emulator = {
     LoadCartridgeRom: loadCartridgeRom,
     LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
     PlayRom: playRom,
-    AddPostRunCallback: (callback: () => void) => { postRunCallbacks.push(callback); }
+    AddPostRunCallback: (callback: () => void) => { postRunCallbacks.push(callback); },
+    RemovePostRunCallback: (callback: () => void) => {
+        const i = postRunCallbacks.indexOf(callback);
+        if (i !== -1) postRunCallbacks.splice(i, 1);
+    }
 }
 
 export const Debug = {
