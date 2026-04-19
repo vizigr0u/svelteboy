@@ -241,6 +241,9 @@ function enterMode(mode: PpuMode): void {
             Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
             break;
         case PpuMode.OAMScan:
+            if (Lcd.data.hasStatMode(PpuMode.OAMScan)) {
+                Interrupt.Request(IntType.LcdSTAT);
+            }
             PpuOamFifo.FetchCurrentLine();
             break;
         case PpuMode.Transfer:
