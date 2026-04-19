@@ -2,6 +2,7 @@ import { CartridgeType } from "../metadata";
 import { isRamEnabled } from "../memory/mbcTypes";
 import { MBC } from "../memory/mbc";
 import { CARTRIDGE_ROM_START, ROM_BANK_SIZE, GB_EXT_RAM_START, GB_EXT_RAM_BANK_SIZE } from "../memory/memoryConstants";
+import { SaveGame } from "../memory/savegame";
 import { describe, it, assertEquals } from "./framework";
 import { setupMBCCart, readRomBank0Sentinel, readRomBank1Sentinel, writeRam, readRam, mbcWrite } from "./mbcTestHelpers";
 
@@ -164,6 +165,103 @@ export function testMbc(): boolean {
             });
         });
 
+    });
+
+    describe("MBC3", () => {
+
+        describe("RAM enable/disable", () => {
+            it("enable RAM: write 0x0A to 0x0000", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3);
+                mbcWrite(0x0000, 0x0A);
+                assertEquals<bool>(isRamEnabled(), true, "RAM enabled");
+            });
+
+            it("disable RAM: write 0x00 to 0x0000", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x0000, 0x00);
+                assertEquals<bool>(isRamEnabled(), false, "RAM disabled");
+            });
+        });
+
+        describe("ROM bank select (0x2000)", () => {
+            it("writing 0 remaps to bank 1", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 0);
+                mbcWrite(0x2000, 0);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bank 0 → bank 1");
+            });
+
+            it("writing arbitrary bank N selects bank N", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 0);
+                mbcWrite(0x2000, 5);
+                assertEquals<u8>(readRomBank1Sentinel(), 5, "bank 5 selected");
+            });
+        });
+
+        describe("RAM bank select (0x4000)", () => {
+            it("banks 0-3 hold independent data", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3); // 4 RAM banks
+                mbcWrite(0x0000, 0x0A); // enable RAM
+                for (let b: u8 = 0; b < 4; b++) {
+                    mbcWrite(0x4000, b);
+                    writeRam(<u8>(0xA0 + b));
+                }
+                for (let b: u8 = 0; b < 4; b++) {
+                    mbcWrite(0x4000, b);
+                    assertEquals<u8>(readRam(), <u8>(0xA0 + b), "RAM bank " + b.toString());
+                }
+            });
+        });
+
+        describe("RTC stub (0x4000-0x5FFF)", () => {
+            it("writing 0x08-0x0C does not crash", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 0);
+                for (let v: u8 = 0x08; v <= 0x0C; v++) {
+                    mbcWrite(0x4000, v);
+                }
+            });
+        });
+
+    });
+
+    describe("SaveGame", () => {
+        it("WrapToCartridgeSize sizes buffer to ramBankCount × GB_EXT_RAM_BANK_SIZE", () => {
+            setupMBCCart(CartridgeType.MBC1_RAM, 0, 3); // ramSizeByte=3 → 4 banks
+            SaveGame.Init();
+            assertEquals<i32>(SaveGame.GetBuffer().byteLength, 4 * GB_EXT_RAM_BANK_SIZE, "buffer length");
+        });
+
+        it("Save() copies external RAM to buffer", () => {
+            setupMBCCart(CartridgeType.MBC1_RAM, 0, 3);
+            SaveGame.Init();
+            store<u8>(GB_EXT_RAM_START, 0xAB);
+            SaveGame.Save();
+            assertEquals<u8>(SaveGame.GetBuffer()[0], 0xAB, "buffer[0] matches sentinel");
+        });
+
+        it("LoadSave() copies buffer into external RAM", () => {
+            setupMBCCart(CartridgeType.MBC1_RAM, 0, 3);
+            mbcWrite(0x0000, 0x0A); // enable RAM
+            SaveGame.Init();
+            const save = new Uint8Array(4 * GB_EXT_RAM_BANK_SIZE);
+            save[0] = 0xCD;
+            SaveGame.LoadSave(save);
+            assertEquals<u8>(readRam(), 0xCD, "ext RAM[0] matches sentinel");
+        });
+
+        it("LoadSave() with oversized buffer logs warning, no crash", () => {
+            setupMBCCart(CartridgeType.MBC1_RAM, 0, 3);
+            SaveGame.Init();
+            const oversized = new Uint8Array(4 * GB_EXT_RAM_BANK_SIZE + 1);
+            SaveGame.LoadSave(oversized);
+        });
+
+        it("LoadSave() with undersized buffer logs warning, no crash", () => {
+            setupMBCCart(CartridgeType.MBC1_RAM, 0, 3);
+            SaveGame.Init();
+            const undersized = new Uint8Array(GB_EXT_RAM_BANK_SIZE);
+            SaveGame.LoadSave(undersized);
+        });
     });
 
     return true;
