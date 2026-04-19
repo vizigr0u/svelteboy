@@ -4,16 +4,19 @@
     import { playerPixelSize, showFPS } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
+    import { onMount } from "svelte";
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
     import { DragState } from "../types";
     import PlayCanvas from "./PlayCanvas.svelte";
 
     let dragState: DragState = $state(DragState.Idle);
-    let playCanvas = $state(null);
+    let playCanvas: { draw: (buffer: Uint8ClampedArray) => void } | null = $state(null);
 
-    Emulator.AddPostRunCallback(() => {
-        playCanvas?.draw(Emulator.GetGameFrame());
+    onMount(() => {
+        const drawCallback = () => playCanvas?.draw(Emulator.GetGameFrame());
+        Emulator.AddPostRunCallback(drawCallback);
+        return () => Emulator.RemovePostRunCallback(drawCallback);
     });
 </script>
 
