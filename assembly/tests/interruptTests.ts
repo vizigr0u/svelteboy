@@ -20,7 +20,9 @@ function setupRomProgram(instructions: Array<u8>): void {
 }
 
 function testInt1(): void {
-    // first bits of DMG boot rom: setup SP and clear VRAM (0x8000->0x9FFF)
+    // Verifies that the timer ISR fires exactly once when EI is used before IF is set.
+    // EI → (IME active after next instr) → ... → LDH [IF]=$04 → NOP (ISR fires) → HALT
+    // A starts at 4 (from LD A,$04 before LDH [IF]), ISR does INC A → expect A=5.
     setupRomProgram([
         0x3E, 0x04,         // LD A, $04
         0xE0, 0xFF,         // LDH [$FF], A  => IE = 04 (Timer int)
@@ -31,15 +33,16 @@ function testInt1(): void {
         0x04,               // INC B
         0x3E, 0x04,         // LD A, $04
         0xE0, 0x0F,         // LDH [$0F], A  => IF = 04 (Timer int)
-        0x00]);
+        0x00,               // NOP -- ISR fires here, pushes 0x110 (next PC), jumps to $50
+        0x76]);             // HALT -- ISR returns here
     setIntProgram(IntType.Timer, [
         0x3C, // inc A
         0xC9  // ret
     ]);
-    for (let i = 0; Cpu.ProgramCounter != 0x0010; i++) {
+    for (let i = 0; i < 1000 && !Cpu.isHalted; i++) {
         Cpu.Tick();
     }
-    assert(Cpu.A() == 50, `Expected A=50, got A=${Cpu.A()}`);
+    assert(Cpu.A() == 5, `Expected A=5, got A=${Cpu.A()}`);
 }
 
 // ISR dispatch must cost exactly 5 M-cycles (20 T-cycles):
