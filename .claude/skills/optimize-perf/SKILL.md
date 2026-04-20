@@ -16,7 +16,7 @@ allowed-tools: Bash Grep Read Edit
 ```
 # equivalent to `pnpm run asbuild:profilerelease && pnpm run profile`
 pnpm run profile:build        # runs 1500 frames of Pokemon Yellow with Node.js V8 profiler
-pnpm run benchmark      # 10×1500 frame timing (avg/low/high FPS)
+pnpm run bench      # 10×1500 frame timing (avg/low/high FPS)
 ```
 
 Profile output: `profile.cpuprofile` (V8 format) — drag onto **speedscope.app** for flame graph.
