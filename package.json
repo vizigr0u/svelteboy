@@ -8,6 +8,7 @@
     "asbuild:debug": "asc assembly/index.ts --target debug",
     "asbuild:debugrelease": "asc assembly/index.ts --target debugrelease",
     "asbuild:release": "asc assembly/index.ts --target release",
+    "asbuild:instrumented": "asc assembly/index.ts --target release --use INSTRUMENTED=1",
     "asbuild:profilerelease": "asc assembly/index.ts --target profilerelease",
     "dev": "vite",
     "build": "pnpm run asbuild:release && vite build",
@@ -18,6 +19,8 @@
     "bench:build": "pnpm asbuild:release && pnpm run bench",
     "profile": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile",
     "profile:build": "pnpm asbuild:profilerelease && pnpm run profile",
+    "profile:instrumented": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile --instrumented",
+    "profile:build:instrumented": "pnpm asbuild:instrumented && pnpm run profile:instrumented",
     "profile:fn": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile-function",
     "profile:fn:build": "pnpm asbuild:profilerelease && node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile-function"
   },

@@ -179,6 +179,7 @@ export class Ppu {
         Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
 
         Lcd.Init();
+        ScanlineRenderer.Init();
     }
 
     static Tick(): void {

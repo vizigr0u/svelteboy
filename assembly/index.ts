@@ -83,3 +83,8 @@ export {
   setMuteChannel,
   setMasterAudioToggle,
 } from './audio/render';
+
+import { ScanlineRenderer } from "./io/video/scanlineRenderer";
+export function instrumentedDiag(): void {
+    ScanlineRenderer.RenderDiag();
+}
