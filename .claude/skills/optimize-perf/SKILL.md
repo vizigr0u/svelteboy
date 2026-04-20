@@ -8,10 +8,10 @@ allowed-tools: Bash Grep Read Edit
 ## Commands
 
 ```bash
-pnpm run profile:build   # build profilerelease + run 1500 frames with V8 profiler → profile.cpuprofile
-pnpm run bench:build     # build release + run 10×1500 frames, prints avg/low/high FPS
+pnpm profile:build   # build profilerelease + run 1500 frames with V8 profiler → profile.cpuprofile
+pnpm bench:build     # build release + run 10×1500 frames, prints avg/low/high FPS
 ./node_modules/.bin/asc assembly/index.ts --target release --textFile build/backend.wat  # WAT for analysis
-pnpm run asbuild:release # standard release build
+pnpm asbuild:release # standard release build
 ```
 
 Always profile profilerelease build - optimized with debug symbols.
