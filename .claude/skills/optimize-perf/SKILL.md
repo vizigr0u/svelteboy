@@ -8,8 +8,8 @@ allowed-tools: Bash Grep Read Edit
 ## Commands
 
 ```bash
-pnpm profile:build   # build profilerelease + run 1500 frames with V8 profiler → profile.cpuprofile
-pnpm bench:build     # build release + run 10×1500 frames, prints avg/low/high FPS
+pnpm profile:build   # build profilerelease + run frames → profile.cpuprofile
+pnpm bench:build     # build release + run frames, prints avg/low/high FPS
 ./node_modules/.bin/asc assembly/index.ts --target release --textFile build/backend.wat  # WAT for analysis
 pnpm asbuild:release # standard release build
 ```
@@ -41,6 +41,12 @@ for (const ln of l) { const r = ln.match(/^ \(func \\\$([^\s)]+)/); if (r) m[i++
 | 603 | `Emulator.GetStopReason` | 7.6% |
 
 Note: indices shift with each build. Re-map after every change.
+
+## Process
+
+One idea per change. Profile before+after each. No batching. Keep/revert before next idea.
+No specific optimization target? Use `pnpm profile:build`
+Target function? Use `pnpm profile:fn:build -- <FunctionName>`.
 
 ## Validation Threshold
 
