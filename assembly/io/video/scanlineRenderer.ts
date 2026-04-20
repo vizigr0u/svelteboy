@@ -12,11 +12,16 @@ function log(s: string): void {
     Logger.Log("PPU-scanline: " + s);
 }
 
-// const PIXEL_FIFO_SIZE: u32 = 16;
-
 @final
 export class ScanlineRenderer {
     private static pixels: StaticArray<u8> = new StaticArray<u8>(LCD_WIDTH);
+
+    // Precomputed per-scanline sprite data (indexed by FIFO position 0..9)
+    private static spriteXPos: StaticArray<u8> = new StaticArray<u8>(10);
+    // Decoded pixel colors by pixel offset [0..7] from sprite left edge (xFlip already applied)
+    private static spritePixels: StaticArray<u8> = new StaticArray<u8>(80); // 10 * 8
+    private static spritePalette: StaticArray<u8> = new StaticArray<u8>(10);
+    private static spriteBgPrio: StaticArray<u8> = new StaticArray<u8>(10);
 
     static Init(): void {
     }
@@ -39,97 +44,153 @@ export class ScanlineRenderer {
         const winX = lcd.windowX;
         const winVisible = Lcd.IsWindowVisible;
         const BgPalette: u8 = Lcd.getBGPalette();
+        const bgEnabled = Lcd.BGandWindowVisible;
 
-        // bg and win
-        if (Lcd.BGandWindowVisible) {
+        // --- BG and window rendering ---
+        if (bgEnabled) {
             const tileBaseIsLow = Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea);
             const offset: u8 = lcd.scrollX & 7;
-            for (let x: u8 = 0; x < LCD_WIDTH;) { // TODO better
-                const inWindow = winVisible && ScanlineRenderer.isInWindow(x, winX);
-                const mapBase = inWindow ? Lcd.WindowTileMapBaseAddress : Lcd.BgTileMapBaseAddress;
-                const mapX: u8 = inWindow ? x + 7 - lcd.windowX : x + lcd.scrollX;
-                const mapY: u8 = inWindow ? Lcd.WindowLineY : lcd.lY + lcd.scrollY;
-                const tileY = inWindow ? winTileY : bgTileY;
 
-                const dataIndex: u8 = load<u8>(mapBase + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
-                const bgTileOffset: i16 = tileBaseIsLow ? <i16>dataIndex : <i16><u8>(dataIndex + 128);
-                const tileByteAddress: u32 = Lcd.TilesBaseAddress + (bgTileOffset * 16) + tileY;
-                if (tileByteAddress < GB_VIDEO_START || tileByteAddress >= (GB_VIDEO_START + GB_VIDEO_BANK_SIZE)) {
-                    const error = `Invalid pointer: ${uToHex<u32>(tileByteAddress)} (GB ${uToHex<u32>(tileByteAddress - GB_VIDEO_START + 0x8000)})\n`
-                        + `TilesBaseAddress = ${uToHex<u32>(Lcd.TilesBaseAddress)}, tileOffset = ${bgTileOffset}, *16 = ${(bgTileOffset * 16)}, tileY = ${tileY} \n`
-                        + Cpu.GetTrace();
-                    log(error)
-                    console.log(error)
-                    // Cpu.isStopped = true;
-                    assert(false, error)
-                    return;
+            if (!winVisible) {
+                // Fast path: no window active
+                for (let x: u8 = 0; x < LCD_WIDTH;) {
+                    const mapX: u8 = x + lcd.scrollX;
+                    const mapY: u8 = lcd.lY + lcd.scrollY;
+                    const dataIndex: u8 = load<u8>(Lcd.BgTileMapBaseAddress + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
+                    const bgTileOffset: i16 = tileBaseIsLow ? <i16>dataIndex : <i16><u8>(dataIndex + 128);
+                    const tileByteAddress: u32 = Lcd.TilesBaseAddress + (bgTileOffset * 16) + bgTileY;
+                    if (Logger.verbose >= 1) {
+                        if (tileByteAddress < GB_VIDEO_START || tileByteAddress >= (GB_VIDEO_START + GB_VIDEO_BANK_SIZE)) {
+                            const error = `Invalid pointer: ${uToHex<u32>(tileByteAddress)} (GB ${uToHex<u32>(tileByteAddress - GB_VIDEO_START + 0x8000)})\n`
+                                + `TilesBaseAddress = ${uToHex<u32>(Lcd.TilesBaseAddress)}, tileOffset = ${bgTileOffset}, *16 = ${(bgTileOffset * 16)}, tileY = ${bgTileY} \n`
+                                + Cpu.GetTrace();
+                            log(error);
+                            console.log(error);
+                            assert(false, error);
+                            return;
+                        }
+                    }
+                    const fetchedBgBytes = load<u16>(tileByteAddress);
+                    const lo: u8 = <u8>fetchedBgBytes;
+                    const hi: u8 = <u8>(fetchedBgBytes >> 8);
+                    const startI: i16 = x == 0 ? offset : 0;
+                    const endI: i16 = x + 8 > LCD_WIDTH ? offset : 8;
+                    for (let i = startI; i < endI; i++) {
+                        const bit: u8 = <u8>(7 - i);
+                        unchecked(pixels[x++] = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1));
+                    }
                 }
-                const fetchedBgBytes = load<u16>(tileByteAddress);
-                const startI: i16 = !inWindow && x == 0 ? offset : 0;
-                // const startI = x - offset < 0 ? offset - x : 0;
-                const endI: i16 = !inWindow && x + 8 > LCD_WIDTH ? offset : 8;
-                if (Logger.verbose >= 4) {
-                    log(`tile ${dataIndex} from ${startI}  to ${endI} (offset: ${offset})`);
-                }
-                for (let i = startI; i < endI; i++) {
-                    const bgMask: u8 = (1 << <u8>(7 - i));
-                    const bgColorId: u8 = Ppu.getColorIndexFromBytes(fetchedBgBytes, bgMask);
-                    unchecked(pixels[x++] = bgColorId);
+            } else {
+                // Slow path: window may be active
+                for (let x: u8 = 0; x < LCD_WIDTH;) {
+                    const inWindow = ScanlineRenderer.isInWindow(x, winX);
+                    const mapBase = inWindow ? Lcd.WindowTileMapBaseAddress : Lcd.BgTileMapBaseAddress;
+                    const mapX: u8 = inWindow ? x + 7 - lcd.windowX : x + lcd.scrollX;
+                    const mapY: u8 = inWindow ? Lcd.WindowLineY : lcd.lY + lcd.scrollY;
+                    const tileY = inWindow ? winTileY : bgTileY;
+                    const dataIndex: u8 = load<u8>(mapBase + (mapX >> 3) + (<u16>(mapY >> 3) << 5));
+                    const bgTileOffset: i16 = tileBaseIsLow ? <i16>dataIndex : <i16><u8>(dataIndex + 128);
+                    const tileByteAddress: u32 = Lcd.TilesBaseAddress + (bgTileOffset * 16) + tileY;
+                    if (Logger.verbose >= 1) {
+                        if (tileByteAddress < GB_VIDEO_START || tileByteAddress >= (GB_VIDEO_START + GB_VIDEO_BANK_SIZE)) {
+                            const error = `Invalid pointer: ${uToHex<u32>(tileByteAddress)} (GB ${uToHex<u32>(tileByteAddress - GB_VIDEO_START + 0x8000)})\n`
+                                + `TilesBaseAddress = ${uToHex<u32>(Lcd.TilesBaseAddress)}, tileOffset = ${bgTileOffset}, *16 = ${(bgTileOffset * 16)}, tileY = ${tileY} \n`
+                                + Cpu.GetTrace();
+                            log(error);
+                            console.log(error);
+                            assert(false, error);
+                            return;
+                        }
+                    }
+                    const fetchedBgBytes = load<u16>(tileByteAddress);
+                    const lo: u8 = <u8>fetchedBgBytes;
+                    const hi: u8 = <u8>(fetchedBgBytes >> 8);
+                    const startI: i16 = !inWindow && x == 0 ? offset : 0;
+                    const endI: i16 = !inWindow && x + 8 > LCD_WIDTH ? offset : 8;
+                    for (let i = startI; i < endI; i++) {
+                        const bit: u8 = <u8>(7 - i);
+                        unchecked(pixels[x++] = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1));
+                    }
                 }
             }
         }
 
-        // BGP always applies to BG pixels; sprite compositing only when OBJ enabled
-        {
-            const spritesVisible = Lcd.SpritesVisible;
+        // --- Pre-decode sprite rows (once per scanline) ---
+        const spritesVisible = Lcd.SpritesVisible;
+        let numSprites: i32 = 0;
+        if (spritesVisible) {
             const spriteHeight = Lcd.SpriteHeight;
-            for (let x: u8 = 0; x < LCD_WIDTH; x++) {
-                const bgColorId = unchecked(pixels[x]);
-                let color: u8 = Ppu.applyPalette(Lcd.BGandWindowVisible ? bgColorId : 0, BgPalette);
-                const numSpritesThisFetch: i32 = spritesVisible ? <i32>PpuOamFifo.GetSpriteIndicesFor(x) : 0;
-                for (let i = 0; i < numSpritesThisFetch; i++) {
-                    const oam = PpuOamFifo.Peek(i);
+            numSprites = PpuOamFifo.size;
+            for (let fi: i32 = 0; fi < numSprites; fi++) {
+                const oam = PpuOamFifo.Peek(fi);
+                let spriteY = (y + 16 - oam.yPos);
+                if (oam.hasAttr(OamAttribute.YFlip))
+                    spriteY = (spriteHeight - 1) - spriteY;
+                const tileIndex: u16 = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
+                const spriteBytes: u16 = load<u16>(GB_VIDEO_START + (<u16>tileIndex * 16) + spriteY * 2);
+                const lo: u8 = <u8>spriteBytes;
+                const hi: u8 = <u8>(spriteBytes >> 8);
+                const xFlip = oam.hasAttr(OamAttribute.XFlip);
+                const base = fi * 8;
+                for (let pixOff: u8 = 0; pixOff < 8; pixOff++) {
+                    // pixOff=0 is leftmost pixel of sprite; map to raw bit (with xFlip)
+                    const bit: u8 = xFlip ? pixOff : (7 - pixOff);
+                    unchecked(ScanlineRenderer.spritePixels[base + pixOff] = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1));
+                }
+                unchecked(ScanlineRenderer.spriteXPos[fi] = oam.xPos);
+                const pal = oam.hasAttr(OamAttribute.PaletteNumber) ? Lcd.data.objPalette1 : Lcd.data.objPalette0;
+                unchecked(ScanlineRenderer.spritePalette[fi] = pal & 0b11111100);
+                unchecked(ScanlineRenderer.spriteBgPrio[fi] = oam.hasAttr(OamAttribute.BGandWindowOver) ? 1 : 0);
+            }
+        }
 
-                    if (oam.hasAttr(OamAttribute.BGandWindowOver) && bgColorId != 0)
-                        continue;
+        // --- Composite: sprites + palette + 32-bit output (single pass) ---
+        const bufferOffset = y * LCD_WIDTH;
+        const palette32 = Ppu.current32bitPalette;
+        const workingBufferPtr = Ppu.workingBuffer.dataStart;
+        let spriteHead: i32 = 0;
 
-                    let spriteY = (y + 16 - oam.yPos);
-                    if (oam.hasAttr(OamAttribute.YFlip))
-                        spriteY = (spriteHeight - 1) - spriteY;
+        for (let x: u8 = 0; x < LCD_WIDTH; x++) {
+            const bgColorId = unchecked(pixels[x]);
+            let color: u8 = Ppu.applyPalette(bgEnabled ? bgColorId : 0, BgPalette);
 
-                    const tileIndex: u16 = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
-                    const spriteBytes: u16 = unchecked(load<u16>(GB_VIDEO_START + (<u16>tileIndex * 16) + spriteY * 2));
-                    if (Logger.verbose >= 4) {
-                        log(`Fetched bytes from tileIndex ${tileIndex} Y: ${spriteY} => ${(spriteBytes >> 8).toString(2).padStart(8, '0')} and ${(spriteBytes & 8).toString(2).padStart(8, '0')}`)
-                    }
+            if (numSprites > 0) {
+                // Advance past sprites that end before x (original: xPos < x)
+                while (spriteHead < numSprites &&
+                       unchecked(ScanlineRenderer.spriteXPos[spriteHead]) < x)
+                    spriteHead++;
 
-                    const spriteX: i16 = <i16><u8>oam.xPos - 8;
-                    const offset: i16 = spriteX - x; // [-7, 0] if sprite is [x - 7, x]
-                    if (Logger.verbose >= 4) {
-                        log(`Fetching pixel ${x + i} on ${oam.tileIndex}: spriteX=${spriteX}, offset=${offset}`)
-                    }
-                    if (offset < -7 || offset > 0)
-                        continue;
+                let validCount: i32 = 0;
+                for (let si = spriteHead; validCount < 3 && si < numSprites; si++) {
+                    const spriteXPos = unchecked(ScanlineRenderer.spriteXPos[si]);
+                    const spriteX: i16 = <i16>spriteXPos - 8;
 
-                    const bit: u8 = <u8>(oam.hasAttr(OamAttribute.XFlip) ? -offset : offset + 7); // [7-0] or [0-7] when flipped
-                    assert((bit & 7) == bit);
-                    const spriteBitMask: u8 = (1 << bit);
-                    const spriteColorId = Ppu.getColorIndexFromBytes(unchecked(spriteBytes), spriteBitMask)
+                    // Early exit: sorted by xPos, no further sprite can overlap
+                    if (spriteX >= <i16>x + 8) break;
+
+                    // Overlap check (preserves original GetSpriteIndicesFor semantics)
+                    const overlaps = (spriteX >= <i16>x && spriteX < <i16>x + 8)
+                        || (spriteX < <i16>x && spriteX + 8 >= <i16>x);
+                    if (!overlaps) continue;
+
+                    validCount++;
+
+                    // Render filter: only pixels where sprite actually covers x
+                    const offset: i16 = spriteX - x; // [-7, 0] for renderable overlap
+                    if (offset < -7 || offset > 0) continue;
+
+                    if (unchecked(ScanlineRenderer.spriteBgPrio[si]) && bgColorId != 0) continue;
+
+                    const pixOff: u8 = <u8>(-offset); // [0, 7]
+                    const spriteColorId = unchecked(ScanlineRenderer.spritePixels[si * 8 + pixOff]);
                     if (spriteColorId != 0) {
-
-                        const spritePalette = oam.hasAttr(OamAttribute.PaletteNumber) ? Lcd.data.objPalette1 : Lcd.data.objPalette0;
-                        color = Ppu.applyPalette(spriteColorId, spritePalette & 0b11111100); // lower 2 bits of palette ignored for transparency
+                        color = Ppu.applyPalette(spriteColorId, unchecked(ScanlineRenderer.spritePalette[si]));
                         break;
                     }
                 }
-                unchecked(pixels[x] = color);
             }
-        }
 
-        const bufferOffset = Lcd.data.lY * LCD_WIDTH;
-        for (let x: u8 = 0; x < LCD_WIDTH; x++) {
-            const color32 = unchecked(Ppu.current32bitPalette[unchecked(pixels[x])]);
-            unchecked(Ppu.workingBuffer[x + bufferOffset] = color32);
+            store<u32>(workingBufferPtr + (<u32>(x + bufferOffset) << 2), unchecked(palette32[color]));
         }
     }
 }

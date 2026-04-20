@@ -30,7 +30,7 @@ Profile runs against: boot ROM + `roms/games/Pokemon - Yellow Version (UE) [C][!
 
 ```bash
 pnpm run asbuild:release   # MUST profile release build — debug is 5-10× slower
-pnpm run profile 2>&1 | tee baseline.txt
+pnpm run profile 2>&1 | tee profiling/baseline.txt
 ```
 
 Record from `baseline.txt`:

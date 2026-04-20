@@ -214,8 +214,43 @@ export class Ppu {
     }
 
 
+    @inline
     static getColorIndexFromBytes(b: u16, mask: u8): u8 {
         return (((b & mask) == mask) ? 1 : 0) | ((((b >> 8) & mask) == mask) ? 2 : 0);
+    }
+
+    static TickMultiple(n: u8): void {
+        Ppu.currentDot += n;
+
+        switch (Ppu.currentMode) {
+            case PpuMode.HBlank:
+                if (Ppu.currentDot >= SCANLINE_NUM_DOTS) {
+                    Ppu.currentDot = 0;
+                    Lcd.NextLine();
+                    enterMode(Lcd.data.lY >= LCD_HEIGHT ? PpuMode.VBlank : PpuMode.OAMScan);
+                }
+                break;
+            case PpuMode.VBlank:
+                if (Ppu.currentDot >= SCANLINE_NUM_DOTS) {
+                    Ppu.currentDot = 0;
+                    Lcd.NextLine();
+                    if (Lcd.data.lY >= NUM_SCANLINES) {
+                        Lcd.ResetLine();
+                        enterMode(PpuMode.OAMScan);
+                    }
+                }
+                break;
+            case PpuMode.OAMScan:
+                if (Ppu.currentDot >= OAM_SCAN_DOTS) {
+                    enterMode(PpuMode.Transfer);
+                }
+                break;
+            case PpuMode.Transfer:
+                if (Ppu.currentDot >= OAM_SCAN_DOTS + TRANSFER_MIN_DOTS) {
+                    enterMode(PpuMode.HBlank);
+                }
+                break;
+        }
     }
 }
 
