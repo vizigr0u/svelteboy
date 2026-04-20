@@ -17,6 +17,19 @@ function log(s: string): void {
     Logger.Log("IO: " + s);
 }
 
+function logIORead(gbAddress: u16): void {
+    log(`IO read at [${uToHex<u16>(gbAddress)}] ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`);
+}
+
+
+function logUnhandledCGBRead(gbAddress: u16): void {
+    log('Unhandled read of CGB Flag ' + uToHex<u16>(gbAddress));
+}
+
+function logUnhandledIORead(gbAddress: u16): void {
+    log('Unhandled IO read: ' + uToHex<u16>(gbAddress));
+}
+
 @final
 export class IO {
     static Init(): void {
@@ -70,7 +83,7 @@ export class IO {
 
     static Load(gbAddress: u16): u8 {
         if (Logger.verbose >= 4)
-            log(`IO read at [${uToHex<u16>(gbAddress)}] ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`);
+            logIORead(gbAddress);
 
         if (APU.Handles(gbAddress)) {
             return APU.Load(gbAddress);
@@ -95,19 +108,19 @@ export class IO {
         }
         if (gbAddress >= UNHANDLED_CGB_START) {
             if (Logger.verbose >= 3) {
-                log('Unhandled read of CGB Flag ' + uToHex<u16>(gbAddress));
+                logUnhandledCGBRead(gbAddress);
             }
             return 0xFF;
         }
         if (Logger.verbose >= 1)
-            log('Unhandled IO read: ' + uToHex<u16>(gbAddress));
+            logUnhandledIORead(gbAddress);
         return IO.MemLoad<u8>(gbAddress);
     }
 
     @inline
     static MemLoad<T>(gbAddress: u16): T {
         if (Logger.verbose >= 4)
-            log(`IO read at [${uToHex<u16>(gbAddress)}] ([${uToHex<u32>(MemoryMap.GBToMemory(gbAddress))}])`);
+            logIORead(gbAddress);
         return load<T>(GB_IO_START + gbAddress - 0xFF00);
     }
 

@@ -26,6 +26,26 @@ function log(s: string): void {
     Logger.Log("MEM: " + s);
 }
 
+function logRamDisabled(gbAddress: u16): void {
+    log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
+}
+
+function logExtRam(): void {
+    log('Reading EXT RAM ' + Cpu.GetTrace());
+}
+
+function logDmaBlock(gbAddress: u16): void {
+    log('Trying to access ' + uToHex<u16>(gbAddress) + ' during DMA, returning 0xFF');
+}
+
+function logEchoRam(gbAddress: u16): void {
+    log('Ignoring access to Echo RAM ' + uToHex<u16>(gbAddress));
+}
+
+function logUnusableArea(gbAddress: u16): void {
+    log('Ignoring access to unusable area ' + uToHex<u16>(gbAddress));
+}
+
 @final
 export class MemoryMap {
     static useBootRom: boolean = false;
@@ -73,14 +93,14 @@ export class MemoryMap {
                     return GB_HIGH_RAM_START + gbAddress - 0xFF80;
                 if (gbAddress <= 0xFDFF) {
                     if (Logger.verbose >= 2)
-                        log('Ignoring access to Echo RAM ' + uToHex<u16>(gbAddress))
+                        logEchoRam(gbAddress);
                     return GB_RESTRICTED_AREA_ADDRESS;
                 }
                 if (gbAddress <= 0xFE9F)
                     return GB_OAM_START + gbAddress - 0xFE00;
                 if (gbAddress <= 0xFEFF) {
                     if (Logger.verbose >= 2)
-                        log('Ignoring access to unusable area ' + uToHex<u16>(gbAddress))
+                        logUnusableArea(gbAddress);
                     return GB_RESTRICTED_AREA_ADDRESS;
                 }
                 if (gbAddress < 0xFF80) {
@@ -101,11 +121,11 @@ export class MemoryMap {
             if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
                 if (!isRamEnabled()) {
                     if (Logger.verbose >= 2)
-                        log('Warning, accessing RAM while disabled, at ' + uToHex<u16>(gbAddress));
+                        logRamDisabled(gbAddress);
                     // return <T>-1;
                 }
                 if (Logger.verbose >= 2)
-                    log('Reading EXT RAM ' + Cpu.GetTrace())
+                    logExtRam();
             }
             return load<T>(MemoryMap.GBToMemory(gbAddress));
         }
@@ -119,7 +139,7 @@ export class MemoryMap {
         // IO
         if (Dma.active) {
             if (Logger.verbose >= 1) {
-                log(`Trying to access ${uToHex<u16>(gbAddress)} during DMA, returning 0xFF`);
+                logDmaBlock(gbAddress);
             }
             return <T>-1;
         }
