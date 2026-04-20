@@ -18,10 +18,11 @@ function setOamEntry(index: u8, yPos: u8, xPos: u8, tileIndex: u8, flags: u8): v
 }
 
 // Each tile row = 2 bytes: lo (LSB of color IDs), hi (MSB). Bit 7 = leftmost pixel.
+// Uses GBstore so the tile decode cache is updated.
 function setTileRow(tileIndex: u8, row: u8, lo: u8, hi: u8): void {
-    const base = GB_VIDEO_START + <u32>tileIndex * 16 + <u32>row * 2;
-    store<u8>(base, lo);
-    store<u8>(base + 1, hi);
+    const gbBase: u16 = <u16>(0x8000 + <u32>tileIndex * 16 + <u32>row * 2);
+    MemoryMap.GBstore<u8>(gbBase,     lo);
+    MemoryMap.GBstore<u8>(gbBase + 1, hi);
 }
 
 function setTileSolid(tileIndex: u8, lo: u8, hi: u8): void {

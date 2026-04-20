@@ -28,20 +28,23 @@ function tileRowWord(colorId: u8): u16 {
     return <u16>lo | (<u16>hi << 8);
 }
 
-// Write an 8×8 solid-color tile at WASM address = GB_VIDEO_START + tileIndex*16
+// Write an 8×8 solid-color tile at tileIndex (updates tile cache via GBstore)
 function writeSolidTile(tileIndex: u32, colorId: u8): void {
-    const base = GB_VIDEO_START + tileIndex * 16;
     const row = tileRowWord(colorId);
+    const gbBase: u16 = <u16>(0x8000 + tileIndex * 16);
     for (let r: u32 = 0; r < 8; r++) {
-        store<u16>(base + r * 2, row);
+        MemoryMap.GBstore<u8>(gbBase + <u16>(r * 2),     <u8>row);
+        MemoryMap.GBstore<u8>(gbBase + <u16>(r * 2 + 1), <u8>(row >> 8));
     }
 }
 
-// Write a gradient tile: row R uses colorId ((R+1) & 3), so row 0→1, row 1→2, row 2→3, row 3→0...
+// Write a gradient tile: row R uses colorId ((R+1) & 3) (updates tile cache via GBstore)
 function writeGradientTile(tileIndex: u32): void {
-    const base = GB_VIDEO_START + tileIndex * 16;
+    const gbBase: u16 = <u16>(0x8000 + tileIndex * 16);
     for (let r: u32 = 0; r < 8; r++) {
-        store<u16>(base + r * 2, tileRowWord(<u8>((r + 1) & 3)));
+        const row = tileRowWord(<u8>((r + 1) & 3));
+        MemoryMap.GBstore<u8>(gbBase + <u16>(r * 2),     <u8>row);
+        MemoryMap.GBstore<u8>(gbBase + <u16>(r * 2 + 1), <u8>(row >> 8));
     }
 }
 
