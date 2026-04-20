@@ -1,24 +1,17 @@
 
-let fetching = false;
-let gbNames: any = undefined;
-let gbcNames: any = undefined;
+let gbNamesPromise: Promise<any> | undefined;
+let gbcNamesPromise: Promise<any> | undefined;
 
-export async function getGbNames(): Promise<any> {
-    if (!fetching && gbNames == undefined) {
-        fetching = true;
-        const res = await fetch("./gbRomNames.json");
-        gbNames = await res.json();
-        fetching = false;
+export function getGbNames(): Promise<any> {
+    if (!gbNamesPromise) {
+        gbNamesPromise = fetch("./gbRomNames.json").then((r) => r.json());
     }
-    return gbNames;
+    return gbNamesPromise;
 }
 
-export async function getGbcNames(): Promise<any> {
-    if (!fetching && gbcNames == undefined) {
-        fetching = true;
-        const res = await fetch("./gbcRomNames.json");
-        gbcNames = await res.json();
-        fetching = false;
+export function getGbcNames(): Promise<any> {
+    if (!gbcNamesPromise) {
+        gbcNamesPromise = fetch("./gbcRomNames.json").then((r) => r.json());
     }
-    return gbcNames;
+    return gbcNamesPromise;
 }
