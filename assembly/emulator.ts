@@ -92,11 +92,18 @@ enum EmulatorStopReason {
         // Must exceed one real hardware frame (154 scanlines × 456 dots = 70224 cycles) so
         // that EndOfFrame still fires first under normal operation.
         Emulator.targetCycles = Cpu.CycleCount + <u64>CYCLES_PER_FRAME * (<u64>frames + 1);
+        let lastFrame: u32 = Ppu.currentFrame;
         AudioRender.Prepare(Cpu.CycleCount);
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
+            if (Ppu.currentFrame != lastFrame) {
+                AudioRender.Render(Cpu.CycleCount);
+                AudioRender.outBuffer.markBuffersRead(AudioRender.outBuffer.getBuffersToReadCount());
+                AudioRender.Prepare(Cpu.CycleCount);
+                lastFrame = Ppu.currentFrame;
+            }
             stopReason = Emulator.GetStopReason();
         } while (stopReason == EmulatorStopReason.None);
         AudioRender.Render(Cpu.CycleCount);

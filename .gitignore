@@ -16,6 +16,7 @@ pandocs
 dist
 dist-ssr
 *.local
+profile.cpuprofile
 
 # Editor directories and files
 .vscode/*
