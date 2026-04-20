@@ -3,6 +3,7 @@ import { Logger } from "../debug/logger";
 import { IO } from "../io/io";
 import { Dma } from "../io/video/dma";
 import { Oam } from "../io/video/oam";
+import { TileCache } from "../io/video/tileCache";
 import { uToHex } from "../utils/stringUtils";
 import { MBC } from "./mbc";
 import { isRamEnabled, setRamAltered } from "./mbcTypes";
@@ -143,6 +144,9 @@ export class MemoryMap {
                     log('Writing to EXT RAM ' + Cpu.GetTrace())
             }
             store<T>(MemoryMap.GBToMemory(gbAddress), value);
+            if (gbAddress < 0x9800) { // tile data
+                TileCache.decode(gbAddress);
+            }
             return;
         }
         if (gbAddress < 0xFE00) {
