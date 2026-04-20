@@ -8,6 +8,7 @@
     "asbuild:debug": "asc assembly/index.ts --target debug",
     "asbuild:debugrelease": "asc assembly/index.ts --target debugrelease",
     "asbuild:release": "asc assembly/index.ts --target release",
+    "asbuild:profilerelease": "asc assembly/index.ts --target profilerelease",
     "dev": "vite",
     "build": "pnpm run asbuild:release && vite build",
     "preview": "vite preview",
@@ -15,7 +16,8 @@
     "start": "pnpm dlx serve dist",
     "bench": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --benchmark",
     "bench:interactive": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --benchmark --interactive",
-    "profile": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile"
+    "profile": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile",
+    "profile:build": "pnpm run asbuild:profilerelease && pnpm run profile"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",

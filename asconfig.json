@@ -25,6 +25,16 @@
       "debug": false,
       "converge": false,
       "noAssert": true
+    },
+    "profilerelease": {
+      "outFile": "build/backend.wasm",
+      "textFile": "build/backend.wat",
+      "sourceMap": true,
+      "optimizeLevel": 3,
+      "shrinkLevel": 0,
+      "debug": true,
+      "converge": false,
+      "noAssert": true
     }
   },
   "options": {
