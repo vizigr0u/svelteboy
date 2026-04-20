@@ -616,3 +616,19 @@ export let prefixedOpCodes: StaticArray<Instruction> = StaticArray.fromArray([
     /* 0xFE */ new Instruction(Op.SET, 2, 16, false, [Operand.Constant(7), new Operand(OpTarget.HL, false)]),
     /* 0xFF */ new Instruction(Op.SET, 2, 8, false, [Operand.Constant(7), new Operand(OpTarget.A, true)])
 ]);
+
+// Bit layout: mnemonic[7:0] | byteSize[15:8] | cycleCount0[23:16] | cycleCount1[31:24]
+// cycleCount1 == cycleCount0 when no conditional variant
+function buildPackedOps(ops: StaticArray<Instruction>): StaticArray<u32> {
+    const result = new StaticArray<u32>(ops.length);
+    for (let i = 0; i < ops.length; i++) {
+        const instr = unchecked(ops[i]);
+        const cc0 = <u32>unchecked(instr.cycleCounts[0]);
+        const cc1 = <u32>(instr.cycleCounts.length > 1 ? unchecked(instr.cycleCounts[1]) : cc0);
+        unchecked(result[i] = <u32>instr.mnemonic | (<u32>instr.byteSize << 8) | (cc0 << 16) | (cc1 << 24));
+    }
+    return result;
+}
+
+export let unprefixedPackedOps: StaticArray<u32> = buildPackedOps(unprefixedOpCodes);
+export let prefixedPackedOps: StaticArray<u32> = buildPackedOps(prefixedOpCodes);
