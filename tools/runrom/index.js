@@ -7,17 +7,22 @@ import {
 import { open, writeFile } from 'node:fs/promises';
 import { Session } from 'node:inspector/promises';
 
-let args = process.argv;
+let args = process.argv.filter(a => a !== '--');
 
 const tty = process.stdout.isTTY;
 const benchmark = args.includes('--benchmark');
 const profile = args.includes('--profile');
+const profileFnIndex = args.indexOf('--profile-function');
+const profileFn = profileFnIndex >= 0 ? args[profileFnIndex + 1] : null;
 
 if (benchmark) {
     args = args.filter(a => a != '--benchmark');
 }
-if (profile) {
+if (profile || profileFn) {
     args = args.filter(a => a != '--profile');
+}
+if (profileFn) {
+    args = args.filter((_, i) => i != profileFnIndex && i != profileFnIndex + 1);
 }
 
 const verboseIndex = args.indexOf('--verbose');
@@ -80,7 +85,73 @@ function analyzeProfile(profile, topN = 5) {
         console.log(`  ${r.pct.padStart(5)}%  ${r.selfMs.toFixed(1).padStart(7)}ms  ${r.name}  ${r.loc}`);
 }
 
-async function runProfile() {
+function analyzeFunctionRatio(profile, fnName) {
+    const nodeMap = new Map(profile.nodes.map(n => [n.id, n]));
+    const parent = new Map();
+    for (const n of profile.nodes)
+        for (const c of (n.children || []))
+            parent.set(c, n.id);
+
+    function isInStack(nodeId, name) {
+        let cur = nodeId;
+        while (cur != null) {
+            if ((nodeMap.get(cur)?.callFrame?.functionName || '').includes(name)) return true;
+            const p = parent.get(cur);
+            if (p == null || p === cur) break;
+            cur = p;
+        }
+        return false;
+    }
+
+    const total = profile.samples.length;
+    let fnSamples = 0, parentSamples = 0;
+    // auto-detect parent: first ancestor function whose name differs from fnName
+    const parentCandidates = new Map();
+    for (const s of profile.samples) {
+        if (!isInStack(s, fnName)) continue;
+        fnSamples++;
+        // walk up to find direct parent function
+        let cur = parent.get(s);
+        while (cur != null) {
+            const name = nodeMap.get(cur)?.callFrame?.functionName || '';
+            if (name && name !== '(anonymous)' && name !== '(idle)' && !name.includes(fnName)) {
+                parentCandidates.set(name, (parentCandidates.get(name) || 0) + 1);
+                break;
+            }
+            const p = parent.get(cur);
+            if (p == null || p === cur) break;
+            cur = p;
+        }
+    }
+
+    // pick most common parent
+    let parentName = null, parentCount = 0;
+    for (const [name, count] of parentCandidates)
+        if (count > parentCount) { parentName = name; parentCount = count; }
+
+    if (parentName)
+        for (const s of profile.samples)
+            if (isInStack(s, parentName)) parentSamples++;
+
+    const totalUs = profile.timeDeltas.reduce((a, b) => a + b, 0);
+    const usPerSample = totalUs / total;
+    const fnMs = (fnSamples * usPerSample / 1000).toFixed(1);
+    const parentMs = parentName ? (parentSamples * usPerSample / 1000).toFixed(1) : '?';
+    const fnPct = (fnSamples / total * 100).toFixed(1);
+    const parentPct = parentName ? (parentSamples / total * 100).toFixed(1) : '?';
+    const ratio = parentSamples > 0 ? (fnSamples / parentSamples * 100).toFixed(1) + '%' : 'N/A';
+
+    console.log(`\nFunction ratio analysis: "${fnName}"`);
+    console.log(`  ${fnName.split('/').pop()}: ${fnSamples} samples, ${fnMs}ms (${fnPct}% of total)`);
+    if (parentName) {
+        console.log(`  Parent "${parentName.split('/').pop()}": ${parentSamples} samples, ${parentMs}ms (${parentPct}% of total)`);
+        console.log(`  Ratio ${fnName.split('/').pop()} / parent: ${ratio}`);
+    } else {
+        console.log(`  No parent found`);
+    }
+}
+
+async function runProfile(fnName = null) {
     const frames = 1500;
     const outFile = 'profile.cpuprofile';
     const session = new Session();
@@ -99,8 +170,12 @@ async function runProfile() {
     });
     const { profile } = await session.post('Profiler.stop');
     await writeFile(outFile, JSON.stringify(profile));
-    analyzeProfile(profile);
-    console.log(`\nProfile written to ${outFile} — drag onto speedscope.app for flame graph`);
+    if (fnName) {
+        analyzeFunctionRatio(profile, fnName);
+    } else {
+        analyzeProfile(profile);
+        console.log(`\nProfile written to ${outFile} — drag onto speedscope.app for flame graph`);
+    }
 }
 
 function runBenchmark() {
@@ -128,7 +203,9 @@ Promise.all(promises).then(async result => {
     loadBootRom(result[0]);
     loadCartridgeRom(result[1]);
     initEmulator();
-    if (profile) {
+    if (profileFn) {
+        await runProfile(profileFn);
+    } else if (profile) {
         await runProfile();
     } else if (benchmark) {
         runBenchmark();
