@@ -57,9 +57,9 @@ enum EmulatorStopReason {
 
         Timer.Tick(t_cycles);
 
-        for (let i: u8 = 0; i < t_cycles; i++) {
-            Ppu.Tick();
-            if (Dma.active && i % 4 == 0)
+        Ppu.TickMultiple(t_cycles);
+        if (Dma.active) {
+            for (let m: u8 = 0, n: u8 = t_cycles >> 2; m < n; m++)
                 Dma.Tick();
         }
     }
