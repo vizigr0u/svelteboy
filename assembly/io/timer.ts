@@ -36,6 +36,14 @@ export class Timer {
         Timer.Enabled = false;
     }
 
+    private static logTick(tCycles: u8): void {
+        log('Timer running ' + (tCycles >> 2).toString() + ' m-cycle(s)');
+    }
+
+    private static logEdge(): void {
+        log(`Timer edge: DivWatchBit=${Timer.DivWatchBit.toString(2)} internalDiv=${uToHex<u16>(Timer.internalDiv)} Tima=${uToHex<u8>(Timer.Tima)}`);
+    }
+
     // Falling edge on the watched bit -> increment TIMA (or overflow to TMA + request interrupt).
     private static fallingEdgeTick(): void {
         if (Timer.Tima == 0xFF) {
@@ -49,10 +57,9 @@ export class Timer {
         }
     }
 
+    @inline
     static Tick(tCycles: u8 = 4): void {
-        if (Logger.verbose >= 2) {
-            log('Timer running ' + (tCycles >> 2).toString() + ' m-cycle(s)')
-        }
+        if (Logger.verbose >= 2) Timer.logTick(tCycles);
         const prevDiv = Timer.internalDiv;
         Timer.internalDiv += tCycles;
         if (Timer.Enabled) {
@@ -64,9 +71,7 @@ export class Timer {
             const offset: u16 = prevDiv & (period - 1);
             const edges: u16 = (offset + tCycles) / period;
             for (let i: u16 = 0; i < edges; i++) {
-                if (Logger.verbose >= 2) {
-                    log(`Timer edge: DivWatchBit=${Timer.DivWatchBit.toString(2)} internalDiv=${uToHex<u16>(Timer.internalDiv)} Tima=${uToHex<u8>(Timer.Tima)}`)
-                }
+                if (Logger.verbose >= 2) Timer.logEdge();
                 Timer.fallingEdgeTick();
             }
         }
