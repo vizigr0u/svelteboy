@@ -7,6 +7,9 @@ import {
 import { open, writeFile } from 'node:fs/promises';
 import { Session } from 'node:inspector/promises';
 
+const benchmarkFrames = 1500;
+const profileFrames = 2500;
+
 let args = process.argv.filter(a => a !== '--');
 
 const tty = process.stdout.isTTY;
@@ -153,7 +156,7 @@ function analyzeFunctionRatio(profile, fnName) {
 }
 
 async function runProfile(fnName = null) {
-    const frames = 1500;
+    const frames = profileFrames;
     const outFile = 'profile.cpuprofile';
     const session = new Session();
     session.connect();
@@ -183,7 +186,7 @@ async function runProfile(fnName = null) {
 }
 
 function runBenchmark() {
-    const frames = 1500;
+    const frames = benchmarkFrames;
     const iterations = 10;
     let avg = 0;
     let low = 0;
