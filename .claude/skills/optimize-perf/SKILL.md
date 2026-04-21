@@ -52,6 +52,39 @@ Target function? Use `pnpm profile:fn:build -- <FunctionName>`.
 
 Keep a change if FPS improves ≥2% AND `pnpm test` passes. Revert otherwise.
 
+## Profiling Inlined / Shallow Code
+
+CPU profiler misses heavily-inlined code — never appears in call tree. Use manual `perfNow()` timing instead.
+
+Bracket section with `perfNow()`, accumulate into static fields, report via `instrumentedDiag()`.
+
+`perfNow()` = expensive host call. **Guard every call with `isDefined(INSTRUMENTED)`** — never in release/profilerelease.
+
+```typescript
+import { perfNow } from "../../debug/perfMarks";
+
+static myTotalTicks: f64 = 0;
+
+static MyHotFn(): void {
+    let t0: f64 = 0;
+    // @ts-ignore
+    if (isDefined(INSTRUMENTED)) t0 = perfNow();
+    // ... hot code ...
+    // @ts-ignore
+    if (isDefined(INSTRUMENTED)) MyClass.myTotalTicks += perfNow() - t0;
+}
+```
+
+Reset in `Init()`, log in diag fn. Wire into `instrumentedDiag()` (`assembly/index.ts`):
+
+```typescript
+export function instrumentedDiag(): void {
+    MyClass.MyDiag(); // logs accumulated ticks
+}
+```
+
+Build with `instrumented` target (`--use INSTRUMENTED=1`). Call `instrumentedDiag()` from JS after benchmark to read results.
+
 ## Dead Ends
 
 ### `store<u8>` + `changetype<usize>` in scanlineRenderer inner loop — zero effect
