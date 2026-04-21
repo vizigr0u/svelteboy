@@ -1,6 +1,7 @@
 import { writable } from "svelte/store";
 import { MakeLocalStore } from "./localStorageStore";
-import type { RemoteRom, RemoteRomsList } from "../types";
+import type { KeyBindings, RemoteRom, RemoteRomsList } from "../types";
+import { DEFAULT_KEYBINDINGS } from "../keybindPresets";
 
 export const useBoot = writable<boolean>(false);
 export const playerPixelSize = MakeLocalStore<number>('option-pixel-size', 3);
@@ -14,6 +15,11 @@ export const ShowDebugger = MakeLocalStore<boolean>("option-show-debugger", fals
 export const EmulatorSpeed = writable<number>(1);
 // export const AudioBufferSize = writable<number>(512);
 export const AudioMasterVolume = MakeLocalStore<number>("option-master-volume", 0.25);
+const _storedBindings = JSON.parse(localStorage.getItem('option-keybindings') || 'null');
+if (_storedBindings && typeof _storedBindings === 'object') {
+    localStorage.setItem('option-keybindings', JSON.stringify({ ...DEFAULT_KEYBINDINGS, ..._storedBindings }));
+}
+export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings', DEFAULT_KEYBINDINGS);
 
 RemoteRomsListUri.subscribe((uri) => {
     if (uri && uri.startsWith("http")) {

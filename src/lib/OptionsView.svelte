@@ -10,6 +10,7 @@
         AudioMasterVolume,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
+    import ControlsView from "./ControlsView.svelte";
 
     const validAudioBufferSizes = [64, 128, 256, 512, 1024, 2048];
 </script>
@@ -67,6 +68,8 @@
             bind:value={$AudioMasterVolume}
         />
     </div>
+
+    <ControlsView />
 </div>
 
 <style>

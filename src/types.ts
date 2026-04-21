@@ -186,3 +186,13 @@ export enum AudioChannel {
     Left = 0,
     Right = 1
 }
+
+export type KeyBindings = {
+    a: string;
+    b: string;
+    select: string;
+    up: string;
+    down: string;
+    left: string;
+    right: string;
+}
