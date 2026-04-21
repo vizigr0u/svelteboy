@@ -43,7 +43,7 @@ import {
     Verbose
 } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
-import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData, type StoredRom } from "./types";
+import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData } from "./types";
 import { AudioMasterVolume, EmulatorSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { humanReadableSize } from "./utils";
@@ -245,11 +245,7 @@ function getAudioBuffer(ptr: number, sampleCount: number): Float32Array<ArrayBuf
 
 async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer | undefined> {
     if (isStoredRom(rom)) {
-        const storedRom: StoredRom = rom;
-        const bin = atob(storedRom.contentBase64);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        return bytes.buffer;
+        return rom.content;
     }
     if (isLocalRom(rom)) {
         const localRom: LocalRom = rom;

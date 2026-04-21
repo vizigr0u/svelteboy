@@ -1,6 +1,6 @@
 import { writable } from "svelte/store";
 import { DebugStopReason, MemoryRegion, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
-import { MakeLocalStore } from "./localStorageStore";
+import { MakeIDBStore as MakeLocalStore } from "./idbStore";
 
 export const disassembledRomsStore = writable<DisassembledCode>(undefined);
 

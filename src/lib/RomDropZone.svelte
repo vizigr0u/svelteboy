@@ -45,13 +45,10 @@
       sha1: sha1,
     };
     if (saveRom && !$cartRomStore.find((r) => r.sha1 == newRom.sha1)) {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
       const newStoredRom: StoredRom = {
         name: newRom.name,
         sha1: newRom.sha1,
-        contentBase64: btoa(binary),
+        content: buffer,
         fileSize: file.size,
       };
       cartRomStore.update((store) => [newStoredRom, ...store]);
