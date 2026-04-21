@@ -4,7 +4,7 @@ import { disassembleInstruction, getMnemonicName, getOperandTargetName } from ".
 import { Interrupt } from "./interrupts";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
-import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes } from "./opcodes";
+import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes, prefixedPackedOps, unprefixedPackedOps } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
 
 export enum Flag {
@@ -126,31 +126,33 @@ export class Cpu {
     }
 
     static executeNextInstruction(): u8 {
-        // store PC as instructions might change it
         const originalPc: u16 = Cpu.ProgramCounter;
-        Cpu.PCbeingRan = Cpu.ProgramCounter;
+        Cpu.PCbeingRan = originalPc;
         let numCycles: u8 = 0;
 
         let opCode: u8 = MemoryMap.GBload<u8>(originalPc);
-        let instr = unprefixedOpCodes[opCode];
-        let totalInstructionSize: u8 = instr.byteSize;
-        if (instr.mnemonic == Op.PREFIX) {
-            numCycles += instr.cycleCounts[0];
+        let packed: u32 = unchecked(unprefixedPackedOps[opCode]);
+        let mnemonic: Op = <Op>(packed & 0xFF);
+        let totalInstructionSize: u8 = <u8>((packed >> 8) & 0xFF);
+
+        let isPrefixed: bool = false;
+        if (mnemonic == Op.PREFIX) {
+            numCycles += <u8>((packed >> 16) & 0xFF);
             totalInstructionSize++;
+            isPrefixed = true;
             opCode = MemoryMap.GBload<u8>(originalPc + 1);
-            instr = prefixedOpCodes[opCode];
+            packed = unchecked(prefixedPackedOps[opCode]);
+            mnemonic = <Op>(packed & 0xFF);
         }
 
         if (Logger.verbose >= (opCode == 0 ? 3 : 2))
             log('executing ' + uToHex<u16>(originalPc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(originalPc)));
 
         const nextPc: u16 = originalPc + totalInstructionSize;
-
         Cpu.ProgramCounter = nextPc;
-
         Cpu.failedLastCondition = false;
 
-        switch (instr.mnemonic) {
+        switch (mnemonic) {
             case Op.NOP:
                 break;
             case Op.DI:
@@ -158,41 +160,31 @@ export class Cpu {
                 Cpu.isEnablingIME = false;
                 break;
             case Op.EI:
-                Cpu.isEnablingIME = true; // don't enable IME right away, wait one loop
-                break;
-            case Op.CALL:
-                CpuOps.CallOp(instr, originalPc, nextPc);
-                break;
-            case Op.RETI:
                 Cpu.isEnablingIME = true;
-            // FALLTHROUGH
-            case Op.RET:
-                CpuOps.RetOp(instr);
                 break;
-            case Op.JR:
-                CpuOps.JrOp(instr, originalPc);
+            case Op.RLCA:
+                Alu.RlcaOp();
                 break;
-            case Op.JP:
-                CpuOps.JpOp(instr, originalPc);
+            case Op.RRCA:
+                Alu.RrcaOp();
                 break;
-            case Op.PUSH:
-                Cpu.PushToSP(Cpu.get16bitRegisterValue(instr.operands[0].target));
+            case Op.RLA:
+                Alu.RlaOp();
                 break;
-            case Op.POP:
-                Cpu.Set16bitValue(0x00, instr.operands[0], Cpu.PopSP());
+            case Op.RRA:
+                Alu.RraOp();
                 break;
-            case Op.ILLEGAL:
-                if (Logger.verbose >= 3)
-                    log('ILLEGAL instruction encountered: 0x' + opCode.toString(16));
+            case Op.DAA:
+                Alu.DaaOp();
                 break;
-            case Op.LD:
-                CpuOps.LdOp(opCode, instr, originalPc);
+            case Op.CCF:
+                Alu.CcfOp();
                 break;
-            case Op.LDH:
-                CpuOps.LdhOp(instr.operands[0], instr.operands[1], originalPc);
+            case Op.CPL:
+                Alu.CplOp();
                 break;
-            case Op.RST:
-                CpuOps.RstOp(instr.operands[0]);
+            case Op.SCF:
+                Alu.ScfOp();
                 break;
             case Op.HALT:
                 Cpu.isHalted = true;
@@ -204,101 +196,115 @@ export class Cpu {
                 if (Logger.verbose >= 1)
                     log("CPU STOPPED");
                 break;
-            case Op.ADD:
-                Alu.AddOp(instr, originalPc);
+            case Op.ILLEGAL:
+                if (Logger.verbose >= 3)
+                    log('ILLEGAL instruction encountered: 0x' + opCode.toString(16));
                 break;
-            case Op.ADC:
-                Alu.AdcOp(instr.operands[1], originalPc);
-                break;
-            case Op.SUB:
-                Alu.SubOp(instr, originalPc);
-                break;
-            case Op.SBC:
-                Alu.SbcOp(instr.operands[1], originalPc);
-                break;
-            case Op.XOR:
-                Alu.XorOp(instr, originalPc);
-                break;
-            case Op.OR:
-                Alu.OrOp(instr, originalPc);
-                break;
-            case Op.AND:
-                Alu.AndOp(instr, originalPc);
-                break;
-            case Op.BIT:
-                Alu.BitOp(instr.operands[0].value, instr.operands[1]);
-                break;
-            case Op.SWAP:
-                Alu.SwapOp(instr.operands[0]);
-                break;
-            case Op.SCF:
-                Alu.ScfOp();
-                break;
-            case Op.RES:
-                Alu.ResOp(instr.operands[0].value, instr.operands[1]);
-                break;
-            case Op.SET:
-                Alu.SetOp(instr.operands[0].value, instr.operands[1]);
-                break;
-            case Op.INC:
-                Alu.IncOp(instr);
-                break;
-            case Op.DEC:
-                Alu.DecOp(instr);
-                break;
-            case Op.CP:
-                Alu.CpOp(instr.operands[1], originalPc);
-                break;
-            case Op.RL:
-                Alu.RlOp(instr.operands[0]);
-                break;
-            case Op.SRL:
-                Alu.SrlOp(instr.operands[0]);
-                break;
-            case Op.SRA:
-                Alu.SraOp(instr.operands[0]);
-                break;
-            case Op.SLA:
-                Alu.SlaOp(instr.operands[0]);
-                break;
-            case Op.CCF:
-                Alu.CcfOp();
-                break;
-            case Op.CPL:
-                Alu.CplOp();
-                break;
-            case Op.DAA:
-                Alu.DaaOp();
-                break;
-            case Op.RLCA:
-                Alu.RlcaOp();
-                break;
-            case Op.RLC:
-                Alu.RlcOp(instr.operands[0]);
-                break;
-            case Op.RRC:
-                Alu.RrcOp(instr.operands[0]);
-                break;
-            case Op.RRCA:
-                Alu.RrcaOp();
-                break;
-            case Op.RR:
-                Alu.RrOp(instr.operands[0]);
-                break;
-            case Op.RRA:
-                Alu.RraOp();
-                break;
-            case Op.RLA:
-                Alu.RlaOp();
-                break;
-            case Op.PREFIX:
-            default:
-                assert(false, 'UNHANDLED INSTRUCTION: ' + getMnemonicName(instr.mnemonic));
-                break;
+            default: {
+                const instr = unchecked(isPrefixed ? prefixedOpCodes[opCode] : unprefixedOpCodes[opCode]);
+                switch (mnemonic) {
+                    case Op.CALL:
+                        CpuOps.CallOp(instr, originalPc, nextPc);
+                        break;
+                    case Op.RETI:
+                        Cpu.isEnablingIME = true;
+                    // FALLTHROUGH
+                    case Op.RET:
+                        CpuOps.RetOp(instr);
+                        break;
+                    case Op.JR:
+                        CpuOps.JrOp(instr, originalPc);
+                        break;
+                    case Op.JP:
+                        CpuOps.JpOp(instr, originalPc);
+                        break;
+                    case Op.PUSH:
+                        Cpu.PushToSP(Cpu.get16bitRegisterValue(unchecked(instr.operands[0]).target));
+                        break;
+                    case Op.POP:
+                        Cpu.Set16bitValue(0x00, unchecked(instr.operands[0]), Cpu.PopSP());
+                        break;
+                    case Op.LD:
+                        CpuOps.LdOp(opCode, instr, originalPc);
+                        break;
+                    case Op.LDH:
+                        CpuOps.LdhOp(unchecked(instr.operands[0]), unchecked(instr.operands[1]), originalPc);
+                        break;
+                    case Op.RST:
+                        CpuOps.RstOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.ADD:
+                        Alu.AddOp(instr, originalPc);
+                        break;
+                    case Op.ADC:
+                        Alu.AdcOp(unchecked(instr.operands[1]), originalPc);
+                        break;
+                    case Op.SUB:
+                        Alu.SubOp(instr, originalPc);
+                        break;
+                    case Op.SBC:
+                        Alu.SbcOp(unchecked(instr.operands[1]), originalPc);
+                        break;
+                    case Op.XOR:
+                        Alu.XorOp(instr, originalPc);
+                        break;
+                    case Op.OR:
+                        Alu.OrOp(instr, originalPc);
+                        break;
+                    case Op.AND:
+                        Alu.AndOp(instr, originalPc);
+                        break;
+                    case Op.BIT:
+                        Alu.BitOp(unchecked(instr.operands[0]).value, unchecked(instr.operands[1]));
+                        break;
+                    case Op.SWAP:
+                        Alu.SwapOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.RES:
+                        Alu.ResOp(unchecked(instr.operands[0]).value, unchecked(instr.operands[1]));
+                        break;
+                    case Op.SET:
+                        Alu.SetOp(unchecked(instr.operands[0]).value, unchecked(instr.operands[1]));
+                        break;
+                    case Op.INC:
+                        Alu.IncOp(instr);
+                        break;
+                    case Op.DEC:
+                        Alu.DecOp(instr);
+                        break;
+                    case Op.CP:
+                        Alu.CpOp(unchecked(instr.operands[1]), originalPc);
+                        break;
+                    case Op.RL:
+                        Alu.RlOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.SRL:
+                        Alu.SrlOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.SRA:
+                        Alu.SraOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.SLA:
+                        Alu.SlaOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.RLC:
+                        Alu.RlcOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.RRC:
+                        Alu.RrcOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.RR:
+                        Alu.RrOp(unchecked(instr.operands[0]));
+                        break;
+                    case Op.PREFIX:
+                    default:
+                        assert(false, 'UNHANDLED INSTRUCTION: ' + getMnemonicName(mnemonic));
+                        break;
+                }
+            }
         }
 
-        numCycles += instr.cycleCounts[Cpu.failedLastCondition ? 1 : 0];
-        Cpu.failedLastCondition = false;
+        numCycles += Cpu.failedLastCondition ? <u8>((packed >> 24) & 0xFF) : <u8>((packed >> 16) & 0xFF);
         return numCycles;
     }
 
