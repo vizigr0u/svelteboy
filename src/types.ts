@@ -20,7 +20,7 @@ export interface RomReference {
 };
 
 export interface StoredRom extends RomReference {
-    contentBase64: string,
+    content: ArrayBuffer,
     fileSize: number
 };
 
@@ -41,7 +41,7 @@ export function isLocalRom(rom: RomReference): rom is LocalRom {
 }
 
 export function isStoredRom(rom: RomReference): rom is StoredRom {
-    return (rom as StoredRom).contentBase64 !== undefined;
+    return (rom as StoredRom).content !== undefined;
 }
 
 export enum RomReferenceType {
