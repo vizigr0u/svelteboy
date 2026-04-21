@@ -6,7 +6,7 @@ import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
 import { uToHex } from "../../utils/stringUtils";
-
+import { perfNow } from "../../debug/perfMarks";
 
 function log(s: string): void {
     Logger.Log("PPU-scanline: " + s);
@@ -23,7 +23,18 @@ export class ScanlineRenderer {
     private static spritePalette: StaticArray<u8> = new StaticArray<u8>(10);
     private static spriteBgPrio: StaticArray<u8> = new StaticArray<u8>(10);
 
+    static bgTotalTicks: f64 = 0;
+    static spriteTotalTicks: f64 = 0;
+    static compositeTotalTicks: f64 = 0;
+
     static Init(): void {
+        // @ts-ignore
+        if (isDefined(INSTRUMENTED))
+        {
+            ScanlineRenderer.bgTotalTicks = 0;
+            ScanlineRenderer.spriteTotalTicks = 0;
+            ScanlineRenderer.compositeTotalTicks = 0;
+        }
     }
 
     static Tick(): void {
@@ -35,6 +46,9 @@ export class ScanlineRenderer {
     }
 
     static Render(): void {
+        let t0: f64 = 0, t1: f64 = 0, t2: f64 = 0;
+        // @ts-ignore
+        if (isDefined(INSTRUMENTED)) t0 = perfNow();
         const pixels = ScanlineRenderer.pixels;
         const lcd = Lcd.data;
         const y = lcd.lY;
@@ -116,6 +130,8 @@ export class ScanlineRenderer {
         }
 
         // --- Pre-decode sprite rows (once per scanline) ---
+        // @ts-ignore
+        if (isDefined(INSTRUMENTED)) { t1 = perfNow(); ScanlineRenderer.bgTotalTicks += t1 - t0; }
         const spritesVisible = Lcd.SpritesVisible;
         let numSprites: i32 = 0;
         if (spritesVisible) {
@@ -145,6 +161,8 @@ export class ScanlineRenderer {
         }
 
         // --- Composite: sprites + palette + 32-bit output (single pass) ---
+        // @ts-ignore
+        if (isDefined(INSTRUMENTED)) { t2 = perfNow(); ScanlineRenderer.spriteTotalTicks += t2 - t1; }
         const bufferOffset = y * LCD_WIDTH;
         const palette32 = Ppu.current32bitPalette;
         const workingBufferPtr = Ppu.workingBuffer.dataStart;
@@ -192,5 +210,24 @@ export class ScanlineRenderer {
 
             store<u32>(workingBufferPtr + (<u32>(x + bufferOffset) << 2), unchecked(palette32[color]));
         }
+        // @ts-ignore
+        if (isDefined(INSTRUMENTED)) ScanlineRenderer.compositeTotalTicks += perfNow() - t2;
+    }
+
+    static RenderDiag(): void {
+        // @ts-ignore
+        if (!isDefined(INSTRUMENTED)) {
+            console.warn("!INSTRUMENTED - use 'instrumented' target");
+            return;
+        }
+        const bg = ScanlineRenderer.bgTotalTicks;
+        const sprite = ScanlineRenderer.spriteTotalTicks;
+        const composite = ScanlineRenderer.compositeTotalTicks;
+        const total = bg + sprite + composite;
+        console.log(`ScanlineRenderer diag:`
+            + `\n  bg:        ${<i64>(bg * 1000)}us (${<i32>(bg / total * 100)}%)`
+            + `\n  sprite:    ${<i64>(sprite * 1000)}us (${<i32>(sprite / total * 100)}%)`
+            + `\n  composite: ${<i64>(composite * 1000)}us (${<i32>(composite / total * 100)}%)`
+            + `\n  total:     ${<i64>(total * 1000)}us`);
     }
 }

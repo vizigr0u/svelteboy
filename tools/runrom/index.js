@@ -1,6 +1,6 @@
 import {
     loadCartridgeRom,
-    loadBootRom, runFrames, initEmulator, setVerbose,
+    loadBootRom, runFrames, initEmulator, setVerbose, instrumentedDiag,
     // serialEnableLog, dumpLogToConsole
 } from "../../build/backend.js";
 
@@ -12,6 +12,7 @@ let args = process.argv.filter(a => a !== '--');
 const tty = process.stdout.isTTY;
 const benchmark = args.includes('--benchmark');
 const profile = args.includes('--profile');
+const withInstrumentations = args.includes('--instrumented');
 const profileFnIndex = args.indexOf('--profile-function');
 const profileFn = profileFnIndex >= 0 ? args[profileFnIndex + 1] : null;
 
@@ -175,6 +176,9 @@ async function runProfile(fnName = null) {
     } else {
         analyzeProfile(profile);
         console.log(`\nProfile written to ${outFile} — drag onto speedscope.app for flame graph`);
+    }
+    if (withInstrumentations) {
+        instrumentedDiag();
     }
 }
 
