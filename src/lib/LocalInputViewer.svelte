@@ -78,11 +78,11 @@
         <span class="toggle-icon" aria-hidden="true">?</span>
         <div class="hint-content">
             Keyboard controls:
-            <br />{displayKey($KeyBindingsStore.up)}{displayKey($KeyBindingsStore.down)}{displayKey($KeyBindingsStore.left)}{displayKey($KeyBindingsStore.right)} D-Pad &nbsp;·&nbsp;
-            {displayKey($KeyBindingsStore.a)} A &nbsp;·&nbsp;
-            {displayKey($KeyBindingsStore.b)} B &nbsp;·&nbsp;
-            {displayKey($KeyBindingsStore.select)} Select &nbsp;·&nbsp;
-            Enter Start
+            <br />{displayKey($KeyBindingsStore.up)}{displayKey($KeyBindingsStore.down)}{displayKey($KeyBindingsStore.left)}{displayKey($KeyBindingsStore.right)} for D-Pad &nbsp;·&nbsp;
+            {displayKey($KeyBindingsStore.a)} for A &nbsp;·&nbsp;
+            {displayKey($KeyBindingsStore.b)} for B &nbsp;·&nbsp;
+            {displayKey($KeyBindingsStore.select)} for Select &nbsp;·&nbsp;
+            Enter for Start
             <br /><span class="hint-sub">Click to dismiss · Change bindings in Options.</span>
         </div>
     </div>
