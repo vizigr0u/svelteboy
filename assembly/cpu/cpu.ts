@@ -18,6 +18,10 @@ function log(s: string): void {
     Logger.Log("CPU: " + s);
 }
 
+function logSet8bitTarget(target: OpTarget, address: u16, value: u8): void {
+    log(`${getOperandTargetName(target)} = 0x${address.toString(16)}` + '\n' + `[${getOperandTargetName(target)}] = 0x${value.toString(16)}`);
+}
+
 @final
 export class Cpu {
     static AF: u16 = 0;
@@ -391,7 +395,7 @@ export class Cpu {
         if (!targetOp.immediate) {
             const address: u16 = Cpu.get16bitValue(gbAddress, targetOp);
             if (Logger.verbose >= 3)
-                log(`${getOperandTargetName(targetOp.target)} = 0x${address.toString(16)}` + '\n' + `[${getOperandTargetName(targetOp.target)}] = 0x${value.toString(16)}`);
+                logSet8bitTarget(targetOp.target, address, value);
             MemoryMap.GBstore<u8>(address, value);
             if (targetOp.increment)
                 Cpu.Set16bitValue(gbAddress, targetOp, address + 1);

@@ -15,6 +15,10 @@ function log(s: string): void {
     Logger.Log("EMU: " + s);
 }
 
+function logCpuTick(t_cycles: u8): void {
+    log("Cpu tick lasted " + t_cycles.toString() + ' cycles');
+}
+
 enum EmulatorStopReason {
     None = 0,
     HitBreakpoint = 1,
@@ -53,7 +57,7 @@ enum EmulatorStopReason {
         const t_cycles = Cpu.Tick();
 
         if (Logger.verbose >= 4)
-            log("Cpu tick lasted " + t_cycles.toString() + ' cycles');
+            logCpuTick(t_cycles);
 
         Timer.Tick(t_cycles);
 
