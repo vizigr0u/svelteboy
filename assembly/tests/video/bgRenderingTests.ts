@@ -22,14 +22,15 @@ const LCDC_BG_OBJ_8800: u8 = 0x83; // 1000 0011  PPU|OBJ|BG (LCDC.4=0 → $8800 
 // BGP identity: colorId → colorId  (11 10 01 00 = 0xE4)
 const BGP_IDENTITY: u8 = 0xE4;
 
-// Write an 8×8 solid-color tile to WASM address wasmAddr.
+// Write an 8×8 solid-color tile to WASM address wasmAddr (updates tile cache via GBstore).
 // colorId 0-3: LSB plane = bit0 of colorId × 0xFF, MSB plane = bit1 × 0xFF.
 function writeSolidTile(wasmAddr: u32, colorId: u8): void {
     const lsb: u8 = (colorId & 1) != 0 ? 0xFF : 0x00;
     const msb: u8 = (colorId & 2) != 0 ? 0xFF : 0x00;
+    const gbBase: u16 = <u16>(wasmAddr - GB_VIDEO_START + 0x8000);
     for (let row: u32 = 0; row < 8; row++) {
-        store<u8>(wasmAddr + row * 2,     lsb);
-        store<u8>(wasmAddr + row * 2 + 1, msb);
+        MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2),     lsb);
+        MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2 + 1), msb);
     }
 }
 
