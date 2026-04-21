@@ -1,10 +1,15 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { InputType, updateInput } from "../inputs";
-    import { HideKeyboardWarning } from "stores/optionsStore";
+    import { HideKeyboardWarning, KeyBindingsStore } from "stores/optionsStore";
     import { KeyPressMap } from "stores/playStores";
+    import { displayKey } from "../keybindPresets";
 
     let buttonContainer: HTMLElement;
+    let hintVisible = $state(!$HideKeyboardWarning);
+
+    function showHint() { hintVisible = true; }
+    function hideHint() { hintVisible = false; $HideKeyboardWarning = true; }
 
     function getInputTypeForButton(b: HTMLButtonElement): InputType {
         return InputType[
@@ -13,7 +18,7 @@
     }
 
     onMount(() => {
-        const buttons = buttonContainer.querySelectorAll("button");
+        const buttons = buttonContainer.querySelectorAll<HTMLButtonElement>("button[data-input]");
         const InputsAndButtons = Array.from(buttons).map(
             (b) =>
                 [b, getInputTypeForButton(b)] as [HTMLButtonElement, InputType]
@@ -61,23 +66,26 @@
         <button data-input="B" aria-label="B"></button>
         <button data-input="A" aria-label="A"></button>
     </div>
-    {#if !$HideKeyboardWarning}
-        <div class="keybinds-hint">
-            Currently, only inputs are keyboard keys:
-            <br />Up, Down, Left, Right, Shift(Select), Enter(Start), A and B.
-            <br />
-            I'll add something better later.
-            <br />
-            Maybe.
-            <button
-                class="dismiss-hint"
-                aria-label="Dismiss"
-                onclick={() => {
-                    $HideKeyboardWarning = true;
-                }}><i class="fa-solid fa-xmark"></i></button
-            >
+    <div
+        class="hint-container"
+        class:expanded={hintVisible}
+        role="button"
+        tabindex="0"
+        aria-label={hintVisible ? 'Dismiss controls hint' : 'Show controls hint'}
+        onclick={hintVisible ? hideHint : showHint}
+        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') hintVisible ? hideHint() : showHint(); }}
+    >
+        <span class="toggle-icon" aria-hidden="true">?</span>
+        <div class="hint-content">
+            Keyboard controls:
+            <br />{displayKey($KeyBindingsStore.up)}{displayKey($KeyBindingsStore.down)}{displayKey($KeyBindingsStore.left)}{displayKey($KeyBindingsStore.right)} D-Pad &nbsp;·&nbsp;
+            {displayKey($KeyBindingsStore.a)} A &nbsp;·&nbsp;
+            {displayKey($KeyBindingsStore.b)} B &nbsp;·&nbsp;
+            {displayKey($KeyBindingsStore.select)} Select &nbsp;·&nbsp;
+            Enter Start
+            <br /><span class="hint-sub">Click to dismiss · Change bindings in Options.</span>
         </div>
-    {/if}
+    </div>
 </div>
 
 <style>
@@ -200,23 +208,69 @@
         width: calc(var(--size) + 0.3em);
     }
 
-    .input-viewer:hover .keybinds-hint {
-        visibility: visible;
-    }
-
-    .keybinds-hint {
+    .hint-container {
         position: absolute;
-        padding: 1em 2em;
-        background-color: #12153de7;
-        border: 3px solid white;
+        bottom: 1em;
+        right: 1em;
+        width: 1.7em;
+        min-height: 1.7em;
+        border-radius: 50%;
+        border: 2px solid #aaa;
+        background: #12153d99;
+        color: #aaa;
+        cursor: pointer;
+        overflow: hidden;
+        transition: width 100ms ease, border-radius 100ms ease,
+                    padding 100ms ease, background 100ms ease,
+                    border-color 100ms ease, color 100ms ease;
+    }
+    .hint-container.expanded {
+        width: calc(100% - 2em);
         border-radius: 0.5em;
-        width: 90%;
-        visibility: hidden;
+        border-color: white;
+        background: #12153de7;
+        color: inherit;
+        padding: 1em 2em;
     }
-    .dismiss-hint {
+    .hint-container:not(.expanded):hover {
+        background: #12153de7;
+        border-color: white;
+        color: white;
+    }
+    .toggle-icon {
         position: absolute;
-        right: 0.5em;
-        top: 0.5em;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9em;
+        font-weight: bold;
+        transition: opacity 150ms ease;
+        pointer-events: none;
+    }
+    .hint-container.expanded .toggle-icon {
+        opacity: 0;
+    }
+    .hint-content {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 100ms ease, opacity 100ms ease 100ms;
+    }
+    .hint-container.expanded .hint-content {
+        max-height: 10em;
+        opacity: 1;
+    }
+    .hint-sub {
+        opacity: 0.65;
+        font-size: 0.85em;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .hint-container,
+        .toggle-icon,
+        .hint-content {
+            transition: none;
+        }
     }
 
     :global(.input-viewer button.pressed) {
