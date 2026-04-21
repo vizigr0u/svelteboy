@@ -10,13 +10,9 @@ import { Session } from 'node:inspector/promises';
 let args = process.argv;
 
 const tty = process.stdout.isTTY;
-const interactive = args.includes('--interactive');
 const benchmark = args.includes('--benchmark');
 const profile = args.includes('--profile');
 
-if (interactive) {
-    args = args.filter(a => a != '--interactive');
-}
 if (benchmark) {
     args = args.filter(a => a != '--benchmark');
 }
@@ -123,9 +119,6 @@ function runBenchmark() {
         avg += time / iterations;
         low = Math.max(low, time);
         max = Math.min(max, time);
-        if (interactive) {
-            console.log(`Iteration ${i + 1} - Time: ${time.toFixed(2)} ms (FPS: ${(frames * 1000) / time})`);
-        }
     }
     const fmt = (n) => ((frames * 1000) / n).toFixed(1);
     console.log(`Avg: ${fmt(avg)}, Low: ${fmt(low)}, High: ${fmt(max)}`);

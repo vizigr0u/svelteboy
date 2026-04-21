@@ -15,9 +15,9 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "start": "pnpm dlx serve dist",
     "bench": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --benchmark",
-    "bench:interactive": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --benchmark --interactive",
+    "bench:build": "pnpm asbuild:release && pnpm run bench",
     "profile": "node tools/runrom/index.js roms/boot/dmg_boot.bin \"roms/games/Pokemon - Yellow Version (UE) [C][!].gb\" --profile",
-    "profile:build": "pnpm run asbuild:profilerelease && pnpm run profile"
+    "profile:build": "pnpm asbuild:profilerelease && pnpm run profile"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
