@@ -1,16 +1,21 @@
 import { KeyPressMap } from "stores/playStores";
+import { KeyBindingsStore } from "stores/optionsStore";
 import { InputType } from "./types";
 
-export const defaultKeybinds: { [k: string]: InputType } = {
-    "a": InputType.A,
-    "b": InputType.B,
-    "ArrowUp": InputType.Up,
-    "ArrowDown": InputType.Down,
-    "ArrowLeft": InputType.Left,
-    "ArrowRight": InputType.Right,
-    "Enter": InputType.Start,
-    "Delete": InputType.Select
-}
+let activeKeybinds: { [k: string]: InputType } = {};
+
+KeyBindingsStore.subscribe(bindings => {
+    activeKeybinds = {
+        [bindings.up]:     InputType.Up,
+        [bindings.down]:   InputType.Down,
+        [bindings.left]:   InputType.Left,
+        [bindings.right]:  InputType.Right,
+        [bindings.a]:      InputType.A,
+        [bindings.b]:      InputType.B,
+        [bindings.select]: InputType.Select,
+        "Enter":           InputType.Start,
+    };
+});
 
 export function updateInput(input: InputType, pressed: boolean) {
     KeyPressMap.update(m => {
@@ -26,11 +31,10 @@ export function gameInputKeydownHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
         return;
 
-    if (!(event.key in defaultKeybinds)) {
+    if (!(event.key in activeKeybinds))
         return;
-    }
 
-    updateInput(defaultKeybinds[event.key], true);
+    updateInput(activeKeybinds[event.key], true);
     event.preventDefault();
 }
 
@@ -38,10 +42,10 @@ export function gameInputKeyupHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
         return;
 
-    if (!(event.key in defaultKeybinds))
+    if (!(event.key in activeKeybinds))
         return;
 
-    updateInput(defaultKeybinds[event.key], false);
+    updateInput(activeKeybinds[event.key], false);
     event.preventDefault();
 }
 
