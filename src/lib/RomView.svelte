@@ -14,9 +14,9 @@
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
-    const artDir = "https://static.vizigrou.com/svelteboy/";
-    const gbArtDir = artDir + "gb_art/";
-    const gbcArtDir = artDir + "gbc_art/";
+    const artDir = "https://thumbnails.libretro.com/";
+    const gbArtDir = artDir + "Nintendo%20-%20Game%20Boy/Named_Boxarts/";
+    const gbcArtDir = artDir + "Nintendo%20-%20Game%20Boy%20Color/Named_Boxarts/";
 
     let { rom } = $props<{ rom: RomReference }>();
 
