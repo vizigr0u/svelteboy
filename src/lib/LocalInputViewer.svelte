@@ -211,26 +211,27 @@
     .hint-container {
         position: absolute;
         bottom: 1em;
-        right: 1em;
+        left: 1em;
         width: 1.7em;
         min-height: 1.7em;
         border-radius: 50%;
         border: 2px solid #aaa;
         background: #12153d99;
+        padding: 1.3em;
         color: #aaa;
         cursor: pointer;
         overflow: hidden;
         transition: width 100ms ease, border-radius 100ms ease,
-                    padding 100ms ease, background 100ms ease,
-                    border-color 100ms ease, color 100ms ease;
+                    padding 100ms ease, border-color 100ms ease,
+                    color 100ms ease;
     }
     .hint-container.expanded {
         width: calc(100% - 2em);
-        border-radius: 0.5em;
+        border-radius: 0.5em 0.5em 5em 0.5em;
         border-color: white;
         background: #12153de7;
         color: inherit;
-        padding: 1em 2em;
+        padding: 4em 2em;
     }
     .hint-container:not(.expanded):hover {
         background: #12153de7;
@@ -243,7 +244,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.9em;
+        font-size: 1.4em;
         font-weight: bold;
         transition: opacity 150ms ease;
         pointer-events: none;
@@ -254,6 +255,7 @@
     .hint-content {
         max-height: 0;
         overflow: hidden;
+        font-size: 1.5em;
         opacity: 0;
         transition: max-height 100ms ease, opacity 100ms ease 100ms;
     }
