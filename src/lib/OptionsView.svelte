@@ -8,11 +8,23 @@
         EmulatorSpeed,
         // AudioBufferSize,
         AudioMasterVolume,
+        HideKeyboardWarning,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
     import ControlsView from "./ControlsView.svelte";
 
     const validAudioBufferSizes = [64, 128, 256, 512, 1024, 2048];
+
+    let advancedOpen = $state(false);
+
+    function clearLocalStorage() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    function resetKeybindingDisclaimer() {
+        HideKeyboardWarning.set(false);
+    }
 </script>
 
 <div class="options-view debug-tool-container">
@@ -70,6 +82,14 @@
     </div>
 
     <ControlsView />
+
+    <details bind:open={advancedOpen}>
+        <summary><h3>Advanced</h3></summary>
+        <div class="advanced">
+            <button onclick={resetKeybindingDisclaimer}>Reset keybinding disclaimer</button>
+            <button class="danger" onclick={clearLocalStorage}>Clear all local storage</button>
+        </div>
+    </details>
 </div>
 
 <style>
@@ -79,5 +99,21 @@
     }
     .options input[type="checkbox"] {
         margin-right: auto;
+    }
+    details summary h3 {
+        display: inline;
+        cursor: pointer;
+    }
+    .advanced {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5em;
+        padding: 0.5em 0;
+    }
+    .advanced button {
+        width: fit-content;
+    }
+    .danger {
+        color: #c00;
     }
 </style>

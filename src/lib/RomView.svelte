@@ -81,7 +81,7 @@
             return rom.uri;
         }
         if (isStoredRom(rom)) {
-            return humanReadableSize(rom.contentBase64.length);
+            return humanReadableSize(rom.fileSize);
         }
         return RomReferenceType[getRomReferenceType(rom)];
     }

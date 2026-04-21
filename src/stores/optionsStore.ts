@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import { MakeLocalStore } from "./localStorageStore";
+import { MakeIDBStore as MakeLocalStore } from "./idbStore";
 import type { KeyBindings, RemoteRom, RemoteRomsList } from "../types";
 import { DEFAULT_KEYBINDINGS } from "../keybindPresets";
 
