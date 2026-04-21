@@ -110,7 +110,7 @@ enum EmulatorStopReason {
         return stopReason;
     }
 
-    static GetStopReason(): EmulatorStopReason {
+    @inline static GetStopReason(): EmulatorStopReason {
         if (Emulator.targetCycles != 0 && Cpu.CycleCount >= Emulator.targetCycles) {
             if (Logger.verbose >= 2)
                 log('Emulator stopped: Target cycles reached')
