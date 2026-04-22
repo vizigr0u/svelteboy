@@ -9,6 +9,9 @@
         // AudioBufferSize,
         AudioMasterVolume,
         HideKeyboardWarning,
+        SelectedPaletteIndex,
+        PALETTE_PRESETS,
+        PALETTE_NAMES,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
     import ControlsView from "./ControlsView.svelte";
@@ -29,8 +32,9 @@
 
 <div class="options-view debug-tool-container">
     <h3>Options</h3>
+    <h4>Display</h4>
     <div class="options">
-        <label for="pixelSize"> Pixel size: </label>
+        <label for="pixelSize">Pixel size:</label>
         <input
             id="pixelSize"
             type="number"
@@ -39,22 +43,29 @@
             bind:value={$playerPixelSize}
         />
 
-        <label for="remoteRomsUri">Remote Roms List: </label>
-        <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
+        <span class="option-label">Palette:</span>
+        <div class="palette-picker">
+            {#each PALETTE_PRESETS as preset, i}
+                <button
+                    class="palette-btn"
+                    class:selected={$SelectedPaletteIndex === i}
+                    onclick={() => SelectedPaletteIndex.set(i)}
+                    title={PALETTE_NAMES[i]}
+                >
+                    {#each preset as color}
+                        <span class="swatch" style="background-color: #{((color & 0xff).toString(16).padStart(2,'0'))}{(((color >> 8) & 0xff).toString(16).padStart(2,'0'))}{(((color >> 16) & 0xff).toString(16).padStart(2,'0'))}"></span>
+                    {/each}
+                </button>
+            {/each}
+        </div>
 
-        <label for="showdebugger"> Show Debugger: </label>
-        <input id="showdebugger" type="checkbox" bind:checked={$ShowDebugger} />
-
-        <label for="showfps"> Display FPS: </label>
+        <label for="showfps">Display FPS:</label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />
+    </div>
 
-        <label for="useBoot"
-            >Use Boot Rom{$EmulatorInitialized ? " (on next run)" : ""}:</label
-        >
-        <input id="useBoot" type="checkbox" bind:checked={$useBoot} disabled />
-        <span>Todo: </span><span>Select boot rom</span>
-
-        <label for="emulatorspeed">Emulator Speed</label>
+    <h4>Emulation</h4>
+    <div class="options">
+        <label for="emulatorspeed">Speed:</label>
         <input
             id="emulatorspeed"
             type="number"
@@ -64,6 +75,15 @@
             bind:value={$EmulatorSpeed}
         />
 
+        <label for="useBoot"
+            >Use Boot Rom{$EmulatorInitialized ? " (on next run)" : ""}:</label
+        >
+        <input id="useBoot" type="checkbox" bind:checked={$useBoot} disabled />
+        <span>Todo: </span><span>Select boot rom</span>
+    </div>
+
+    <h4>Audio</h4>
+    <div class="options">
         <!-- <label for="bufferaudiosize">Audio Buffer size:</label>
         <select id="bufferaudiosize" bind:value={$AudioBufferSize}>
             {#each validAudioBufferSizes as size}
@@ -71,7 +91,7 @@
             {/each}
         </select> -->
 
-        <label for="mastervolume">Master Volume</label>
+        <label for="mastervolume">Master Volume:</label>
         <input
             type="range"
             min="0"
@@ -79,6 +99,15 @@
             step="0.01"
             bind:value={$AudioMasterVolume}
         />
+    </div>
+
+    <h4>Interface</h4>
+    <div class="options">
+        <label for="showdebugger">Show Debugger:</label>
+        <input id="showdebugger" type="checkbox" bind:checked={$ShowDebugger} />
+
+        <label for="remoteRomsUri">Remote Roms List:</label>
+        <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
     </div>
 
     <ControlsView />
@@ -93,12 +122,45 @@
 </div>
 
 <style>
+    h4 {
+        margin: 0.6em 0 0.2em;
+        font-size: 0.85em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+    }
     .options {
         display: grid;
         grid-template-columns: 13em auto;
     }
     .options input[type="checkbox"] {
         margin-right: auto;
+    }
+    .option-label {
+        display: flex;
+        align-items: center;
+    }
+    .palette-picker {
+        display: flex;
+        gap: 0.4em;
+        align-items: center;
+    }
+    .palette-btn {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        background: none;
+        cursor: pointer;
+    }
+    .palette-btn.selected {
+        border-color: var(--highlight-color, #666);
+    }
+    .swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
     }
     details summary h3 {
         display: inline;
