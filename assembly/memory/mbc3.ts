@@ -1,10 +1,10 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
-import { enableRam, log, MBC_Handler } from "./mbcTypes";
+import { enableRam, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
 @final
-class MBC3 {
+export class MBC3 {
     private static romBank: u32 = 1;
     private static ramBank: u8 = 0;
     private static ramEnabled: boolean = false;
@@ -89,9 +89,3 @@ class MBC3 {
     }
 }
 
-export const MBC3_Handler: MBC_Handler = {
-    Init: MBC3.Init,
-    WriteToRom: MBC3.HandleWrite,
-    MapRom: MBC3.MapRom,
-    MapRam: MBC3.MapRam
-}
