@@ -46,9 +46,14 @@ export const ROM_STORAGE_END: u32 = CARTRIDGE_ROM_START + CARTRIDGE_ROM_SIZE;
 export const TEST_SPACE_START: u32 = ROM_STORAGE_END;
 export const TEST_SPACE_END: u32 = TEST_SPACE_START + 0x8000;
 
+// CGB color palette RAM (64 bytes BG + 64 bytes OBJ, accessed via BCPS/BCPD/OCPS/OCPD)
+
+export const GB_CGB_PALETTE_RAM_START: u32 = TEST_SPACE_END;
+export const GB_CGB_PALETTE_RAM_SIZE: u32 = 128;
+
 // end of memory
 
-export const TOTAL_MEMORY_SIZE: u32 = TEST_SPACE_END;
+export const TOTAL_MEMORY_SIZE: u32 = GB_CGB_PALETTE_RAM_START + GB_CGB_PALETTE_RAM_SIZE;
 
 export const MEMORY_PAGE_SIZE: u32 = TOTAL_MEMORY_SIZE / 1024 / 64;
 
