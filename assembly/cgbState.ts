@@ -1,10 +1,15 @@
-let _isCGB: boolean = false;
+@final
+export class CgbState {
+    static _isCGB: boolean = false;
+    static _vramBank: u32 = 0;
 
-export function setIsCGB(value: boolean): void {
-    _isCGB = value;
+    @inline static get isCgbMode(): boolean { return CgbState._isCGB; }
+    @inline static get vramBank(): u32 { return CgbState._vramBank; }
+
+    static setIsCGB(value: boolean): void { CgbState._isCGB = value; }
+    static setVramBank(bank: u32): void { CgbState._vramBank = bank; }
 }
 
-@inline
 export function isCgbMode(): boolean {
-    return _isCGB;
+    return CgbState.isCgbMode;
 }

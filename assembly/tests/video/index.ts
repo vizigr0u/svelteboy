@@ -10,6 +10,7 @@ import { testSprites } from "./spriteTests";
 import { testFrameBuffer } from "./frameBufferTests";
 import { testPalettes } from "./paletteTests";
 import { testVramOamAccess } from "./vramOamAccessTests";
+import { testVramBanking } from "./vramBankTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -24,5 +25,6 @@ export function testVideo(): boolean {
     testFrameBuffer();
     testPalettes();
     testVramOamAccess();
+    testVramBanking();
     return true;
 }

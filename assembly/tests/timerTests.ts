@@ -5,7 +5,7 @@ import { CARTRIDGE_ROM_START } from "../memory/memoryConstants";
 import { Cartridge } from "../cartridge";
 import { CGBMode } from "../metadata";
 import { Emulator } from "../emulator";
-import { setIsCGB } from "../cgbState";
+import { CgbState } from "../cgbState";
 import { setTestRom } from "./cpuTests";
 import { describe, it, assertEquals } from "./framework";
 
@@ -48,7 +48,7 @@ function testDivAfterCgbInit(): void {
     // GBC internalDiv = 0xABCC without boot ROM; upper byte = 0xAB
     assertEquals<u8>(Timer.Div, 0xAB, "DIV after CGB init = 0xAB");
     Cartridge.Data.cgbFlag = 0x00;
-    setIsCGB(false);
+    CgbState.setIsCGB(false);
 }
 
 function testDivViaGBload(): void {
