@@ -27,6 +27,7 @@ export { TOTAL_MEMORY_SIZE } from './memory/memoryConstants';
 
 export { loadCartridgeRom } from './cartridge';
 
+// #strip-start
 export { testRegisters } from "./tests/registerTests";
 export { testMemory } from "./tests/memoryTests";
 export {
@@ -53,6 +54,7 @@ export { testSerial } from './tests/serialTests';
 export { testEmulator } from './tests/emulatorTests';
 export { testTimer } from './tests/timerTests';
 export { testJoypad } from './tests/joypadTests';
+// #strip-end
 
 export {
   getGameboyTileExampleData,
@@ -84,7 +86,9 @@ export {
   setMasterAudioToggle,
 } from './audio/render';
 
+// #strip-start
 import { ScanlineRenderer } from "./io/video/scanlineRenderer";
 export function instrumentedDiag(): void {
     ScanlineRenderer.RenderDiag();
 }
+// #strip-end
