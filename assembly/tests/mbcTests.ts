@@ -43,6 +43,17 @@ export function testMbc(): boolean {
                 assertEquals<u8>(readRomBank1Sentinel(), 1, "bank 3 masked to bank 1");
             });
 
+            it("64-bank cart (>32) selects banks across full range without crash (regression)", () => {
+                // Bug: assert(RomBankCount <= 32) fired for any cart with >32 banks (e.g. SML2: 64 banks)
+                setupMBCCart(CartridgeType.MBC1, 5, 0); // romSizeByte=5 → 64 banks, mask=63
+                mbcWrite(0x2000, 0x0F); // low=15 → bank 15
+                assertEquals<u8>(readRomBank1Sentinel(), 15, "bank 15 accessible on 64-bank cart");
+                mbcWrite(0x4000, 0x01); // high=1 → bank (1<<5)|15 = 47
+                assertEquals<u8>(readRomBank1Sentinel(), 47, "bank 47 accessible on 64-bank cart");
+                mbcWrite(0x2000, 0x1F); // low=31 → bank (1<<5)|31 = 63
+                assertEquals<u8>(readRomBank1Sentinel(), 63, "bank 63 (max) accessible on 64-bank cart");
+            });
+
             it("MapRom bank 0 range fixed in simple mode", () => {
                 setupMBCCart(CartridgeType.MBC1, 1, 0); // 4 banks
                 assertEquals<u8>(readRomBank0Sentinel(), 0, "rom0 sentinel = 0");
