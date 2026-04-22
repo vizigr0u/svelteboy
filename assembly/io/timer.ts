@@ -153,6 +153,15 @@ export class Timer {
         return 0;
     }
 
+    static RestoreState(internalDiv: u16, tima: u8, tma: u8, tac: u8): void {
+        Timer.internalDiv = internalDiv;
+        Timer.Tima = tima;
+        Timer.Tma = tma;
+        Timer.Tac = tac;
+        Timer.DivWatchBit = Timer.getDivWatchBit(tac);
+        Timer.Enabled = (tac & 0b100) != 0;
+    }
+
     private static getDivWatchBit(tac: u8): u16 {
         switch (tac & 0b11) {
             case 0b00:

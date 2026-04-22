@@ -5,8 +5,11 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_S
 
 @final
 export class MBC3 {
-    private static romBank: u32 = 1;
-    private static ramBank: u8 = 0;
+    static romBank: u32 = 1;
+    static ramBank: u8 = 0;
+    private static ramEnabled: boolean = false;
+
+    static get RamEnabled(): boolean { return MBC3.ramEnabled; }
 
     static Init(): void {
         if (Logger.verbose >= 1)

@@ -57,6 +57,7 @@ export { testEmulator } from './tests/emulatorTests';
 export { testTimer } from './tests/timerTests';
 export { testJoypad } from './tests/joypadTests';
 export { testPowerUp } from './tests/powerUpTests';
+export { testSaveState } from './tests/saveStateTests';
 // #strip-end
 
 export {
@@ -78,6 +79,8 @@ export {
 export { setJoypad } from "./io/joypad";
 
 export { loadSaveGame, getLastSave, getLastSaveFrame } from './memory/savegame'
+
+export { createSaveState, loadSaveState } from './savestate'
 
 export {
   getAudioSampleRate,
