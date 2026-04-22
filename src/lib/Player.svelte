@@ -21,7 +21,7 @@
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
-    let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
+    let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void } | null = $state(null);
     let menuOpen: boolean = $state(false);
     let screenEl: HTMLDivElement | undefined = $state();
     let isFullscreen: boolean = $state(false);
@@ -69,7 +69,13 @@
     ]);
 
     onMount(() => {
-        const drawCallback = () => webglCanvas?.draw(Emulator.GetGameFrame());
+        const drawCallback = () => {
+            if (Emulator.IsCgbMode()) {
+                webglCanvas?.draw(Emulator.GetCGBGameFrame());
+            } else {
+                webglCanvas?.draw(Emulator.GetGameFrame());
+            }
+        };
         Emulator.AddPostRunCallback(drawCallback);
 
         const onFullscreenChange = () => {
