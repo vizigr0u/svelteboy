@@ -320,17 +320,12 @@ function preRun(): void {
     setJoypad(keys);
 }
 
-let lastFrame = -1;
-
 function postRun(): void {
     fetchLogs();
+    GameFrames.update(frames => frames + 1);
     if (get(DebuggerAttached)) {
         const info = getDebugInfo() as GbDebugInfo;
         GbDebugInfoStore.set(info);
-        if (info.currentFrame != lastFrame) {
-            GameFrames.update(frames => frames + 1);
-            lastFrame = info.currentFrame;
-        }
     }
     EmulatorBusy.set(false);
     const latestSaveFrame = getLastSaveFrame();
