@@ -7,11 +7,21 @@
     import { onMount } from "svelte";
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
+    import BurgerMenu from "./BurgerMenu.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
+    import { showRomsWindow, showSavesWindow, showOptionsWindow, showDebugWindow } from "../stores/windowStores";
 
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
+    let menuOpen: boolean = $state(false);
+
+    const menuItems = $derived([
+        { label: 'ROMs',    active: $showRomsWindow,    toggle: () => showRomsWindow.update(v => !v) },
+        { label: 'Saves',   active: $showSavesWindow,   toggle: () => showSavesWindow.update(v => !v) },
+        { label: 'Options', active: $showOptionsWindow, toggle: () => showOptionsWindow.update(v => !v) },
+        { label: 'Debug',   active: $showDebugWindow,   toggle: () => showDebugWindow.update(v => !v) },
+    ]);
 
     onMount(() => {
         const drawCallback = () => webglCanvas?.draw(Emulator.GetGameFrame());
@@ -44,6 +54,10 @@
                 <div class="fps-wrapper">
                     <FpsCounter />
                 </div>
+            {/if}
+            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">☰</button>
+            {#if menuOpen}
+                <BurgerMenu items={menuItems} />
             {/if}
         </div>
     </RomDropZone>
@@ -99,5 +113,23 @@
 
     .fps-wrapper {
         position: absolute;
+    }
+
+    .burger-btn {
+        position: absolute;
+        top: 0.4em;
+        right: 0.4em;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        color: #eee;
+        font-size: 1.2em;
+        cursor: pointer;
+        border-radius: 0.3em;
+        padding: 0.1em 0.3em;
+        line-height: 1;
+    }
+
+    .burger-btn:hover {
+        background: rgba(0,0,0,0.7);
     }
 </style>
