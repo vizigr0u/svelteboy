@@ -9,12 +9,10 @@
         // AudioBufferSize,
         AudioMasterVolume,
         HideKeyboardWarning,
-        SelectedPaletteIndex,
-        PALETTE_PRESETS,
-        PALETTE_NAMES,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
     import ControlsView from "./ControlsView.svelte";
+    import PalettePicker from "./PalettePicker.svelte";
 
     const validAudioBufferSizes = [64, 128, 256, 512, 1024, 2048];
 
@@ -44,23 +42,7 @@
         />
 
         <span class="option-label">Palette:</span>
-        <div class="palette-picker">
-            {#each PALETTE_PRESETS as preset, i}
-                <button
-                    class="palette-btn"
-                    class:selected={$SelectedPaletteIndex === i}
-                    onclick={() => SelectedPaletteIndex.set(i)}
-                    title={PALETTE_NAMES[i]}
-                >
-                    <div class="palette-preview">
-                        {#each preset as color}
-                            <span class="swatch" style="background-color: #{((color & 0xff).toString(16).padStart(2,'0'))}{(((color >> 8) & 0xff).toString(16).padStart(2,'0'))}{(((color >> 16) & 0xff).toString(16).padStart(2,'0'))}"></span>
-                        {/each}
-                    </div>
-                    <span class="title">{PALETTE_NAMES[i]}</span>
-                </button>
-            {/each}
-        </div>
+        <PalettePicker />
 
         <label for="showfps">Display FPS:</label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />
@@ -134,7 +116,7 @@
     }
     .options {
         display: grid;
-        grid-template-columns: 13em auto;
+        grid-template-columns: 13em minmax(0, 1fr);
     }
     .options input[type="checkbox"] {
         margin-right: auto;
@@ -143,34 +125,7 @@
         display: flex;
         align-items: center;
     }
-    .palette-picker {
-        display: flex;
-        gap: 0.8em;
-        align-items: center;
-        padding-top: 2px;
-    }
-    .palette-btn {
-        display: flex;
-        gap: 2px;
-        flex-direction: column;
-        padding: 3px;
-        border: 2px solid transparent;
-        border-radius: 4px;
-        background: #201f25;
-        cursor: pointer;
-    }
-    .palette-btn.selected {
-        border-color: var(--highlight-color, #666);
-    }
-    .swatch {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-    }
-    .palette-btn.title {
-        display: flex;
-        font-size: 0.7em;
-    }
+
     details summary h3 {
         display: inline;
         cursor: pointer;

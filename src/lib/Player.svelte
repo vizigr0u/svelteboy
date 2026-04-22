@@ -8,19 +8,29 @@
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
+    import Window from "./Window.svelte";
+    import RomsSection from "./RomsSection.svelte";
+    import SavesViewer from "./SavesViewer.svelte";
+    import OptionsView from "./OptionsView.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { showRomsWindow, showSavesWindow, showOptionsWindow, showDebugWindow } from "../stores/windowStores";
+    import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
     let menuOpen: boolean = $state(false);
 
+    function toggleWindow(store: Writable<boolean>) {
+        store.update(v => !v);
+        menuOpen = false;
+    }
+
     const menuItems = $derived([
-        { label: 'ROMs',    active: $showRomsWindow,    toggle: () => showRomsWindow.update(v => !v) },
-        { label: 'Saves',   active: $showSavesWindow,   toggle: () => showSavesWindow.update(v => !v) },
-        { label: 'Options', active: $showOptionsWindow, toggle: () => showOptionsWindow.update(v => !v) },
-        { label: 'Debug',   active: $showDebugWindow,   toggle: () => showDebugWindow.update(v => !v) },
+        { label: 'ROMs',    active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
+        { label: 'Saves',   active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow) },
+        { label: 'Options', active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
+        { label: 'Debug',   active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
     ]);
 
     onMount(() => {
@@ -58,6 +68,21 @@
             <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">☰</button>
             {#if menuOpen}
                 <BurgerMenu items={menuItems} />
+            {/if}
+            {#if $showRomsWindow}
+                <Window title="ROMs" onclose={() => showRomsWindow.set(false)}>
+                    <RomsSection />
+                </Window>
+            {/if}
+            {#if $showSavesWindow}
+                <Window title="Saves" onclose={() => showSavesWindow.set(false)}>
+                    <SavesViewer />
+                </Window>
+            {/if}
+            {#if $showOptionsWindow}
+                <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
+                    <OptionsView />
+                </Window>
             {/if}
         </div>
     </RomDropZone>

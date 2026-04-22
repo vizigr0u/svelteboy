@@ -6,10 +6,11 @@
     import { displayKey } from "../keybindPresets";
 
     let buttonContainer: HTMLElement;
-    let hintVisible = $state(!$HideKeyboardWarning);
+    let hintVisible = $state(false);
+    let userInteracted = false;
 
-    function showHint() { hintVisible = true; }
-    function hideHint() { hintVisible = false; $HideKeyboardWarning = true; }
+    function showHint() { userInteracted = true; hintVisible = true; }
+    function hideHint() { userInteracted = true; hintVisible = false; $HideKeyboardWarning = true; }
 
     function getInputTypeForButton(b: HTMLButtonElement): InputType {
         return InputType[
@@ -27,7 +28,7 @@
             InputsAndButtons
         );
         buttons.forEach((button) => {
-            const input = inputsByButton.get(button);
+            const input = inputsByButton.get(button)!;
             button.ontouchstart = () => {
                 updateInput(input, true);
             };
@@ -40,13 +41,16 @@
             button.ontouchend = () => updateInput(input, false);
             button.ontouchcancel = () => updateInput(input, false);
         });
-        const unsub = KeyPressMap.subscribe((inputs) => {
+        const keyUnsub = KeyPressMap.subscribe((inputs) => {
             buttons.forEach((button) => {
-                const input = inputsByButton.get(button);
+                const input = inputsByButton.get(button)!;
                 button.classList.toggle("pressed", inputs.has(input));
             });
         });
-        return unsub;
+        const warningUnsub = HideKeyboardWarning.subscribe(v => {
+            if (!userInteracted) hintVisible = !v;
+        });
+        return () => { keyUnsub(); warningUnsub(); };
     });
 </script>
 
