@@ -11,6 +11,12 @@ export class TileCache {
         for (let i = 0; i < 24576; i++) unchecked(TileCache.data[i] = 0);
     }
 
+    static RebuildAll(): void {
+        for (let addr: u16 = 0x8000; addr < 0x9800; addr += 2) {
+            TileCache.decode(addr);
+        }
+    }
+
     @inline
     static decode(gbAddress: u16): void {
         // Only tile data area 0x8000–0x97FF

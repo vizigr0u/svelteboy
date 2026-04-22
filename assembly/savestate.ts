@@ -9,6 +9,8 @@ import { MBC1 } from "./memory/mbc1";
 import { MBC2 } from "./memory/mbc2";
 import { MBC3 } from "./memory/mbc3";
 import { MBC5 } from "./memory/mbc5";
+import { Lcd } from "./io/video/lcd";
+import { TileCache } from "./io/video/tileCache";
 import { getRamEnabled, setRamEnabledRaw } from "./memory/mbcTypes";
 import {
     GB_VIDEO_START, GB_VIDEO_SIZE,
@@ -205,9 +207,11 @@ export function loadSaveState(data: Uint8Array): bool {
 
     // Memory regions
     memory.copy(GB_VIDEO_START, p + OFF_VRAM, GB_VIDEO_SIZE);
+    TileCache.RebuildAll();
     memory.copy(GB_OAM_START, p + OFF_OAM, GB_OAM_SIZE);
     memory.copy(GB_WRAM_START, p + OFF_WRAM, GB_WRAM_SIZE);
     memory.copy(GB_IO_START, p + OFF_IO, GB_IO_SIZE);
+    Lcd.SyncFromMemory();
     memory.copy(GB_HIGH_RAM_START, p + OFF_HRAM, GB_HIGH_RAM_SIZE);
     if (extRamSize > 0) {
         memory.copy(GB_EXT_RAM_START, p + OFF_EXT_RAM, extRamSize);

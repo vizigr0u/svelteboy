@@ -26,8 +26,12 @@ import {
     getAudioBuffersToReadCount,
     getAudioBufferToReadPointer,
     markAudioBuffersRead,
-    setMuteChannel
+    setMuteChannel,
+    createSaveState,
+    loadSaveState
 } from "../build/backend";
+import { PALETTE_PRESETS, SelectedPaletteIndex, type GBPalette } from "stores/optionsStore";
+import { saveSlot, loadSlot } from "./saveStateDb";
 import { fetchLogs } from "./debug";
 import {
     AudioAnalyzerNode,
@@ -56,6 +60,24 @@ let lastSaveFrame = 0;
 let postRunCallbacks: (() => void)[] = [];
 let runningAnimationFrameHandle = 0;
 
+function captureFrameThumbnail(frame: Uint8Array, palette: GBPalette): string {
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 144;
+    const ctx = canvas.getContext('2d')!;
+    const imageData = new ImageData(160, 144);
+    const data = imageData.data;
+    for (let i = 0; i < 160 * 144; i++) {
+        const c = palette[frame[i] & 3];
+        data[i * 4 + 0] = c & 0xff;
+        data[i * 4 + 1] = (c >> 8) & 0xff;
+        data[i * 4 + 2] = (c >> 16) & 0xff;
+        data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas.toDataURL('image/webp', 0.7);
+}
+
 export const Emulator = {
     Reset: () => {
         Audio.Init();
@@ -80,6 +102,21 @@ export const Emulator = {
     RemovePostRunCallback: (callback: () => void) => {
         const i = postRunCallbacks.indexOf(callback);
         if (i !== -1) postRunCallbacks.splice(i, 1);
+    },
+    QuickSave: async (slot: number): Promise<void> => {
+        const cartridge = get(loadedCartridge);
+        if (!cartridge) return;
+        const state = createSaveState();
+        const palette = PALETTE_PRESETS[get(SelectedPaletteIndex)];
+        const thumbnail = captureFrameThumbnail(Emulator.GetGameFrame(), palette);
+        await saveSlot(cartridge.sha1, slot, { state, thumbnail, savedAt: Date.now() });
+    },
+    QuickLoad: async (slot: number): Promise<void> => {
+        const cartridge = get(loadedCartridge);
+        if (!cartridge) return;
+        const entry = await loadSlot(cartridge.sha1, slot);
+        if (!entry) return;
+        loadSaveState(entry.state);
     }
 }
 

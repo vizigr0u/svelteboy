@@ -1,6 +1,7 @@
 import { KeyPressMap } from "stores/playStores";
 import { KeyBindingsStore } from "stores/optionsStore";
 import { InputType } from "./types";
+import { Emulator } from "./emulator";
 
 let activeKeybinds: { [k: string]: InputType } = {};
 
@@ -50,3 +51,12 @@ export function gameInputKeyupHandler(event: KeyboardEvent) {
 }
 
 export { InputType };
+
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!e.code.startsWith('Digit')) return;
+    const n = parseInt(e.code.slice(5));
+    if (n < 1 || n > 4) return;
+    e.preventDefault();
+    if (e.shiftKey) Emulator.QuickSave(n);
+    else Emulator.QuickLoad(n);
+});

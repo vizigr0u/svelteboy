@@ -172,6 +172,18 @@ export class Lcd {
         return (gbAddress >= LCD_GB_START_ADDRESS && gbAddress < (LCD_GB_START_ADDRESS + offsetof<LcdGbData>()));
     }
 
+    static SyncFromMemory(): void {
+        const data = Lcd.data;
+        Lcd._windowEnabled = data.hasControlBit(LcdControlBit.WindowEnabled);
+        Lcd._bgAndWindowEnabled = data.hasControlBit(LcdControlBit.BGandWindowEnabled);
+        Lcd._spritesVisible = data.hasControlBit(LcdControlBit.ObjEnabled);
+        Lcd._spriteHeight = data.spriteHeight();
+        Lcd._ppuEnabled = data.hasControlBit(LcdControlBit.LCDandPPUenabled);
+        Lcd._bgTileMapBaseAddress = data.hasControlBit(LcdControlBit.BGTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
+        Lcd._windowTileMapBaseAddress = data.hasControlBit(LcdControlBit.WindowTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
+        Lcd._TilesBaseAddress = data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
+    }
+
     static Store(gbAddress: u16, value: u8): void {
         if (gbAddress == LcdGbData.getDmaAddress()) {
             Dma.Start(value);
