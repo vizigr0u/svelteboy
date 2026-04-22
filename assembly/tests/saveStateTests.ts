@@ -2,6 +2,8 @@ import { Cpu } from "../cpu/cpu";
 import { Interrupt } from "../cpu/interrupts";
 import { Dma } from "../io/video/dma";
 import { Ppu, PpuMode } from "../io/video/ppu";
+import { Lcd } from "../io/video/lcd";
+import { TileCache } from "../io/video/tileCache";
 import { Timer } from "../io/timer";
 import { MemoryMap } from "../memory/memoryMap";
 import { Emulator } from "../emulator";
@@ -229,6 +231,59 @@ function testSizeMinimum(): void {
     });
 }
 
+function testTileCacheRebuildOnLoad(): void {
+    it("TileCache rebuilt from VRAM after loadSaveState", () => {
+        setupClean();
+        // lo=0xAA hi=0x55: pixel 0 = color 1, pixel 1 = color 2 (alternating)
+        store<u8>(GB_VIDEO_START + 0, 0xAA);
+        store<u8>(GB_VIDEO_START + 1, 0x55);
+        TileCache.decode(0x8000);
+        assertEquals<u8>(TileCache.data[0], 1, "pre-save cache pixel 0");
+        assertEquals<u8>(TileCache.data[1], 2, "pre-save cache pixel 1");
+        const state = createSaveState();
+        // wipe VRAM and cache to simulate different in-memory state
+        store<u8>(GB_VIDEO_START + 0, 0);
+        store<u8>(GB_VIDEO_START + 1, 0);
+        TileCache.decode(0x8000);
+        assertEquals<u8>(TileCache.data[0], 0, "cache wiped");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(load<u8>(GB_VIDEO_START), 0xAA, "VRAM restored");
+        assertEquals<u8>(TileCache.data[0], 1, "cache pixel 0 after load");
+        assertEquals<u8>(TileCache.data[1], 2, "cache pixel 1 after load");
+    });
+}
+
+function testLcdCacheBgTileMap(): void {
+    it("round-trips Lcd.BgTileMapBaseAddress after load", () => {
+        setupClean();
+        // LCDC = 0x88: LCD enabled (bit7) + BGTileMapArea=high (bit3)
+        // This makes _bgTileMapBaseAddress = MAP_BASE_HI = GB_VIDEO_START + 0x1C00
+        Lcd.Store(0xFF40, 0x88);
+        const expectedMap: u32 = GB_VIDEO_START + 0x1C00;
+        assertEquals<u32>(Lcd.BgTileMapBaseAddress, expectedMap, "pre-save BgTileMapBaseAddress");
+        const state = createSaveState();
+        Emulator.Init(false); // resets cache to MAP_BASE_LO
+        assert(Lcd.BgTileMapBaseAddress != expectedMap, "cache reset check");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u32>(Lcd.BgTileMapBaseAddress, expectedMap, "BgTileMapBaseAddress after load");
+    });
+}
+
+function testLcdCacheTileBase(): void {
+    it("round-trips Lcd.TilesBaseAddress after load", () => {
+        setupClean();
+        // LCDC = 0x80: LCD enabled (bit7), bit4=0 → TilesBaseAddress = TILE_BASE_HI = GB_VIDEO_START + 0x800
+        Lcd.Store(0xFF40, 0x80);
+        const expectedTiles: u32 = GB_VIDEO_START + 0x800;
+        assertEquals<u32>(Lcd.TilesBaseAddress, expectedTiles, "pre-save TilesBaseAddress");
+        const state = createSaveState();
+        Emulator.Init(false); // resets cache to TILE_BASE_LO
+        assert(Lcd.TilesBaseAddress != expectedTiles, "cache reset check");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u32>(Lcd.TilesBaseAddress, expectedTiles, "TilesBaseAddress after load");
+    });
+}
+
 export function testSaveState(): boolean {
     describe("SaveState - Header", () => {
         testHeaderMagic();
@@ -257,6 +312,13 @@ export function testSaveState(): boolean {
         testWram();
         testHram();
         testIo();
+    });
+    describe("SaveState - TileCache", () => {
+        testTileCacheRebuildOnLoad();
+    });
+    describe("SaveState - Lcd cache", () => {
+        testLcdCacheBgTileMap();
+        testLcdCacheTileBase();
     });
     return true;
 }

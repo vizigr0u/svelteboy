@@ -3,6 +3,7 @@
 
     import { EmulatorPaused } from "stores/playStores";
     import { Emulator } from "../emulator";
+    import QuickSaveControls from "./QuickSaveControls.svelte";
 
     async function onPlayPauseClick() {
         if ($EmulatorPaused) await Emulator.RunUntilBreak();
@@ -17,6 +18,7 @@
         >{$EmulatorPaused ? "Play" : "Pause"}</button
     >
 </div>
+<QuickSaveControls />
 
 <style>
     .player-control-buttons {
