@@ -1,10 +1,10 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
-import { enableRam, isRamEnabled, log, MBC_Handler } from "./mbcTypes";
+import { enableRam, isRamEnabled, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
 @final
-class MBC2 {
+export class MBC2 {
     private static romBank: u32 = 1;
 
     static Init(): void {
@@ -36,9 +36,3 @@ class MBC2 {
     }
 }
 
-export const MBC2_Handler: MBC_Handler = {
-    Init: MBC2.Init,
-    WriteToRom: MBC2.HandleWrite,
-    MapRom: MBC2.MapRom,
-    MapRam: MBC2.MapRam
-}

@@ -1,11 +1,11 @@
 import { Cartridge } from "../cartridge";
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
-import { enableRam, log, MBC_Handler } from "./mbcTypes";
+import { enableRam, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
 @final
-class MBC1 {
+export class MBC1 {
     private static LowRegister: u8 = 1;
     private static HighRegister: u8 = 0;
     private static advancedMode: boolean = false;
@@ -101,9 +101,3 @@ class MBC1 {
     }
 }
 
-export const MBC1_Handler: MBC_Handler = {
-    Init: MBC1.Init,
-    WriteToRom: MBC1.HandleWrite,
-    MapRom: MBC1.MapRom,
-    MapRam: MBC1.MapRam
-}
