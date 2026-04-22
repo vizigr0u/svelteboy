@@ -57,6 +57,7 @@ export { testMetadata } from './tests/metadataTests';
 export { testEmulator } from './tests/emulatorTests';
 export { testTimer } from './tests/timerTests';
 export { testCgbState } from './tests/cgbStateTests';
+export { testWramBank } from './tests/wramBankTests';
 export { testJoypad } from './tests/joypadTests';
 export { testPowerUp } from './tests/powerUpTests';
 export { testSaveState } from './tests/saveStateTests';
