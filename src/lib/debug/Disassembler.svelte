@@ -1,6 +1,7 @@
 <script lang="ts">
   import DebuggerLine from "./DebuggerLine.svelte";
 
+  import { get } from "svelte/store";
   import { type GbDebugInfo, type RomReference } from "../../types";
   import MyVirtualList from "../MyVirtualList.svelte";
   import {
@@ -30,7 +31,7 @@
   });
 
   function disassembleRom(rom: RomReference): void {
-    if (rom && $disassembledRomsStore?.sha1 != rom.sha1) {
+    if (rom && get(disassembledRomsStore)?.sha1 != rom.sha1) {
       fetchDisassembly(rom);
     } else if (!rom) {
       $disassembledRomsStore = undefined;
