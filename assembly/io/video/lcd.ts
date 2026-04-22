@@ -1,7 +1,7 @@
 import { IntType, Interrupt } from "../../cpu/interrupts";
 import { IO } from "../io";
 import { Logger } from "../../debug/logger";
-import { GB_IO_START, GB_VIDEO_START } from "../../memory/memoryConstants";
+import { GB_IO_START, GB_VIDEO_START, GB_CGB_PALETTE_RAM_START, GB_CGB_PALETTE_RAM_SIZE } from "../../memory/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 import { Dma } from "./dma";
@@ -9,6 +9,13 @@ import { LCD_HEIGHT } from "./constants";
 import { CgbState } from "../../cgbState";
 
 const VBK_ADDRESS: u16 = 0xFF4F;
+
+const BCPS_ADDRESS: u16 = 0xFF68;
+const BCPD_ADDRESS: u16 = 0xFF69;
+const OCPS_ADDRESS: u16 = 0xFF6A;
+const OCPD_ADDRESS: u16 = 0xFF6B;
+
+const CGB_OBJ_PALETTE_OFFSET: u32 = 64; // BG palette = [0..63], OBJ palette = [64..127]
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
@@ -121,6 +128,10 @@ export class Lcd {
     private static _windowTileMapBaseAddress: u32 = MAP_BASE_LO;
     private static _TilesBaseAddress: u32 = TILE_BASE_LO;
 
+    // CGB palette index registers (bit 7 = auto-increment, bits 0-5 = index)
+    private static _bcps: u8 = 0;
+    private static _ocps: u8 = 0;
+
     static Init(): void {
         if (Logger.verbose >= 3) {
             log('Initializing Lcd');
@@ -141,6 +152,9 @@ export class Lcd {
         Lcd._windowTileMapBaseAddress = data.hasControlBit(LcdControlBit.WindowTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
         Lcd._TilesBaseAddress = data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
         CgbState.setVramBank(0);
+        Lcd._bcps = 0;
+        Lcd._ocps = 0;
+        memory.fill(GB_CGB_PALETTE_RAM_START, 0, GB_CGB_PALETTE_RAM_SIZE);
     }
 
     @inline static get IsPpuEnabled(): boolean { return Lcd._ppuEnabled };
@@ -179,7 +193,9 @@ export class Lcd {
     @inline
     static Handles(gbAddress: u16): boolean {
         return (gbAddress >= LCD_GB_START_ADDRESS && gbAddress < (LCD_GB_START_ADDRESS + offsetof<LcdGbData>()))
-            || (CgbState.isCgbMode && gbAddress == VBK_ADDRESS);
+            || (CgbState.isCgbMode && (gbAddress == VBK_ADDRESS
+                || gbAddress == BCPS_ADDRESS || gbAddress == BCPD_ADDRESS
+                || gbAddress == OCPS_ADDRESS || gbAddress == OCPD_ADDRESS));
     }
 
     static SyncFromMemory(): void {
@@ -198,6 +214,28 @@ export class Lcd {
         if (gbAddress == VBK_ADDRESS) {
             if (CgbState.isCgbMode)
                 CgbState.setVramBank(<u32>(value & 1));
+            return;
+        }
+        if (gbAddress == BCPS_ADDRESS) {
+            Lcd._bcps = value & 0xBF; // bit 6 unused, always 0
+            return;
+        }
+        if (gbAddress == BCPD_ADDRESS) {
+            const idx = Lcd._bcps & 0x3F;
+            store<u8>(GB_CGB_PALETTE_RAM_START + idx, value);
+            if (Lcd._bcps & 0x80)
+                Lcd._bcps = ((idx + 1) & 0x3F) | 0x80;
+            return;
+        }
+        if (gbAddress == OCPS_ADDRESS) {
+            Lcd._ocps = value & 0xBF;
+            return;
+        }
+        if (gbAddress == OCPD_ADDRESS) {
+            const idx = Lcd._ocps & 0x3F;
+            store<u8>(GB_CGB_PALETTE_RAM_START + CGB_OBJ_PALETTE_OFFSET + idx, value);
+            if (Lcd._ocps & 0x80)
+                Lcd._ocps = ((idx + 1) & 0x3F) | 0x80;
             return;
         }
         if (gbAddress == LcdGbData.getDmaAddress()) {
@@ -248,6 +286,14 @@ export class Lcd {
     static Load(gbAddress: u16): u8 {
         if (gbAddress == VBK_ADDRESS)
             return <u8>(CgbState.vramBank | 0xFE);
+        if (gbAddress == BCPS_ADDRESS)
+            return Lcd._bcps | 0x40; // bit 6 reads as 1
+        if (gbAddress == BCPD_ADDRESS)
+            return load<u8>(GB_CGB_PALETTE_RAM_START + (Lcd._bcps & 0x3F));
+        if (gbAddress == OCPS_ADDRESS)
+            return Lcd._ocps | 0x40;
+        if (gbAddress == OCPD_ADDRESS)
+            return load<u8>(GB_CGB_PALETTE_RAM_START + CGB_OBJ_PALETTE_OFFSET + (Lcd._ocps & 0x3F));
         const data = Lcd.data;
         if (Logger.verbose >= 4)
             log(`LCD read at ${uToHex(gbAddress)} - data = ${data.lY}`);
@@ -312,5 +358,17 @@ export class Lcd {
         } else {
             data.stat = data.stat & ~0b100;
         }
+    }
+
+    @inline
+    static getCGBBgColor(paletteNum: u8, colorIdx: u8): u16 {
+        const offset = <u32>(paletteNum) * 8 + <u32>(colorIdx) * 2;
+        return load<u16>(GB_CGB_PALETTE_RAM_START + offset);
+    }
+
+    @inline
+    static getCGBObjColor(paletteNum: u8, colorIdx: u8): u16 {
+        const offset = <u32>(paletteNum) * 8 + <u32>(colorIdx) * 2;
+        return load<u16>(GB_CGB_PALETTE_RAM_START + CGB_OBJ_PALETTE_OFFSET + offset);
     }
 }

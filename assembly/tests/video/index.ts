@@ -11,6 +11,7 @@ import { testFrameBuffer } from "./frameBufferTests";
 import { testPalettes } from "./paletteTests";
 import { testVramOamAccess } from "./vramOamAccessTests";
 import { testVramBanking } from "./vramBankTests";
+import { testCgbPalettes } from "./cgbPaletteTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -26,5 +27,6 @@ export function testVideo(): boolean {
     testPalettes();
     testVramOamAccess();
     testVramBanking();
+    testCgbPalettes();
     return true;
 }
