@@ -52,9 +52,12 @@
                     onclick={() => SelectedPaletteIndex.set(i)}
                     title={PALETTE_NAMES[i]}
                 >
-                    {#each preset as color}
-                        <span class="swatch" style="background-color: #{((color & 0xff).toString(16).padStart(2,'0'))}{(((color >> 8) & 0xff).toString(16).padStart(2,'0'))}{(((color >> 16) & 0xff).toString(16).padStart(2,'0'))}"></span>
-                    {/each}
+                    <div class="palette-preview">
+                        {#each preset as color}
+                            <span class="swatch" style="background-color: #{((color & 0xff).toString(16).padStart(2,'0'))}{(((color >> 8) & 0xff).toString(16).padStart(2,'0'))}{(((color >> 16) & 0xff).toString(16).padStart(2,'0'))}"></span>
+                        {/each}
+                    </div>
+                    <span class="title">{PALETTE_NAMES[i]}</span>
                 </button>
             {/each}
         </div>
@@ -142,16 +145,18 @@
     }
     .palette-picker {
         display: flex;
-        gap: 0.4em;
+        gap: 0.8em;
         align-items: center;
+        padding-top: 2px;
     }
     .palette-btn {
         display: flex;
         gap: 2px;
+        flex-direction: column;
         padding: 3px;
         border: 2px solid transparent;
         border-radius: 4px;
-        background: none;
+        background: #201f25;
         cursor: pointer;
     }
     .palette-btn.selected {
@@ -161,6 +166,10 @@
         display: inline-block;
         width: 12px;
         height: 12px;
+    }
+    .palette-btn.title {
+        display: flex;
+        font-size: 0.7em;
     }
     details summary h3 {
         display: inline;
