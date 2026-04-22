@@ -17,9 +17,9 @@ export class ScanlineRenderer {
     private static spritePixels: StaticArray<u8> = new StaticArray<u8>(80); // 10 * 8
     private static spritePalette: StaticArray<u8> = new StaticArray<u8>(10);
     private static spriteBgPrio: StaticArray<u8> = new StaticArray<u8>(10);
-    // Precomputed direct u32 color LUTs (colorId → final 32-bit RGBA)
-    private static bgColor32: StaticArray<u32> = new StaticArray<u32>(4);
-    private static spriteColor32: StaticArray<u32> = new StaticArray<u32>(40); // 10 * 4
+    // Precomputed shade index LUTs (colorId → shade 0-3 after palette apply)
+    private static bgShade: StaticArray<u8> = new StaticArray<u8>(4);
+    private static spriteShade: StaticArray<u8> = new StaticArray<u8>(40); // 10 * 4
 
     static bgTotalTicks: f64 = 0;
     static spriteTotalTicks: f64 = 0;
@@ -114,7 +114,6 @@ export class ScanlineRenderer {
         // --- Pre-decode sprite rows (once per scanline) ---
         // @ts-ignore
         if (isDefined(INSTRUMENTED)) { t1 = perfNow(); ScanlineRenderer.bgTotalTicks += t1 - t0; }
-        const palette32 = Ppu.current32bitPalette;
         const spritesVisible = Lcd.SpritesVisible;
         let numSprites: i32 = 0;
         if (spritesVisible) {
@@ -140,30 +139,30 @@ export class ScanlineRenderer {
                 unchecked(ScanlineRenderer.spriteBgPrio[fi] = oam.hasAttr(OamAttribute.BGandWindowOver) ? 1 : 0);
                 const pal = oam.hasAttr(OamAttribute.PaletteNumber) ? Lcd.data.objPalette1 : Lcd.data.objPalette0;
                 const palMasked: u8 = pal & 0b11111100;
-                const sc32Base = fi * 4;
+                const shadeBase = fi * 4;
                 for (let c: u8 = 0; c < 4; c++) {
-                    unchecked(ScanlineRenderer.spriteColor32[sc32Base + c] = unchecked(palette32[Ppu.applyPalette(c, palMasked)]));
+                    unchecked(ScanlineRenderer.spriteShade[shadeBase + c] = Ppu.applyPalette(c, palMasked));
                 }
             }
         }
 
-        // --- Composite: sprites + palette + 32-bit output (single pass) ---
+        // --- Composite: sprites + shade index output (single pass) ---
         // @ts-ignore
         if (isDefined(INSTRUMENTED)) { t2 = perfNow(); ScanlineRenderer.spriteTotalTicks += t2 - t1; }
         const bufferOffset = y * LCD_WIDTH;
-        const workingBufferPtr = Ppu.workingBuffer.dataStart;
+        const workingBufferPtr = Ppu.workingBufferPtr;
         let spriteHead: i32 = 0;
 
-        // Precompute BG direct color32 LUT: bgColorId (0-3) → final 32-bit RGBA
-        const bgColor32 = ScanlineRenderer.bgColor32;
+        // Precompute BG shade LUT: bgColorId (0-3) → shade index after palette apply
+        const bgShade = ScanlineRenderer.bgShade;
         for (let c: u8 = 0; c < 4; c++) {
-            unchecked(bgColor32[c] = unchecked(palette32[Ppu.applyPalette(bgEnabled ? c : 0, BgPalette)]));
+            unchecked(bgShade[c] = Ppu.applyPalette(bgEnabled ? c : 0, BgPalette));
         }
-        const spriteColor32 = ScanlineRenderer.spriteColor32;
+        const spriteShade = ScanlineRenderer.spriteShade;
 
         for (let x: u8 = 0; x < LCD_WIDTH; x++) {
             const bgColorId = unchecked(pixels[x]);
-            let finalColor32: u32 = unchecked(bgColor32[bgColorId]);
+            let finalShade: u8 = unchecked(bgShade[bgColorId]);
 
             if (numSprites > 0) {
                 // Advance past sprites that end before x (original: xPos < x)
@@ -195,13 +194,13 @@ export class ScanlineRenderer {
                     const pixOff: u8 = <u8>(-offset); // [0, 7]
                     const spriteColorId = unchecked(ScanlineRenderer.spritePixels[si * 8 + pixOff]);
                     if (spriteColorId != 0) {
-                        finalColor32 = unchecked(spriteColor32[si * 4 + spriteColorId]);
+                        finalShade = unchecked(spriteShade[si * 4 + spriteColorId]);
                         break;
                     }
                 }
             }
 
-            store<u32>(workingBufferPtr + (<u32>(x + bufferOffset) << 2), finalColor32);
+            store<u8>(workingBufferPtr + <u32>(x + bufferOffset), finalShade);
         }
         // @ts-ignore
         if (isDefined(INSTRUMENTED)) ScanlineRenderer.compositeTotalTicks += perfNow() - t2;

@@ -7,6 +7,7 @@ import { testDma } from "./dmaTests";
 import { testBgRendering } from "./bgRenderingTests";
 import { testWindowRendering } from "./windowRenderingTests";
 import { testSprites } from "./spriteTests";
+import { testFrameBuffer } from "./frameBufferTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -18,5 +19,6 @@ export function testVideo(): boolean {
     testBgRendering();
     testWindowRendering();
     testSprites();
+    testFrameBuffer();
     return true;
 }
