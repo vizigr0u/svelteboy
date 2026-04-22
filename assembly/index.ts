@@ -61,6 +61,7 @@ export { testWramBank } from './tests/wramBankTests';
 export { testJoypad } from './tests/joypadTests';
 export { testPowerUp } from './tests/powerUpTests';
 export { testSaveState } from './tests/saveStateTests';
+export { testHdma } from './tests/hdmaTests';
 // #strip-end
 
 export {

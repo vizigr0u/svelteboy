@@ -73,6 +73,8 @@ export class IO {
             AudioInput.Store(gbAddress, value);
         } else if (WramBank.Handles(gbAddress)) {
             WramBank.Store(value);
+        } else if (Dma.Handles(gbAddress)) {
+            Dma.Store(gbAddress, value);
         } else if (gbAddress >= UNHANDLED_CGB_START) {
             if (Logger.verbose >= 3) {
                 log('Unhandled write to CGB Flag ' + uToHex<u16>(gbAddress));
@@ -112,6 +114,9 @@ export class IO {
         }
         if (WramBank.Handles(gbAddress)) {
             return WramBank.Load();
+        }
+        if (Dma.Handles(gbAddress)) {
+            return Dma.Load(gbAddress);
         }
         if (gbAddress >= UNHANDLED_CGB_START) {
             if (Logger.verbose >= 3) {

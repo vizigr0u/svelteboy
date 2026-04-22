@@ -8,6 +8,7 @@ import { PixelFifo } from "./pixelFifo";
 import { PpuTransfer } from "./ppuTransfer";
 import { ScanlineRenderer } from "./scanlineRenderer";
 import { CgbState } from "../../cgbState";
+import { Dma } from "./dma";
 
 export enum PpuMode {
     HBlank = 0,
@@ -282,6 +283,7 @@ function enterMode(mode: PpuMode): void {
             if (Lcd.data.hasStatMode(PpuMode.HBlank)) {
                 Interrupt.Request(IntType.LcdSTAT);
             }
+            Dma.HDMATick();
             break;
         case PpuMode.VBlank:
             Interrupt.Request(IntType.VBlank);
