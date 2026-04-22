@@ -50,6 +50,8 @@
                 row = rows[i - start];
             }
 
+            if (!row) break;
+
             const row_height = (height_map[i] = itemHeight || row.offsetHeight);
             content_height += row_height;
             i += 1;
@@ -70,7 +72,7 @@
         const old_start = start;
 
         for (let v = 0; v < rows.length; v += 1) {
-            height_map[start + v] = itemHeight || rows[v].offsetHeight;
+            if (rows[v]) height_map[start + v] = itemHeight || rows[v].offsetHeight;
         }
 
         let i = 0;
