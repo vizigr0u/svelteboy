@@ -116,6 +116,7 @@ export const Emulator = {
         if (!cartridge) return;
         const entry = await loadSlot(cartridge.sha1, slot);
         if (!entry) return;
+        stopQueuedAudio();
         loadSaveState(entry.state);
     }
 }
@@ -276,13 +277,43 @@ function createAudioBufferFromData(bufferSize: number, sampleRate: number) {
 }
 
 let currentPlayTime = -1;
+const activeSourceNodes: AudioBufferSourceNode[] = [];
+
+const FADE_OUT_S = 0.02;
+
+function stopQueuedAudio() {
+    const now = audioCtx.currentTime;
+    masterVolumeNode.gain.cancelScheduledValues(now);
+    masterVolumeNode.gain.setValueAtTime(masterVolumeNode.gain.value, now);
+    masterVolumeNode.gain.linearRampToValueAtTime(0, now + FADE_OUT_S);
+
+    const nodesToStop = activeSourceNodes.slice();
+    activeSourceNodes.length = 0;
+    currentPlayTime = -1;
+    const pending = getAudioBuffersToReadCount();
+    if (pending > 0) markAudioBuffersRead(pending);
+
+    setTimeout(() => {
+        for (const node of nodesToStop) {
+            try { node.stop(); } catch (_) {}
+        }
+        const v = get(AudioMasterVolume);
+        masterVolumeNode.gain.cancelScheduledValues(audioCtx.currentTime);
+        masterVolumeNode.gain.setValueAtTime(v * v, audioCtx.currentTime);
+    }, FADE_OUT_S * 1000 + 5);
+}
 
 function queueBuffer(buffer: AudioBuffer) {
     if (currentPlayTime < audioCtx.currentTime) {
         currentPlayTime = audioCtx.currentTime;
     }
 
-    playBuffer(buffer, currentPlayTime);
+    const source = playBuffer(buffer, currentPlayTime);
+    activeSourceNodes.push(source);
+    source.onended = () => {
+        const i = activeSourceNodes.indexOf(source);
+        if (i !== -1) activeSourceNodes.splice(i, 1);
+    };
 
     // Update the currentPlayTime by adding buffer's duration
     currentPlayTime += buffer.duration;
