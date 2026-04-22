@@ -5,12 +5,13 @@
         title: string;
         onclose: () => void;
         children: Snippet;
+        wide?: boolean;
     }
 
-    let { title, onclose, children }: Props = $props();
+    let { title, onclose, children, wide = false }: Props = $props();
 </script>
 
-<div class="window">
+<div class="window" class:wide>
     <div class="window-header">
         <span class="window-title">{title}</span>
         <button class="close-btn" onclick={onclose} aria-label="Close">✕</button>
@@ -35,6 +36,10 @@
         max-height: 80vh;
         width: clamp(280px, 90vw, 500px);
         box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .window.wide {
+        width: clamp(280px, 95vw, 1400px);
     }
 
     .window-header {

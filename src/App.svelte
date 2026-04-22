@@ -1,18 +1,11 @@
 <script lang="ts">
-  import DebugSection from "./lib/debug/DebugSection.svelte";
   import Player from "./lib/Player.svelte";
-  import { ShowDebugger } from "./stores/optionsStore";
 </script>
 
 <div class="page-container">
   <main>
     <Player />
   </main>
-  {#if $ShowDebugger}
-    <aside>
-      <DebugSection />
-    </aside>
-  {/if}
 </div>
 
 <style>
