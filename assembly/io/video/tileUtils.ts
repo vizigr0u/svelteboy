@@ -1,7 +1,8 @@
 import { GB_OAM_SIZE, GB_OAM_START, GB_VIDEO_START } from '../../memory/memoryConstants';
 import { LCD_HEIGHT, LCD_WIDTH } from './constants';
 import { Lcd, LcdControlBit } from './lcd';
-import { Ppu } from './ppu';
+
+const DEBUG_PALETTE: StaticArray<u32> = [0xffcffde0, 0xff6fc089, 0xff566834, 0xff000000];
 
 const gbTileData: u8[] = [0x3C, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x5E, 0x7E, 0x0A, 0x7C, 0x56, 0x38, 0x7C];
 const pokemonWindowTileData: u8[] = [0xFF, 0x00, 0x7E, 0xFF, 0x85, 0x81, 0x89, 0x83, 0x93, 0x85, 0xA5, 0x8B, 0xC9, 0x97, 0x7E, 0xFF];
@@ -20,7 +21,7 @@ export function blitTile(dest: Uint32Array, tileAddress: usize, bufferWidth: u32
             const finalX = tileX + xOffset;
             const finalY = tileY + yOffset;
             const bufferIndex = (finalX + finalY * bufferWidth);
-            dest[bufferIndex] = Ppu.current32bitPalette[colorId];
+            dest[bufferIndex] = unchecked(DEBUG_PALETTE[colorId]);
         }
     }
 }

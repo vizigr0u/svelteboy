@@ -1,7 +1,7 @@
 import { Cpu } from "../../cpu/cpu";
 import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { Logger } from "../../debug/logger";
-import { LCD_WIDTH } from "./constants";
+import { LCD_HEIGHT, LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
@@ -203,14 +203,13 @@ export class PpuTransfer {
         if (PixelFifo.HasEnoughPixels()) {
             if (PpuTransfer.lineX >= (Lcd.data.scrollX & 3)) {
                 const bufferIndex = PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH;
-                if (bufferIndex >= <u32>(Ppu.workingBuffer.length)) {
+                if (bufferIndex >= <u32>LCD_WIDTH * LCD_HEIGHT) {
                     if (Logger.verbose >= 1)
                         log(`OVERFLOW during tickPushPixel to [${bufferIndex}]! pushedX=${PpuTransfer.pushedX}, lY=${Lcd.data.lY}`);
                 } else {
                     const color = PixelFifo.Dequeue();
-                    const color32 = unchecked(Ppu.current32bitPalette[color]);
-                    // const color = 0xFF000080 | ((<u32>(PpuTransfer.pushedX) * 255 / 160)) << 16 | ((<u32>(Lcd.data.lY) * 255 / 144)) << 8;
-                    unchecked(Ppu.workingBuffer[PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH] = color32);
+                    const shade = Ppu.applyPalette(color, Lcd.getBGPalette());
+                    store<u8>(Ppu.workingBufferPtr + <u32>(PpuTransfer.pushedX + Lcd.data.lY * LCD_WIDTH), shade);
                 }
                 PpuTransfer.pushedX++;
             }

@@ -39,11 +39,10 @@ function setMapEntry(mapBase: u32, tileX: u8, tileY: u8, tileIndex: u8): void {
     store<u8>(mapBase + <u32>tileX + <u32>tileY * 32, tileIndex);
 }
 
-// Assert workingBuffer pixel at (x, lY) equals the palette color for colorId.
+// Assert frame buffer shade index at (x, lY) equals colorId (with identity BGP=0xE4, shade==colorId).
 function assertPixelAt(x: u8, lY: u8, colorId: u8, label: string): void {
-    const expected = unchecked(Ppu.current32bitPalette[colorId]);
-    const actual   = unchecked(Ppu.workingBuffer[<u32>x + <u32>lY * 160]);
-    assertEquals<u32>(actual, expected, label);
+    const actual = load<u8>(Ppu.workingBufferPtr + <u32>x + <u32>lY * 160);
+    assertEquals<u8>(actual, colorId, label);
 }
 
 function assertPixel(x: u8, colorId: u8, label: string): void {

@@ -69,7 +69,7 @@ export const Emulator = {
         runningAnimationFrameHandle = window.requestAnimationFrame(run)
     },
     Pause: pauseEmulator,
-    GetGameFrame: () => { return new Uint8ClampedArray(backendMemory.buffer, getGameFramePtr(), 144 * 160 * 4) },
+    GetGameFrame: () => new Uint8Array(backendMemory.buffer as ArrayBuffer, getGameFramePtr(), 160 * 144),
     LoadCartridgeRom: loadCartridgeRom,
     LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
     PlayRom: playRom,
