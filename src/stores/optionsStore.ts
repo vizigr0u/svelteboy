@@ -8,10 +8,11 @@ export type GBPalette = readonly [number, number, number, number];
 export const PALETTE_PRESETS: readonly GBPalette[] = [
     [0xffcffde0, 0xff6fc089, 0xff566834, 0xff000000],
     [0xffffffff, 0xffaaaaaa, 0xff555555, 0xff000000],
+    [0xff9bcfbe, 0xff7ea89b, 0xff567369, 0xff2e3d38],
     [0xff49b0a5, 0xff65ae91, 0xff5ea98c, 0xff578872],
 ] as const;
 
-export const PALETTE_NAMES = ['Green', 'Grey', 'Teal'] as const;
+export const PALETTE_NAMES = ['Green', 'Black&White', 'Pocket', 'DMG-01'] as const;
 
 export const SelectedPaletteIndex = MakeLocalStore<number>('option-palette-index', 0);
 
