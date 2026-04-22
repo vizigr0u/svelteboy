@@ -56,14 +56,14 @@ function fillTileMap(mapOffset: u32, tileIndex: u8): void {
     }
 }
 
-// Read a pixel from the working frame buffer at scanline ly, column x
-function getPixel(x: u32, ly: u32): u32 {
-    return Ppu.workingBuffer[ly * 160 + x];
+// Read shade index from the working frame buffer at scanline ly, column x
+function getPixel(x: u32, ly: u32): u8 {
+    return load<u8>(Ppu.workingBufferPtr + ly * 160 + x);
 }
 
-// Expected 32-bit colour for colorId i (palette[i] with identity BGP=0xE4)
-function expectedColor(colorId: u8): u32 {
-    return unchecked(Ppu.current32bitPalette[colorId]);
+// Expected shade index for colorId (with identity BGP=0xE4, shade==colorId)
+function expectedColor(colorId: u8): u8 {
+    return colorId;
 }
 
 // Fully initialise a window test: reset, write tiles, fill maps, set registers.
@@ -120,7 +120,7 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(4); // LY=4 < WY=5 → BG
-            assertEquals<u32>(getPixel(0, 4), expectedColor(0),
+            assertEquals<u8>(getPixel(0, 4), expectedColor(0),
                 "LY=4 < WY=5: pixel is BG colorId 0");
         });
 
@@ -130,7 +130,7 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(5); // LY=5 == WY=5 → window
-            assertEquals<u32>(getPixel(0, 5), expectedColor(1),
+            assertEquals<u8>(getPixel(0, 5), expectedColor(1),
                 "LY=5 == WY=5: pixel is window colorId 1");
         });
 
@@ -140,7 +140,7 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(10); // LY=10 > WY=5 → still window
-            assertEquals<u32>(getPixel(0, 10), expectedColor(1),
+            assertEquals<u8>(getPixel(0, 10), expectedColor(1),
                 "LY=10 > WY=5: pixel is window colorId 1");
         });
 
@@ -150,7 +150,7 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(0);
-            assertEquals<u32>(getPixel(0, 0), expectedColor(1),
+            assertEquals<u8>(getPixel(0, 0), expectedColor(1),
                 "LY=0 WY=0: pixel is window colorId 1");
         });
     });
@@ -164,8 +164,8 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(0);
-            assertEquals<u32>(getPixel(0,   0), expectedColor(1), "WX=7: pixel 0 is window");
-            assertEquals<u32>(getPixel(159, 0), expectedColor(1), "WX=7: pixel 159 is window");
+            assertEquals<u8>(getPixel(0,   0), expectedColor(1), "WX=7: pixel 0 is window");
+            assertEquals<u8>(getPixel(159, 0), expectedColor(1), "WX=7: pixel 159 is window");
         });
 
         it("WX=15: window starts at pixel 8 (pixels 0-7 are BG)", () => {
@@ -174,10 +174,10 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(0);
-            assertEquals<u32>(getPixel(0,   0), expectedColor(0), "WX=15: pixel 0 is BG");
-            assertEquals<u32>(getPixel(7,   0), expectedColor(0), "WX=15: pixel 7 is BG");
-            assertEquals<u32>(getPixel(8,   0), expectedColor(1), "WX=15: pixel 8 is window");
-            assertEquals<u32>(getPixel(159, 0), expectedColor(1), "WX=15: pixel 159 is window");
+            assertEquals<u8>(getPixel(0,   0), expectedColor(0), "WX=15: pixel 0 is BG");
+            assertEquals<u8>(getPixel(7,   0), expectedColor(0), "WX=15: pixel 7 is BG");
+            assertEquals<u8>(getPixel(8,   0), expectedColor(1), "WX=15: pixel 8 is window");
+            assertEquals<u8>(getPixel(159, 0), expectedColor(1), "WX=15: pixel 159 is window");
         });
 
         it("WX=23: window starts at pixel 16 (pixels 0-15 are BG)", () => {
@@ -186,8 +186,8 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0);
             fillTileMap(WIN_MAP_OFFSET, 1);
             renderToScanline(0);
-            assertEquals<u32>(getPixel(15, 0), expectedColor(0), "WX=23: pixel 15 is BG");
-            assertEquals<u32>(getPixel(16, 0), expectedColor(1), "WX=23: pixel 16 is window");
+            assertEquals<u8>(getPixel(15, 0), expectedColor(0), "WX=23: pixel 15 is BG");
+            assertEquals<u8>(getPixel(16, 0), expectedColor(1), "WX=23: pixel 16 is window");
         });
     });
 
@@ -202,7 +202,7 @@ export function testWindowRendering(): boolean {
             // WY=3: first window line is LY=3, which should use WLY=0 → tile row 0 → colorId 1
             initWlyTest(3);
             renderToScanline(3);
-            assertEquals<u32>(getPixel(0, 3), expectedColor(1),
+            assertEquals<u8>(getPixel(0, 3), expectedColor(1),
                 "LY=3 first window line: WLY=0 → tile row 0 → colorId 1");
         });
 
@@ -212,18 +212,18 @@ export function testWindowRendering(): boolean {
             // LY=5 → WLY=2 → colorId 3
             initWlyTest(3);
             renderToScanline(3);       // renders LY=3; PPU now at dot=80 of LY=3
-            assertEquals<u32>(getPixel(0, 3), expectedColor(1), "LY=3: WLY=0 → colorId 1");
+            assertEquals<u8>(getPixel(0, 3), expectedColor(1), "LY=3: WLY=0 → colorId 1");
             tickPpuDots(456);          // completes LY=3, renders LY=4
-            assertEquals<u32>(getPixel(0, 4), expectedColor(2), "LY=4: WLY=1 → colorId 2");
+            assertEquals<u8>(getPixel(0, 4), expectedColor(2), "LY=4: WLY=1 → colorId 2");
             tickPpuDots(456);          // completes LY=4, renders LY=5
-            assertEquals<u32>(getPixel(0, 5), expectedColor(3), "LY=5: WLY=2 → colorId 3");
+            assertEquals<u8>(getPixel(0, 5), expectedColor(3), "LY=5: WLY=2 → colorId 3");
         });
 
         it("WLY resets to 0 at start of each frame", () => {
             // Run through one full frame (154 scanlines) then check WLY=0 at frame 2 LY=3
             initWlyTest(3);
             renderToScanline(3 + 154); // frame 2, scanline 3 (= scan 157 from start)
-            assertEquals<u32>(getPixel(0, 3), expectedColor(1),
+            assertEquals<u8>(getPixel(0, 3), expectedColor(1),
                 "Frame 2 LY=3: WLY reset to 0 → tile row 0 → colorId 1");
         });
     });
@@ -239,9 +239,9 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0); // 9800 → tile 0 (colorId 0)
             fillTileMap(WIN_MAP_OFFSET, 1); // 9C00 → tile 1 (colorId 1)
             renderToScanline(0);
-            assertEquals<u32>(getPixel(0,   0), expectedColor(1),
+            assertEquals<u8>(getPixel(0,   0), expectedColor(1),
                 "LCDC.6=1: window at 9C00 → colorId 1");
-            assertEquals<u32>(getPixel(159, 0), expectedColor(1),
+            assertEquals<u8>(getPixel(159, 0), expectedColor(1),
                 "LCDC.6=1: window covers full width → colorId 1");
         });
 
@@ -252,7 +252,7 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0); // 9800 → tile 0 (colorId 0)
             fillTileMap(WIN_MAP_OFFSET, 1); // 9C00 irrelevant since LCDC.6=0
             renderToScanline(0);
-            assertEquals<u32>(getPixel(0, 0), expectedColor(0),
+            assertEquals<u8>(getPixel(0, 0), expectedColor(0),
                 "LCDC.6=0: window reads 9800 → tile 0 → colorId 0");
         });
 
@@ -263,7 +263,7 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0); // 9800 → tile 0 (colorId 0)
             fillTileMap(WIN_MAP_OFFSET, 1); // ignored
             renderToScanline(0);
-            assertEquals<u32>(getPixel(0, 0), expectedColor(0),
+            assertEquals<u8>(getPixel(0, 0), expectedColor(0),
                 "Window disabled: BG from 9800 → tile 0 → colorId 0");
         });
 
@@ -279,9 +279,9 @@ export function testWindowRendering(): boolean {
             fillTileMap(BG_MAP_OFFSET,  0); // 9800 → tile 0 (colorId 3)
             fillTileMap(WIN_MAP_OFFSET, 1); // 9C00 → tile 1 (colorId 2)
             renderToScanline(5); // renders LY 0-5; check both
-            assertEquals<u32>(getPixel(0, 4), expectedColor(3),
+            assertEquals<u8>(getPixel(0, 4), expectedColor(3),
                 "LY=4 < WY=5: BG from 9800 → tile 0 → colorId 3");
-            assertEquals<u32>(getPixel(0, 5), expectedColor(2),
+            assertEquals<u8>(getPixel(0, 5), expectedColor(2),
                 "LY=5 == WY=5: window from 9C00 → tile 1 → colorId 2");
         });
     });

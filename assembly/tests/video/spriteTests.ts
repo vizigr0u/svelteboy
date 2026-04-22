@@ -4,7 +4,6 @@ import { Lcd } from "../../io/video/lcd";
 import { ScanlineRenderer } from "../../io/video/scanlineRenderer";
 import { MemoryMap } from "../../memory/memoryMap";
 import { GB_OAM_START, GB_VIDEO_START } from "../../memory/memoryConstants";
-import { DefaultPaletteColors } from "../../io/video/constants";
 import { initPpu } from "./ppuTestHelpers";
 
 // --- helpers ---
@@ -29,14 +28,13 @@ function setTileSolid(tileIndex: u8, lo: u8, hi: u8): void {
     for (let row: u8 = 0; row < 8; row++) setTileRow(tileIndex, row, lo, hi);
 }
 
-function getPixel(x: u32, y: u32 = 0): u32 {
-    return unchecked(Ppu.workingBuffer[y * 160 + x]);
+function getPixel(x: u32, y: u32 = 0): u8 {
+    return load<u8>(Ppu.workingBufferPtr + y * 160 + x);
 }
 
-// Expected 32-bit color: apply palette register to colorId, look up DefaultPaletteColors.
-function paletteColor(colorId: u8, paletteReg: u8): u32 {
-    const shade = Ppu.applyPalette(colorId, paletteReg);
-    return unchecked(DefaultPaletteColors[shade]);
+// Expected shade index: apply palette register to colorId.
+function expectedShade(colorId: u8, paletteReg: u8): u8 {
+    return Ppu.applyPalette(colorId, paletteReg);
 }
 
 // LCDC 0x93 = PPU(7) + TileAreaLow(4) + OBJ(1) + BG(0)
@@ -115,7 +113,7 @@ export function testSprites(): boolean {
             setTileSolid(0, 0xFF, 0x00); // all pixels color 1
             setOamEntry(0, 16, 8, 0, 0); // sprite at screen x=0
             renderLine(0);
-            assertEquals<u32>(getPixel(0), paletteColor(1, 0xE4), "pixel 0 color via OBP0");
+            assertEquals<u8>(getPixel(0), expectedShade(1, 0xE4), "pixel 0 color via OBP0");
         });
 
         it("color 0 is transparent — shows BG underneath", () => {
@@ -129,8 +127,8 @@ export function testSprites(): boolean {
             setTileRow(0, 0, 0x7F, 0x00);
             setOamEntry(0, 16, 8, 0, 0);
             renderLine(0);
-            assertEquals<u32>(getPixel(0), paletteColor(3, 0xE4), "transparent pixel shows BG");
-            assertEquals<u32>(getPixel(1), paletteColor(1, 0xE4), "opaque pixel shows sprite");
+            assertEquals<u8>(getPixel(0), expectedShade(3, 0xE4), "transparent pixel shows BG");
+            assertEquals<u8>(getPixel(1), expectedShade(1, 0xE4), "opaque pixel shows sprite");
         });
 
         it("OBP0 vs OBP1 palette selection via attribute bit 4", () => {
@@ -139,8 +137,8 @@ export function testSprites(): boolean {
             setOamEntry(0, 16,  8, 0, 0x00); // x=0,  OBP0 (bit4=0)
             setOamEntry(1, 16, 16, 0, 0x10); // x=8,  OBP1 (bit4=1)
             renderLine(0);
-            assertEquals<u32>(getPixel(0), paletteColor(1, 0xE4), "OBP0: color1→shade1");
-            assertEquals<u32>(getPixel(8), paletteColor(1, 0x18), "OBP1: color1→shade2");
+            assertEquals<u8>(getPixel(0), expectedShade(1, 0xE4), "OBP0: color1→shade1");
+            assertEquals<u8>(getPixel(8), expectedShade(1, 0x18), "OBP1: color1→shade2");
         });
 
         it("X-flip mirrors sprite horizontally", () => {
@@ -151,12 +149,12 @@ export function testSprites(): boolean {
             setOamEntry(0, 16,  8, 0, 0x00); // sprite A: no flip at x=0
             setOamEntry(1, 16, 16, 0, 0x20); // sprite B: X-flip at x=8
             renderLine(0);
-            const c1 = paletteColor(1, 0xE4);
-            const c3 = paletteColor(3, 0xE4);
-            assertEquals<u32>(getPixel(0), c3, "no-flip: leftmost pixel = color3");
-            assertEquals<u32>(getPixel(7), c1, "no-flip: rightmost pixel = color1");
-            assertEquals<u32>(getPixel(8), c1, "x-flip: leftmost pixel = color1 (was rightmost)");
-            assertEquals<u32>(getPixel(15), c3, "x-flip: rightmost pixel = color3 (was leftmost)");
+            const c1 = expectedShade(1, 0xE4);
+            const c3 = expectedShade(3, 0xE4);
+            assertEquals<u8>(getPixel(0), c3, "no-flip: leftmost pixel = color3");
+            assertEquals<u8>(getPixel(7), c1, "no-flip: rightmost pixel = color1");
+            assertEquals<u8>(getPixel(8), c1, "x-flip: leftmost pixel = color1 (was rightmost)");
+            assertEquals<u8>(getPixel(15), c3, "x-flip: rightmost pixel = color3 (was leftmost)");
         });
 
         it("Y-flip mirrors sprite vertically", () => {
@@ -168,8 +166,8 @@ export function testSprites(): boolean {
             setOamEntry(1, 16, 16, 0, 0x40); // sprite B: Y-flip
             // LY=0: no-flip → row 0 = color3; y-flip → row (8-1-0)=7 = color1
             renderLine(0);
-            assertEquals<u32>(getPixel(0), paletteColor(3, 0xE4), "no y-flip LY=0 reads row 0 (color3)");
-            assertEquals<u32>(getPixel(8), paletteColor(1, 0xE4), "y-flip LY=0 reads row 7 (color1)");
+            assertEquals<u8>(getPixel(0), expectedShade(3, 0xE4), "no y-flip LY=0 reads row 0 (color3)");
+            assertEquals<u8>(getPixel(8), expectedShade(1, 0xE4), "y-flip LY=0 reads row 7 (color1)");
         });
 
         it("BG-over-sprite priority: BG colors 1-3 cover sprite", () => {
@@ -179,7 +177,7 @@ export function testSprites(): boolean {
             setTileSolid(1, 0xFF, 0xFF); // BG tile 1 all color3
             setOamEntry(0, 16, 8, 0, 0x80); // BGandWindowOver flag
             renderLine(0);
-            assertEquals<u32>(getPixel(0), paletteColor(3, 0xE4), "BG color3 covers sprite");
+            assertEquals<u8>(getPixel(0), expectedShade(3, 0xE4), "BG color3 covers sprite");
         });
 
         it("BG-over-sprite priority: BG color 0 does NOT cover sprite", () => {
@@ -189,7 +187,7 @@ export function testSprites(): boolean {
             setTileSolid(0, 0xFF, 0x00); // sprite tile 0 all color1
             setOamEntry(0, 16, 8, 0, 0x80); // BGandWindowOver flag
             renderLine(0);
-            assertEquals<u32>(getPixel(0), paletteColor(1, 0xE4), "sprite visible when BG=0");
+            assertEquals<u8>(getPixel(0), expectedShade(1, 0xE4), "sprite visible when BG=0");
         });
 
         it("8x16 mode: top half renders tile (tileIndex & ~1)", () => {
@@ -198,7 +196,7 @@ export function testSprites(): boolean {
             setTileSolid(1, 0xFF, 0x00); // tile 1 all color1 (bottom half)
             setOamEntry(0, 16, 8, 0, 0);
             renderLine(0); // spriteY=0 → tile0 row0 → color3
-            assertEquals<u32>(getPixel(0), paletteColor(3, 0xE4), "8x16 top half = tile 0");
+            assertEquals<u8>(getPixel(0), expectedShade(3, 0xE4), "8x16 top half = tile 0");
         });
 
         it("8x16 mode: bottom half renders tile (tileIndex | 1)", () => {
@@ -207,7 +205,7 @@ export function testSprites(): boolean {
             setTileSolid(1, 0xFF, 0x00); // tile 1 all color1 (bottom)
             setOamEntry(0, 16, 8, 0, 0);
             renderLine(8); // spriteY=8 → reads into tile1 row0 → color1; writes to buffer row 8
-            assertEquals<u32>(getPixel(0, 8), paletteColor(1, 0xE4), "8x16 bottom half = tile 1");
+            assertEquals<u8>(getPixel(0, 8), expectedShade(1, 0xE4), "8x16 bottom half = tile 1");
         });
 
         it("8x16 mode: sprite spans 16 scanlines in OAM scan", () => {

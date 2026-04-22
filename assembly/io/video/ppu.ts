@@ -1,6 +1,6 @@
 import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger } from "../../debug/logger";
-import { DefaultPaletteColors, LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
+import { LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd } from "./lcd";
 import { MAX_OAM_COUNT, Oam, OamData } from "./oam";
 import { PixelFifo } from "./pixelFifo";
@@ -24,7 +24,7 @@ const TRANSFER_MAX_DOTS: u16 = 289;
 const MAX_SPRITES_PER_LINE: u32 = 10;
 const MAX_SPRITES_PER_FRAME: u32 = 40;
 
-const FRAME_BUFFER_SIZE: u32 = LCD_RES * 4; // 4 bpp
+const FRAME_BUFFER_SIZE: u32 = LCD_RES; // 1 byte per pixel: palette shade index 0-3
 
 function log(s: string): void {
     Logger.Log("PPU: " + s);
@@ -134,15 +134,14 @@ export class Ppu {
     static currentDot: u16 = 0;
     static currentFrame: u32 = 0;
 
-    static current32bitPalette: StaticArray<u32> = DefaultPaletteColors;
-
     static spriteCountThisFrame: u8 = 0;
 
     // frame buffers
     static buffersInitialized: boolean = false;
     static frameBuffers: StaticArray<Uint8ClampedArray> = new StaticArray<Uint8ClampedArray>(2);
     static workingBufferIndex: u8 = 0;
-    static workingBuffer: Uint32Array = new Uint32Array(0);
+
+    @inline static get workingBufferPtr(): usize { return Ppu.frameBuffers[Ppu.workingBufferIndex].dataStart; }
 
     // static transferModeTick: () => boolean = accurateTransferTick;
     // static transferModeInit: () => void = accurateTransferInit;
@@ -176,8 +175,6 @@ export class Ppu {
                 log(`PPU buffers content Reset, sizes: ${Ppu.frameBuffers[0].byteLength} and ${Ppu.frameBuffers[1].byteLength}`);
             }
         }
-        Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
-
         Lcd.Init();
         ScanlineRenderer.Init();
     }
@@ -274,7 +271,6 @@ function enterMode(mode: PpuMode): void {
             Ppu.currentFrame++;
             Ppu.spriteCountThisFrame = 0;
             Ppu.workingBufferIndex = (Ppu.workingBufferIndex + 1) & 1;
-            Ppu.workingBuffer = Uint32Array.wrap(Ppu.frameBuffers[Ppu.workingBufferIndex].buffer);
             break;
         case PpuMode.OAMScan:
             if (Lcd.data.hasStatMode(PpuMode.OAMScan)) {
@@ -340,3 +336,4 @@ export function getGameFrame(): Uint8ClampedArray {
 export function getGameFramePtr(): usize {
     return Ppu.DrawnBuffer().dataStart;
 }
+

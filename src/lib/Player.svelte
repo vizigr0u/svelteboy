@@ -8,13 +8,13 @@
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
     import { DragState } from "../types";
-    import PlayCanvas from "./PlayCanvas.svelte";
+    import WebGLCanvas from "./WebGLCanvas.svelte";
 
     let dragState: DragState = $state(DragState.Idle);
-    let playCanvas: { draw: (buffer: Uint8ClampedArray) => void } | null = $state(null);
+    let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
 
     onMount(() => {
-        const drawCallback = () => playCanvas?.draw(Emulator.GetGameFrame());
+        const drawCallback = () => webglCanvas?.draw(Emulator.GetGameFrame());
         Emulator.AddPostRunCallback(drawCallback);
         return () => Emulator.RemovePostRunCallback(drawCallback);
     });
@@ -35,10 +35,8 @@
             class:drop-allowed={dragState == DragState.Accept}
             class:drop-disallowed={dragState == DragState.Reject}
         >
-            <PlayCanvas
-                width={160}
-                height={144}
-                bind:this={playCanvas}
+            <WebGLCanvas
+                bind:this={webglCanvas}
                 pixelSize={$playerPixelSize}
             />
             {#if $showFPS}

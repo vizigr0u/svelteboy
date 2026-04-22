@@ -38,6 +38,11 @@ export function assertEquals<T>(actual: T, expected: T, label: string = ""): voi
         `${ctx()}${label.length > 0 ? label + ": " : ""}expected ${expected}, got ${actual}`);
 }
 
+export function assertNotEquals<T>(actual: T, unexpected: T, label: string = ""): void {
+    assert(actual != unexpected,
+        `${ctx()}${label.length > 0 ? label + ": " : ""}expected not ${unexpected}, got ${actual}`);
+}
+
 export function assertCycles(expected: u64): void {
     assertEquals<u64>(Cpu.CycleCount, expected, "cycles");
 }
