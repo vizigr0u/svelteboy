@@ -7,6 +7,7 @@ import { MAX_OAM_COUNT, Oam, OamData } from "./oam";
 import { PixelFifo } from "./pixelFifo";
 import { PpuTransfer } from "./ppuTransfer";
 import { ScanlineRenderer } from "./scanlineRenderer";
+import { CgbState } from "../../cgbState";
 
 export enum PpuMode {
     HBlank = 0,
@@ -25,7 +26,8 @@ const TRANSFER_MAX_DOTS: u16 = 289;
 const MAX_SPRITES_PER_LINE: u32 = 10;
 const MAX_SPRITES_PER_FRAME: u32 = 40;
 
-const FRAME_BUFFER_SIZE: u32 = LCD_RES; // 1 byte per pixel: palette shade index 0-3
+const FRAME_BUFFER_SIZE: u32 = LCD_RES;     // 1 byte per pixel: palette shade index 0-3
+const CGB_FRAME_BUFFER_SIZE: u32 = LCD_RES * 2; // 2 bytes per pixel: RGB555
 
 function log(s: string): void {
     Logger.Log("PPU: " + s);
@@ -56,14 +58,20 @@ export class PpuOamFifo {
     static Enqueue(oamIndex: u8): void {
         assert(PpuOamFifo.head == 0, 'Can only insert in this fifo ')
         assert(!PpuOamFifo.IsFull(), 'Trying to insert in full PpuOamFifo');
-        const x = unchecked(Oam.view[oamIndex].xPos);
-        let i = 0;
-        while (i < (PpuOamFifo.size) && x >= PpuOamFifo.Peek(i).xPos)
-            i++;
-        for (let j = PpuOamFifo.size; j > i; j--) {
-            unchecked(PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1]);
+        if (CgbState.isCgbMode) {
+            // CGB: priority = OAM index order (lower index wins); OAM scanned 0..39 so just append
+            unchecked(PpuOamFifo.buffer[PpuOamFifo.size] = oamIndex);
+        } else {
+            // DMG: priority = lower X coordinate wins; insert sorted by X
+            const x = unchecked(Oam.view[oamIndex].xPos);
+            let i = 0;
+            while (i < (PpuOamFifo.size) && x >= PpuOamFifo.Peek(i).xPos)
+                i++;
+            for (let j = PpuOamFifo.size; j > i; j--) {
+                unchecked(PpuOamFifo.buffer[j] = PpuOamFifo.buffer[j - 1]);
+            }
+            unchecked(PpuOamFifo.buffer[i] = oamIndex);
         }
-        unchecked(PpuOamFifo.buffer[i] = oamIndex);
         PpuOamFifo.size++;
     }
 
@@ -136,17 +144,20 @@ export class Ppu {
 
     static spriteCountThisFrame: u8 = 0;
 
-    // frame buffers
+    // frame buffers (DMG: u8 shade index)
     static buffersInitialized: boolean = false;
     static frameBuffers: StaticArray<Uint8ClampedArray> = new StaticArray<Uint8ClampedArray>(2);
     static workingBufferIndex: u8 = 0;
 
     @inline static get workingBufferPtr(): usize { return Ppu.frameBuffers[Ppu.workingBufferIndex].dataStart; }
-
-    // static transferModeTick: () => boolean = accurateTransferTick;
-    // static transferModeInit: () => void = accurateTransferInit;
-
     @inline static DrawnBuffer(): Uint8ClampedArray { return Ppu.frameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
+
+    // frame buffers (CGB: u16 RGB555)
+    static cgbBuffersInitialized: boolean = false;
+    static cgbFrameBuffers: StaticArray<Uint16Array> = new StaticArray<Uint16Array>(2);
+
+    @inline static get cgbWorkingBufferPtr(): usize { return Ppu.cgbFrameBuffers[Ppu.workingBufferIndex].dataStart; }
+    @inline static DrawnCgbBuffer(): Uint16Array { return Ppu.cgbFrameBuffers[(Ppu.workingBufferIndex + 1) & 1]; }
 
     static Init(): void {
         // Ppu.transferModeInit = Ppu.useScanline ? scanlineTransferInit : accurateTransferInit;
@@ -164,7 +175,6 @@ export class Ppu {
             Ppu.frameBuffers[0] = new Uint8ClampedArray(FRAME_BUFFER_SIZE);
             Ppu.frameBuffers[1] = new Uint8ClampedArray(FRAME_BUFFER_SIZE);
             Ppu.buffersInitialized = true;
-
             if (Logger.verbose >= 2) {
                 log(`PPU buffers initialized to sizes ${Ppu.frameBuffers[0].byteLength} and ${Ppu.frameBuffers[1].byteLength}`);
             }
@@ -174,6 +184,14 @@ export class Ppu {
             if (Logger.verbose >= 2) {
                 log(`PPU buffers content Reset, sizes: ${Ppu.frameBuffers[0].byteLength} and ${Ppu.frameBuffers[1].byteLength}`);
             }
+        }
+        if (!Ppu.cgbBuffersInitialized) {
+            Ppu.cgbFrameBuffers[0] = new Uint16Array(LCD_RES);
+            Ppu.cgbFrameBuffers[1] = new Uint16Array(LCD_RES);
+            Ppu.cgbBuffersInitialized = true;
+        } else {
+            memory.fill(Ppu.cgbFrameBuffers[0].dataStart, 0, CGB_FRAME_BUFFER_SIZE);
+            memory.fill(Ppu.cgbFrameBuffers[1].dataStart, 0, CGB_FRAME_BUFFER_SIZE);
         }
         Lcd.Init();
         ScanlineRenderer.Init();
@@ -337,5 +355,9 @@ export function getGameFrame(): Uint8ClampedArray {
 
 export function getGameFramePtr(): usize {
     return Ppu.DrawnBuffer().dataStart;
+}
+
+export function getCGBGameFramePtr(): usize {
+    return Ppu.DrawnCgbBuffer().dataStart;
 }
 
