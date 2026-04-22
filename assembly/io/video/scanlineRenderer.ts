@@ -1,10 +1,11 @@
-import { GB_VIDEO_START } from "../../memory/memoryConstants";
+import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
 import { Ppu, PpuOamFifo } from "./ppu";
 import { TileCache } from "./tileCache";
 import { perfNow } from "../../debug/perfMarks";
+import { CgbState } from "../../cgbState";
 
 
 @final
@@ -20,6 +21,12 @@ export class ScanlineRenderer {
     // Precomputed shade index LUTs (colorId → shade 0-3 after palette apply)
     private static bgShade: StaticArray<u8> = new StaticArray<u8>(4);
     private static spriteShade: StaticArray<u8> = new StaticArray<u8>(40); // 10 * 4
+
+    // CGB-only per-pixel BG data
+    private static bgPaletteNum: StaticArray<u8> = new StaticArray<u8>(LCD_WIDTH);
+    private static bgPriority: StaticArray<u8> = new StaticArray<u8>(LCD_WIDTH);
+    // CGB-only per-sprite data
+    private static spriteCgbPalette: StaticArray<u8> = new StaticArray<u8>(10);
 
     static bgTotalTicks: f64 = 0;
     static spriteTotalTicks: f64 = 0;
@@ -45,6 +52,11 @@ export class ScanlineRenderer {
     }
 
     static Render(): void {
+        if (CgbState.isCgbMode) {
+            ScanlineRenderer.RenderCGB();
+            return;
+        }
+
         let t0: f64 = 0, t1: f64 = 0, t2: f64 = 0;
         // @ts-ignore
         if (isDefined(INSTRUMENTED)) t0 = perfNow();
@@ -205,6 +217,149 @@ export class ScanlineRenderer {
         }
         // @ts-ignore
         if (isDefined(INSTRUMENTED)) ScanlineRenderer.compositeTotalTicks += perfNow() - t2;
+    }
+
+    private static RenderCGB(): void {
+        const pixels = ScanlineRenderer.pixels;
+        const bgPaletteNum = ScanlineRenderer.bgPaletteNum;
+        const bgPriority = ScanlineRenderer.bgPriority;
+
+        const lcd = Lcd.data;
+        const y = lcd.lY;
+        const bgScrollX: u8 = lcd.scrollX;
+        const bgScrollY: u8 = lcd.scrollY;
+        const bgMapY: u8 = y + bgScrollY;
+        const tileBaseIsLow = lcd.hasControlBit(LcdControlBit.BGandWindowTileArea);
+        const tileBaseAdj: u8 = tileBaseIsLow ? 0 : 128;
+        const tileBase16: u32 = tileBaseIsLow ? 0 : 128;
+        const offset: u8 = bgScrollX & 7;
+
+        const bgMapRowBase: u32 = Lcd.BgTileMapBaseAddress + (<u16>(bgMapY >> 3) << 5);
+        const winVisible = Lcd.IsWindowVisible;
+        const winX = lcd.windowX;
+        const winMapY: u8 = Lcd.WindowLineY;
+        const winMapRowBase: u32 = Lcd.WindowTileMapBaseAddress + (<u16>(winMapY >> 3) << 5);
+
+        // --- BG + Window (CGB): raw VRAM read, tile attributes from bank 1 ---
+        for (let x: u8 = 0; x < LCD_WIDTH;) {
+            const inWindow = winVisible && ScanlineRenderer.isInWindow(x, winX);
+            const mapX: u8 = inWindow ? x + 7 - <u8>winX : x + bgScrollX;
+            const mapRowBase: u32 = inWindow ? winMapRowBase : bgMapRowBase;
+            const mapIdx: u32 = mapX >> 3;
+
+            const dataIndex: u8 = load<u8>(mapRowBase + mapIdx);
+            // tile attributes always from VRAM bank 1 (same offset + GB_VIDEO_BANK_SIZE)
+            const attrs: u8 = load<u8>(mapRowBase + GB_VIDEO_BANK_SIZE + mapIdx);
+
+            const cgbPalette: u8 = attrs & 0x07;
+            const vramBank: u8 = (attrs >> 3) & 1;
+            const hFlip = (attrs & 0x20) != 0;
+            const vFlip = (attrs & 0x40) != 0;
+            const bgPrio: u8 = (attrs >> 7) & 1;
+
+            const tileIdx: u32 = tileBase16 + <u32><u8>(dataIndex + tileBaseAdj);
+
+            let tileRow: u32 = inWindow ? (<u32>winMapY & 7) : (<u32>bgMapY & 7);
+            if (vFlip) tileRow = 7 - tileRow;
+
+            const vramBankOff: u32 = <u32>vramBank * GB_VIDEO_BANK_SIZE;
+            const tileDataAddr: u32 = GB_VIDEO_START + vramBankOff + tileIdx * 16 + tileRow * 2;
+            const lo: u8 = load<u8>(tileDataAddr);
+            const hi: u8 = load<u8>(tileDataAddr + 1);
+
+            const startI: i16 = !inWindow && x == 0 ? <i16>offset : 0;
+            const endI: i16 = !inWindow && x + 8 > LCD_WIDTH ? <i16>offset : 8;
+
+            for (let i = startI; i < endI; i++) {
+                const bit: u8 = hFlip ? <u8>i : (7 - <u8>i);
+                const colorId: u8 = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1);
+                unchecked(pixels[x] = colorId);
+                unchecked(bgPaletteNum[x] = cgbPalette);
+                unchecked(bgPriority[x] = bgPrio);
+                x++;
+            }
+        }
+
+        // --- Pre-decode sprites (CGB) ---
+        const spritesVisible = Lcd.SpritesVisible;
+        let numSprites: i32 = 0;
+        if (spritesVisible) {
+            const spriteHeight = Lcd.SpriteHeight;
+            numSprites = PpuOamFifo.size;
+            for (let fi: i32 = 0; fi < numSprites; fi++) {
+                const oam = PpuOamFifo.Peek(fi);
+                let spriteY = (y + 16 - oam.yPos);
+                if (oam.hasAttr(OamAttribute.YFlip))
+                    spriteY = (spriteHeight - 1) - spriteY;
+                const tileIndex: u16 = spriteHeight == 16 ? (oam.tileIndex & ~1) : oam.tileIndex;
+                const sprVramBankOff: u32 = oam.hasAttr(OamAttribute.TileBank)
+                    ? GB_VIDEO_BANK_SIZE : 0;
+                const spriteBytes: u16 = load<u16>(GB_VIDEO_START + sprVramBankOff + (<u32>tileIndex * 16) + <u32>spriteY * 2);
+                const lo: u8 = <u8>spriteBytes;
+                const hi: u8 = <u8>(spriteBytes >> 8);
+                const xFlip = oam.hasAttr(OamAttribute.XFlip);
+                const base = fi * 8;
+                for (let pixOff: u8 = 0; pixOff < 8; pixOff++) {
+                    const bit: u8 = xFlip ? pixOff : (7 - pixOff);
+                    unchecked(ScanlineRenderer.spritePixels[base + pixOff] = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1));
+                }
+                unchecked(ScanlineRenderer.spriteXPos[fi] = oam.xPos);
+                unchecked(ScanlineRenderer.spriteBgPrio[fi] = oam.hasAttr(OamAttribute.BGandWindowOver) ? 1 : 0);
+                unchecked(ScanlineRenderer.spriteCgbPalette[fi] = oam.flags & 0x07);
+            }
+        }
+
+        // --- Composite (CGB): RGB555 output ---
+        // LCDC bit 0 in CGB = master BG priority; 0 = OBJ always wins regardless of attr flags
+        const masterBgPriority = Lcd.BGandWindowVisible;
+        const cgbBufferPtr = Ppu.cgbWorkingBufferPtr;
+        const bufferOffset = <u32>y * LCD_WIDTH;
+        let spriteHead: i32 = 0;
+
+        for (let x: u8 = 0; x < LCD_WIDTH; x++) {
+            const bgColorId = unchecked(pixels[x]);
+            let finalColor: u16 = Lcd.getCGBBgColor(unchecked(bgPaletteNum[x]), bgColorId);
+
+            if (numSprites > 0) {
+                while (spriteHead < numSprites &&
+                       unchecked(ScanlineRenderer.spriteXPos[spriteHead]) < x)
+                    spriteHead++;
+
+                for (let si = spriteHead; si < numSprites; si++) {
+                    const spriteXPos = unchecked(ScanlineRenderer.spriteXPos[si]);
+                    const spriteX: i16 = <i16>spriteXPos - 8;
+
+                    if (spriteX >= <i16>x + 8) break;
+
+                    const overlaps = (spriteX >= <i16>x && spriteX < <i16>x + 8)
+                        || (spriteX < <i16>x && spriteX + 8 >= <i16>x);
+                    if (!overlaps) continue;
+
+                    const sprOffset: i16 = spriteX - x;
+                    if (sprOffset < -7 || sprOffset > 0) continue;
+
+                    const pixOff: u8 = <u8>(-sprOffset);
+                    const spriteColorId = unchecked(ScanlineRenderer.spritePixels[si * 8 + pixOff]);
+                    if (spriteColorId == 0) continue;
+
+                    let objWins: bool;
+                    if (!masterBgPriority) {
+                        objWins = true;
+                    } else {
+                        const bgHasPrio = unchecked(ScanlineRenderer.bgPriority[x]) != 0 && bgColorId != 0;
+                        const objHasBgPrio = unchecked(ScanlineRenderer.spriteBgPrio[si]) != 0 && bgColorId != 0;
+                        objWins = !bgHasPrio && !objHasBgPrio;
+                    }
+
+                    if (objWins) {
+                        finalColor = Lcd.getCGBObjColor(unchecked(ScanlineRenderer.spriteCgbPalette[si]), spriteColorId);
+                    }
+                    break;
+                }
+            }
+
+            store<u16>(cgbBufferPtr + (<u32>x + bufferOffset) * 2, finalColor);
+        }
     }
 
     static RenderDiag(): void {

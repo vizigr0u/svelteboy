@@ -2,7 +2,7 @@ memory.grow(1);
 
 export { initEmulator, runFrames, runOneFrame, runEmulator } from "./emulator";
 
-export { getGameFrame, getGameFramePtr } from "./io/video/ppu";
+export { getGameFrame, getGameFramePtr, getCGBGameFramePtr } from "./io/video/ppu";
 
 export { setVerbose, spliceLogs, dumpLogToConsole } from "./debug/logger";
 

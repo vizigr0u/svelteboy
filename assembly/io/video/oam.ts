@@ -10,7 +10,7 @@ export const MAX_OAM_COUNT: i32 = 40;
 
 export enum OamAttribute {
     /* 0-2: CGB pal number */
-    /* CGB only TileBank = 3, */
+    TileBank = 3,       // CGB only: VRAM bank (0 or 1)
     PaletteNumber = 4,
     XFlip = 5,
     YFlip = 6,
