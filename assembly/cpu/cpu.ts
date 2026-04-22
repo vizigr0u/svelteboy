@@ -6,7 +6,7 @@ import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes, prefixedPackedOps, unprefixedPackedOps } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
-import { isCgbMode } from "../cgbState";
+import { CgbState } from "../cgbState";
 
 export enum Flag {
     Z_Zero = 0b10000000,
@@ -75,7 +75,7 @@ export class Cpu {
     static Init(useBootRom: boolean = true): void {
         if (Logger.verbose >= 1)
             log('Initialized CPU, using boot : ' + useBootRom.toString());
-        if (isCgbMode()) {
+        if (CgbState.isCgbMode) {
             Cpu.AF = 0x1180;
             Cpu.BC = 0x0000;
             Cpu.DE = 0xFF56;

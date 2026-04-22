@@ -12,6 +12,7 @@ import { isRamEnabled, setRamAltered } from "./mbcTypes";
 import {
     BOOT_ROM_START,
     GB_VIDEO_START,
+    GB_VIDEO_BANK_SIZE,
     GB_WRAM_START,
     GB_IO_START,
     GB_HIGH_RAM_START,
@@ -23,6 +24,7 @@ import {
     GB_OAM_SIZE,
     GB_OAM_START
 } from "./memoryConstants";
+import { CgbState } from "../cgbState";
 
 function log(s: string): void {
     Logger.Log("MEM: " + s);
@@ -82,7 +84,7 @@ export class MemoryMap {
                 return MBC.MapRom(gbAddress);
             case 0x8:
             case 0x9:
-                return GB_VIDEO_START + gbAddress - 0x8000;
+                return GB_VIDEO_START + gbAddress - 0x8000 + (CgbState.isCgbMode ? CgbState.vramBank * GB_VIDEO_BANK_SIZE : 0);
             case 0xA:
             case 0xB:
                 return MBC.MapRam(gbAddress);
@@ -193,7 +195,7 @@ export class MemoryMap {
                     log('Writing to EXT RAM ' + Cpu.GetTrace())
             }
             store<T>(MemoryMap.GBToMemory(gbAddress), value);
-            if (gbAddress < 0x9800) { // tile data
+            if (gbAddress < 0x9800 && (!CgbState.isCgbMode || CgbState.vramBank == 0)) {
                 TileCache.decode(gbAddress);
             }
             return;

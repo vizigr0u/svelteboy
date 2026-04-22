@@ -6,6 +6,9 @@ import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 import { Dma } from "./dma";
 import { LCD_HEIGHT } from "./constants";
+import { CgbState } from "../../cgbState";
+
+const VBK_ADDRESS: u16 = 0xFF4F;
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
 const LCD_GBC_START_ADDRESS: u16 = 0xFF4D;
@@ -137,6 +140,7 @@ export class Lcd {
         Lcd._bgTileMapBaseAddress = data.hasControlBit(LcdControlBit.BGTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
         Lcd._windowTileMapBaseAddress = data.hasControlBit(LcdControlBit.WindowTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
         Lcd._TilesBaseAddress = data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
+        CgbState.setVramBank(0);
     }
 
     @inline static get IsPpuEnabled(): boolean { return Lcd._ppuEnabled };
@@ -174,7 +178,8 @@ export class Lcd {
 
     @inline
     static Handles(gbAddress: u16): boolean {
-        return (gbAddress >= LCD_GB_START_ADDRESS && gbAddress < (LCD_GB_START_ADDRESS + offsetof<LcdGbData>()));
+        return (gbAddress >= LCD_GB_START_ADDRESS && gbAddress < (LCD_GB_START_ADDRESS + offsetof<LcdGbData>()))
+            || (CgbState.isCgbMode && gbAddress == VBK_ADDRESS);
     }
 
     static SyncFromMemory(): void {
@@ -190,6 +195,11 @@ export class Lcd {
     }
 
     static Store(gbAddress: u16, value: u8): void {
+        if (gbAddress == VBK_ADDRESS) {
+            if (CgbState.isCgbMode)
+                CgbState.setVramBank(<u32>(value & 1));
+            return;
+        }
         if (gbAddress == LcdGbData.getDmaAddress()) {
             Dma.Start(value);
         }
@@ -236,6 +246,8 @@ export class Lcd {
     }
 
     static Load(gbAddress: u16): u8 {
+        if (gbAddress == VBK_ADDRESS)
+            return <u8>(CgbState.vramBank | 0xFE);
         const data = Lcd.data;
         if (Logger.verbose >= 4)
             log(`LCD read at ${uToHex(gbAddress)} - data = ${data.lY}`);

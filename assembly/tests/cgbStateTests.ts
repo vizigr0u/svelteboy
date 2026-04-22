@@ -5,7 +5,7 @@ import { Timer } from "../io/timer";
 import { CARTRIDGE_ROM_START } from "../memory/memoryConstants";
 import { MemoryMap } from "../memory/memoryMap";
 import { CGBMode } from "../metadata";
-import { isCgbMode, setIsCGB } from "../cgbState";
+import { CgbState } from "../cgbState";
 import { describe, it, assertEquals } from "./framework";
 
 function setupRom(cgbFlag: u8): void {
@@ -18,14 +18,14 @@ function setupRom(cgbFlag: u8): void {
 function testCgbStateToggle(): void {
     describe("cgbState", () => {
         it("defaults false", () => {
-            setIsCGB(false);
-            assertEquals<boolean>(isCgbMode(), false, "isCgbMode default");
+            CgbState.setIsCGB(false);
+            assertEquals<boolean>(CgbState.isCgbMode, false, "isCgbMode default");
         });
 
         it("setIsCGB true", () => {
-            setIsCGB(true);
-            assertEquals<boolean>(isCgbMode(), true, "setIsCGB(true)");
-            setIsCGB(false);
+            CgbState.setIsCGB(true);
+            assertEquals<boolean>(CgbState.isCgbMode, true, "setIsCGB(true)");
+            CgbState.setIsCGB(false);
         });
     });
 }
@@ -35,7 +35,7 @@ function testDmgInit(): void {
         it("CPU registers are DMG power-on values", () => {
             setupRom(0x00);
             Emulator.Init(false);
-            assertEquals<boolean>(isCgbMode(), false, "isCgbMode");
+            assertEquals<boolean>(CgbState.isCgbMode, false, "isCgbMode");
             assertEquals<u16>(Cpu.AF, 0x01B0, "AF");
             assertEquals<u16>(Cpu.BC, 0x0013, "BC");
             assertEquals<u16>(Cpu.DE, 0x00D8, "DE");
@@ -56,7 +56,7 @@ function testCgbInit(): void {
         it("CPU registers are CGB power-on values", () => {
             setupRom(CGBMode.CGBOnly as u8);
             Emulator.Init(false);
-            assertEquals<boolean>(isCgbMode(), true, "isCgbMode");
+            assertEquals<boolean>(CgbState.isCgbMode, true, "isCgbMode");
             assertEquals<u16>(Cpu.AF, 0x1180, "AF");
             assertEquals<u16>(Cpu.BC, 0x0000, "BC");
             assertEquals<u16>(Cpu.DE, 0xFF56, "DE");
@@ -77,7 +77,7 @@ function testPartialCgbInit(): void {
         it("detected as CGB mode", () => {
             setupRom(CGBMode.PartialCGB as u8);
             Emulator.Init(false);
-            assertEquals<boolean>(isCgbMode(), true, "isCgbMode PartialCGB");
+            assertEquals<boolean>(CgbState.isCgbMode, true, "isCgbMode PartialCGB");
         });
     });
 }
@@ -88,6 +88,6 @@ export function testCgbState(): boolean {
     testCgbInit();
     testPartialCgbInit();
     Cartridge.Data.cgbFlag = 0x00;
-    setIsCGB(false);
+    CgbState.setIsCGB(false);
     return true;
 }
