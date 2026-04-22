@@ -12,6 +12,7 @@
     import RomsSection from "./RomsSection.svelte";
     import SavesViewer from "./SavesViewer.svelte";
     import OptionsView from "./OptionsView.svelte";
+    import DebugSection from "./debug/DebugSection.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { showRomsWindow, showSavesWindow, showOptionsWindow, showDebugWindow } from "../stores/windowStores";
@@ -82,6 +83,11 @@
             {#if $showOptionsWindow}
                 <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
                     <OptionsView />
+                </Window>
+            {/if}
+            {#if $showDebugWindow}
+                <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
+                    <DebugSection />
                 </Window>
             {/if}
         </div>

@@ -4,12 +4,12 @@
         playerPixelSize,
         showFPS,
         RemoteRomsListUri,
-        ShowDebugger,
         EmulatorSpeed,
         // AudioBufferSize,
         AudioMasterVolume,
         HideKeyboardWarning,
     } from "stores/optionsStore";
+    import { showDebugWindow } from "../stores/windowStores";
     import { EmulatorInitialized } from "stores/playStores";
     import ControlsView from "./ControlsView.svelte";
     import PalettePicker from "./PalettePicker.svelte";
@@ -89,7 +89,7 @@
     <h4>Interface</h4>
     <div class="options">
         <label for="showdebugger">Show Debugger:</label>
-        <input id="showdebugger" type="checkbox" bind:checked={$ShowDebugger} />
+        <input id="showdebugger" type="checkbox" bind:checked={$showDebugWindow} />
 
         <label for="remoteRomsUri">Remote Roms List:</label>
         <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
