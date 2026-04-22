@@ -1,7 +1,7 @@
 <script lang="ts">
     import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
-    import { playerPixelSize, showFPS } from "stores/optionsStore";
+    import { playerPixelSize, showFPS, SelectedPaletteIndex, PALETTE_PRESETS } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -38,6 +38,7 @@
             <WebGLCanvas
                 bind:this={webglCanvas}
                 pixelSize={$playerPixelSize}
+                palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
             />
             {#if $showFPS}
                 <div class="fps-wrapper">
