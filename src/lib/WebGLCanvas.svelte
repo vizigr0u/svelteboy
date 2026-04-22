@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import type { GBPalette } from "../stores/optionsStore";
+  import { PALETTE_PRESETS } from "../stores/optionsStore";
 
   const W = 160, H = 144;
-  let { pixelSize = 3 } = $props<{ pixelSize?: number }>();
+  let { pixelSize = 3, palette = PALETTE_PRESETS[0] }: { pixelSize?: number; palette?: GBPalette } = $props();
 
   let canvas: HTMLCanvasElement;
   let gl: WebGL2RenderingContext | null = null;
   let frameTexture: WebGLTexture | null = null;
+  let paletteLoc: WebGLUniformLocation | null = null;
   let ready = false;
 
   const vertSrc = `#version 300 es
@@ -27,19 +30,14 @@ void main() {
   const fragSrc = `#version 300 es
 precision mediump float;
 uniform highp usampler2D uFrame;
-const vec4 PALETTE[4] = vec4[4](
-  vec4(0.878, 0.992, 0.812, 1.0),
-  vec4(0.537, 0.753, 0.435, 1.0),
-  vec4(0.204, 0.408, 0.337, 1.0),
-  vec4(0.0,   0.0,   0.0,   1.0)
-);
+uniform vec4 uPalette[4];
 in vec2 vUV;
 out vec4 fragColor;
 void main() {
   int px = int(vUV.x * ${W}.0);
   int py = int(vUV.y * ${H}.0);
   uint idx = texelFetch(uFrame, ivec2(px, py), 0).r;
-  fragColor = PALETTE[idx];
+  fragColor = uPalette[idx];
 }`;
 
   function compileShader(type: number, src: string): WebGLShader {
@@ -49,6 +47,18 @@ void main() {
     if (!gl!.getShaderParameter(sh, gl!.COMPILE_STATUS))
       throw new Error(gl!.getShaderInfoLog(sh) ?? "shader compile error");
     return sh;
+  }
+
+  function abgrToFloats(colors: GBPalette): Float32Array {
+    const f = new Float32Array(16);
+    for (let i = 0; i < 4; i++) {
+      const c = colors[i];
+      f[i * 4 + 0] = (c & 0xff) / 255;
+      f[i * 4 + 1] = ((c >> 8) & 0xff) / 255;
+      f[i * 4 + 2] = ((c >> 16) & 0xff) / 255;
+      f[i * 4 + 3] = ((c >>> 24) & 0xff) / 255;
+    }
+    return f;
   }
 
   onMount(() => {
@@ -69,6 +79,8 @@ void main() {
     gl.bindVertexArray(vao);
 
     gl.uniform1i(gl.getUniformLocation(prog, "uFrame"), 0);
+    paletteLoc = gl.getUniformLocation(prog, "uPalette");
+    gl.uniform4fv(paletteLoc, abgrToFloats(palette));
 
     frameTexture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, frameTexture);
@@ -79,6 +91,12 @@ void main() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, W, H, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, null);
 
     ready = true;
+  });
+
+  $effect(() => {
+    if (gl && paletteLoc !== null) {
+      gl.uniform4fv(paletteLoc, abgrToFloats(palette));
+    }
   });
 
   export function draw(frame: Uint8Array): void {
