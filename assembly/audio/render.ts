@@ -3,6 +3,7 @@ import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { uToHex } from "../utils/stringUtils";
+import { CgbState } from "../cgbState";
 import { NoiseChannel, NOISE_CHANNEL_SERIALIZED_SIZE } from "./NoiseChannel";
 import { DutyCycle, PulseChannel, PULSE_CHANNEL_SERIALIZED_SIZE } from "./PulseChannel";
 import { log } from "./apu";
@@ -73,7 +74,7 @@ export class AudioRender {
         if (Logger.verbose >= 2) { // TODO: tone down
             log(`AudioEvent: ${type} = ${value}`);
         }
-        const cycleDiff: u32 = <u32>(Cpu.CycleCount - AudioRender.initialCycles);
+        const cycleDiff: u32 = <u32>(CgbState.masterCycleCount - AudioRender.initialCycles);
         const frameSampleIndex: u32 = <u32>Math.round(<f64>cycleDiff / CYCLES_PER_SAMPLE);
         return AudioEventQueue.Enqueue(frameSampleIndex, type, value);
     }

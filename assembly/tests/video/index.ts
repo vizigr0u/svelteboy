@@ -12,6 +12,7 @@ import { testPalettes } from "./paletteTests";
 import { testVramOamAccess } from "./vramOamAccessTests";
 import { testVramBanking } from "./vramBankTests";
 import { testCgbPalettes } from "./cgbPaletteTests";
+import { testCgbRendering } from "./cgbRenderingTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -28,5 +29,6 @@ export function testVideo(): boolean {
     testVramOamAccess();
     testVramBanking();
     testCgbPalettes();
+    testCgbRendering();
     return true;
 }

@@ -218,9 +218,16 @@ export class Cpu {
                     log("CPU Halt");
                 break;
             case Op.STOP:
-                Cpu.isStopped = true;
-                if (Logger.verbose >= 1)
-                    log("CPU STOPPED");
+                if (CgbState.isCgbMode && (CgbState.key1 & 0x01) != 0) {
+                    CgbState.setDoubleSpeed(!CgbState.doubleSpeed);
+                    CgbState.setKey1((<u8>(CgbState.key1 ^ 0x80)) & 0xFE);
+                    if (Logger.verbose >= 1)
+                        log("Speed switch → " + (CgbState.doubleSpeed ? "double" : "normal"));
+                } else {
+                    Cpu.isStopped = true;
+                    if (Logger.verbose >= 1)
+                        log("CPU STOPPED");
+                }
                 break;
             case Op.ILLEGAL:
                 if (Logger.verbose >= 3)

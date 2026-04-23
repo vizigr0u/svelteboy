@@ -6,6 +6,9 @@ import { Emulator } from "../emulator";
 import { Ppu, PpuMode } from "../io/video/ppu";
 import { Lcd } from "../io/video/lcd";
 import { Debugger } from "../debug/debugger";
+import { CgbState } from "../cgbState";
+import { Cartridge } from "../cartridge";
+import { CGBMode } from "../metadata";
 import { describe, it, assertEquals } from "./framework";
 
 // EmulatorStopReason values (not exported from emulator.ts):
@@ -256,6 +259,130 @@ function testMultipleBreakpoints(): void {
     });
 }
 
+// ─── Double-Speed Mode ───────────────────────────────────────────────────────
+
+function setupCgbNopSled(): void {
+    store<u8>(CARTRIDGE_ROM_START + 0x143, CGBMode.CGBOnly as u8);
+    Cartridge.Data.cgbFlag = CGBMode.CGBOnly as u8;
+    memory.fill(CARTRIDGE_ROM_START, 0x00, 0x8000);
+    store<u8>(CARTRIDGE_ROM_START + 0x143, CGBMode.CGBOnly as u8);
+    MemoryMap.loadedCartridgeRomSize = 0x8000;
+    Emulator.Init(false);
+}
+
+function testKey1ReadDmg(): void {
+    it("KEY1 read returns 0xFF in DMG mode (unhandled CGB fallthrough)", () => {
+        setupNopSled();
+        assertEquals<boolean>(CgbState.isCgbMode, false, "DMG mode");
+        const val = MemoryMap.GBload<u8>(0xFF4D);
+        assertEquals<u8>(val, 0xFF, "KEY1 DMG read = 0xFF");
+    });
+}
+
+function testKey1ReadWriteCgb(): void {
+    it("KEY1 bit 0 writable, bits 1-6 always 1 on read", () => {
+        setupCgbNopSled();
+        assertEquals<boolean>(CgbState.isCgbMode, true, "CGB mode");
+        // default key1=0 → read = 0x7E (bits 1-6 set, bit 7=0 normal speed, bit 0=0)
+        assertEquals<u8>(MemoryMap.GBload<u8>(0xFF4D), 0x7E, "KEY1 initial read");
+        // write bit 0 = 1 to prepare switch
+        MemoryMap.GBstore<u8>(0xFF4D, 0x01);
+        assertEquals<u8>(MemoryMap.GBload<u8>(0xFF4D), 0x7F, "KEY1 after setting bit 0");
+        // write 0xFE - only bit 0 is writable, so bit 0 clears
+        MemoryMap.GBstore<u8>(0xFF4D, 0xFE);
+        assertEquals<u8>(MemoryMap.GBload<u8>(0xFF4D), 0x7E, "KEY1 bit 0 cleared");
+    });
+}
+
+function testDoubleSpeedToggle(): void {
+    it("STOP with key1 bit0=1 in CGB mode toggles doubleSpeed, clears bit0, sets bit7", () => {
+        setupCgbNopSled();
+        assertEquals<boolean>(CgbState.doubleSpeed, false, "normal speed initially");
+        // Prepare switch: write bit 0 to KEY1
+        CgbState.setKey1(0x01);
+        // Execute STOP (0x10 0x00)
+        memory.copy(CARTRIDGE_ROM_START + 0x100, (<Array<u8>>[0x10, 0x00]).dataStart, 2);
+        Cpu.executeNextInstruction();
+        assertEquals<boolean>(CgbState.doubleSpeed, true, "double speed after STOP");
+        assertEquals<u8>(CgbState.key1 & 0x81, 0x80, "key1 bit7=1, bit0=0 after switch");
+        assert(!Cpu.isStopped, "isStopped not set on speed switch");
+    });
+}
+
+function testDoubleSpeedSwitchBack(): void {
+    it("second STOP with key1 bit0=1 switches back to normal speed", () => {
+        setupCgbNopSled();
+        CgbState.setKey1(0x01);
+        memory.copy(CARTRIDGE_ROM_START + 0x100, (<Array<u8>>[0x10, 0x00]).dataStart, 2);
+        Cpu.executeNextInstruction();
+        assertEquals<boolean>(CgbState.doubleSpeed, true, "in double speed");
+        // Prepare switch back
+        CgbState.setKey1(CgbState.key1 | 0x01);
+        Cpu.ProgramCounter = 0x100;
+        Cpu.executeNextInstruction();
+        assertEquals<boolean>(CgbState.doubleSpeed, false, "back to normal speed");
+        assertEquals<u8>(CgbState.key1 & 0x81, 0x00, "key1 bit7=0, bit0=0");
+    });
+}
+
+function testDoubleSpeedHalfMasterCycles(): void {
+    it("masterCycleCount advances at half rate vs CycleCount in double-speed", () => {
+        setupCgbNopSled();
+        CgbState.setKey1(0x01);
+        memory.fill(CARTRIDGE_ROM_START + 0x100, 0x00, 0x200); // NOPs
+        memory.copy(CARTRIDGE_ROM_START + 0x100, (<Array<u8>>[0x10, 0x00]).dataStart, 2);
+        // Switch to double-speed via STOP
+        Cpu.ProgramCounter = 0x100;
+        Cpu.executeNextInstruction();
+        assertEquals<boolean>(CgbState.doubleSpeed, true, "double speed on");
+        // Reset counters for clean measurement
+        Cpu.CycleCount = 0;
+        CgbState.masterCycleCount = 0;
+        // Run 10 NOPs via Emulator.Tick
+        for (let i = 0; i < 10; i++) Emulator.Tick();
+        // 10 NOPs × 4 T-cycles = 40 raw cycles; master = 40/2 = 20
+        assertEquals<u64>(Cpu.CycleCount, 40, "CycleCount = 40 raw T-cycles");
+        assertEquals<u64>(CgbState.masterCycleCount, 20, "masterCycleCount = 20");
+    });
+}
+
+function testNormalSpeedMasterCyclesEqual(): void {
+    it("masterCycleCount == CycleCount in normal speed (DMG)", () => {
+        setupNopSled();
+        assertEquals<boolean>(CgbState.doubleSpeed, false, "normal speed");
+        Cpu.CycleCount = 0;
+        CgbState.masterCycleCount = 0;
+        for (let i = 0; i < 10; i++) Emulator.Tick();
+        assertEquals<u64>(Cpu.CycleCount, CgbState.masterCycleCount, "master == raw in DMG");
+    });
+}
+
+function testStopSetsFlagInCgbWithoutPrepare(): void {
+    it("STOP without key1 bit0 still sets isStopped in CGB mode", () => {
+        setupCgbNopSled();
+        assertEquals<boolean>(CgbState.isCgbMode, true, "CGB mode");
+        // key1 bit0 = 0 (no prepare)
+        CgbState.setKey1(0x00);
+        memory.copy(CARTRIDGE_ROM_START + 0x100, (<Array<u8>>[0x10, 0x00]).dataStart, 2);
+        assert(!Cpu.isStopped, "not stopped before");
+        Cpu.executeNextInstruction();
+        assert(Cpu.isStopped, "isStopped=true when key1 bit0=0");
+        assertEquals<boolean>(CgbState.doubleSpeed, false, "speed unchanged");
+    });
+}
+
+function testInitResetsDoubleSpeed(): void {
+    it("Emulator.Init clears doubleSpeed and key1", () => {
+        setupCgbNopSled();
+        CgbState.setDoubleSpeed(true);
+        CgbState.setKey1(0xFF);
+        Emulator.Init(false);
+        assertEquals<boolean>(CgbState.doubleSpeed, false, "doubleSpeed reset");
+        assertEquals<u8>(CgbState.key1, 0, "key1 reset");
+        assertEquals<u64>(CgbState.masterCycleCount, 0, "masterCycleCount reset");
+    });
+}
+
 // ─── Suite Entry Point ────────────────────────────────────────────────────────
 
 export function testEmulator(): boolean {
@@ -287,6 +414,22 @@ export function testEmulator(): boolean {
         testInstructionStepping();
         testMultipleBreakpoints();
     });
+
+    describe("Emulator - Double-Speed Mode (Phase 8)", () => {
+        testKey1ReadDmg();
+        testKey1ReadWriteCgb();
+        testDoubleSpeedToggle();
+        testDoubleSpeedSwitchBack();
+        testDoubleSpeedHalfMasterCycles();
+        testNormalSpeedMasterCyclesEqual();
+        testStopSetsFlagInCgbWithoutPrepare();
+        testInitResetsDoubleSpeed();
+    });
+
+    Cartridge.Data.cgbFlag = 0x00;
+    CgbState.setIsCGB(false);
+    CgbState.setDoubleSpeed(false);
+    CgbState.setKey1(0);
 
     return true;
 }
