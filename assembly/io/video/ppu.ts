@@ -2,6 +2,7 @@ import { Interrupt, IntType } from "../../cpu/interrupts";
 import { Logger } from "../../debug/logger";
 import { LCD_HEIGHT, LCD_RES, LCD_WIDTH } from "./constants";
 import { Lcd } from "./lcd";
+import { Dma } from "./dma";
 import { MAX_OAM_COUNT, Oam, OamData } from "./oam";
 import { PixelFifo } from "./pixelFifo";
 import { PpuTransfer } from "./ppuTransfer";
@@ -68,12 +69,11 @@ export class PpuOamFifo {
 
     static FetchCurrentLine(): void {
         PpuOamFifo.Reset();
+        if (Dma.active) return; // PPU sees all OBJs as off-screen during DMA (spec: Mode 2 behavior)
         const ly = Lcd.data.lY;
         const oams = Oam.view;
         for (let i = 0; i < MAX_OAM_COUNT && !PpuOamFifo.IsFull(); i++) {
             const oam = unchecked(oams[i]);
-            if (oam.xPos == 0)
-                continue;
             if (Logger.verbose >= 5) {
                 log(`OAM #${i}: yPos = ${oam.yPos}, ly = ${ly}, spriteHeight = ${Lcd.SpriteHeight}. ly + 16 = ${ly + 16} >= yPos? ${(ly + 16) >= oam.yPos}. < (oam.yPos + spriteHeight) ? ${(ly + 16) < (oam.yPos + Lcd.SpriteHeight)}`);
             }

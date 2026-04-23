@@ -13,6 +13,10 @@ export class APU {
         if (Logger.verbose >= 2) {
             log('Initializing Audio');
         }
+        // DMG post-boot register values
+        store<u8>(GB_IO_START + 0x26, 0xF1); // NR52: APU on, CH1 active
+        store<u8>(GB_IO_START + 0x25, 0xF3); // NR51: channel panning
+        store<u8>(GB_IO_START + 0x24, 0x77); // NR50: volume
     }
 
     @inline

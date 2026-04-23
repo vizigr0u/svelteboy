@@ -124,15 +124,20 @@ export class Lcd {
             log('Initializing Lcd');
         }
         Lcd.ResetLine();
-        Lcd._ppuEnabled = true;
-        Lcd._windowEnabled = true;
-        Lcd._spritesVisible = true;
-        Lcd._bgAndWindowEnabled = true;
-        Lcd._spriteHeight = 8;
-        Lcd._bgTileMapBaseAddress = MAP_BASE_LO;
-        Lcd._windowTileMapBaseAddress = MAP_BASE_LO;
-        Lcd._TilesBaseAddress = TILE_BASE_LO;
-        memory.fill(LcdGbData.getGlobalPointer(), 0, offsetof<LcdGbData>()); // TODO: what are initial values?
+        memory.fill(LcdGbData.getGlobalPointer(), 0, offsetof<LcdGbData>());
+        // DMG post-boot register values
+        const data = Lcd.data;
+        data.control = 0x91;  // LCDC: PPU on, BG tile data $8000, BG enabled
+        data.bgPalette = 0xFC; // BGP: $FC
+        // Sync internal flags from LCDC
+        Lcd._ppuEnabled = data.hasControlBit(LcdControlBit.LCDandPPUenabled);
+        Lcd._windowEnabled = data.hasControlBit(LcdControlBit.WindowEnabled);
+        Lcd._spritesVisible = data.hasControlBit(LcdControlBit.ObjEnabled);
+        Lcd._bgAndWindowEnabled = data.hasControlBit(LcdControlBit.BGandWindowEnabled);
+        Lcd._spriteHeight = data.spriteHeight();
+        Lcd._bgTileMapBaseAddress = data.hasControlBit(LcdControlBit.BGTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
+        Lcd._windowTileMapBaseAddress = data.hasControlBit(LcdControlBit.WindowTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
+        Lcd._TilesBaseAddress = data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
     }
 
     @inline static get IsPpuEnabled(): boolean { return Lcd._ppuEnabled };
@@ -214,7 +219,8 @@ export class Lcd {
         if (gbAddress == LcdGbData.getStatAddress()) {
             let stat = data.stat & 0b11111000;
             stat |= (data.lY == data.lYcompare) ? 0b100 : 0;
-            stat |= <u8>Ppu.currentMode;
+            if (Lcd.IsPpuEnabled)
+                stat |= <u8>Ppu.currentMode;
             return stat;
         }
         return IO.MemLoad<u8>(gbAddress);
@@ -223,6 +229,7 @@ export class Lcd {
     private static isWindowVisible(): boolean {
         const lcd = Lcd.data;
         return Lcd._windowEnabled
+            && Lcd._bgAndWindowEnabled
             && lcd.lY >= lcd.windowY && lcd.lY < lcd.windowY + LCD_HEIGHT
             && lcd.windowX >= 0 && lcd.windowX <= 166;
     }

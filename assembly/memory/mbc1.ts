@@ -47,9 +47,7 @@ export class MBC1 {
             case 0x2:
             case 0x3:
                 const translated: u16 = (value & 0x1F) == 0 ? 1 : (value & 0x1F);
-                // MBC1 bug that makes it possible to map to Rom Bank #0 (if Cartridge.Data.RomBankCount - 1 < 0x1F)
-                assert(Cartridge.Data.RomBankCount <= 32, 'Unexpectedly high rom bank count in MBC1: ' + Cartridge.Data.RomBankCount.toString());
-                MBC1.LowRegister = <u8>(translated % Cartridge.Data.RomBankCount);
+                MBC1.LowRegister = <u8>translated;
                 break;
             case 0x4:
             case 0x5:

@@ -189,14 +189,15 @@ export class ScanlineRenderer {
                     const offset: i16 = spriteX - x; // [-7, 0] for renderable overlap
                     if (offset < -7 || offset > 0) continue;
 
-                    if (unchecked(ScanlineRenderer.spriteBgPrio[si]) && bgColorId != 0) continue;
-
                     const pixOff: u8 = <u8>(-offset); // [0, 7]
                     const spriteColorId = unchecked(ScanlineRenderer.spritePixels[si * 8 + pixOff]);
-                    if (spriteColorId != 0) {
-                        finalShade = unchecked(spriteShade[si * 4 + spriteColorId]);
-                        break;
-                    }
+                    if (spriteColorId == 0) continue; // transparent pixel, try next sprite
+
+                    // Highest-priority opaque sprite pixel found; its flag governs all lower sprites too
+                    if (unchecked(ScanlineRenderer.spriteBgPrio[si]) && bgColorId != 0) break; // BG wins
+
+                    finalShade = unchecked(spriteShade[si * 4 + spriteColorId]);
+                    break;
                 }
             }
 

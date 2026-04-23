@@ -40,6 +40,16 @@ export function testLyLyc(): boolean {
             });
         });
 
+        describe("LY is read-only", () => {
+            it("write to LY ($FF44) has no effect on LY value", () => {
+                initPpu();
+                tickPpuDots(5 * 456);
+                assertLY(5, "LY=5 before write");
+                MemoryMap.GBstore<u8>(0xFF44, 99); // attempt write
+                assertLY(5, "LY unchanged after write to $FF44");
+            });
+        });
+
         describe("LY == LYC sets STAT bit 2", () => {
             it("STAT bit 2 set when LY==LYC==0 at init", () => {
                 initPpu();
