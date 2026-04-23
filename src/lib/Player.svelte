@@ -5,7 +5,7 @@
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
-    import { Emulator } from "../emulator";
+    import { AudioSuspended, Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
     import Window from "./Window.svelte";
@@ -65,6 +65,11 @@
                 <div class="fps-wrapper">
                     <FpsCounter />
                 </div>
+            {/if}
+            {#if $AudioSuspended}
+                <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
+                    🔇 Click to enable sound
+                </button>
             {/if}
             <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">☰</button>
             {#if menuOpen}
@@ -145,6 +150,26 @@
 
     .fps-wrapper {
         position: absolute;
+    }
+
+    .audio-hint {
+        position: absolute;
+        bottom: 0.5em;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.75);
+        border: none;
+        color: #fff;
+        font-size: 0.85em;
+        cursor: pointer;
+        border-radius: 0.4em;
+        padding: 0.3em 0.7em;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+    .audio-hint:hover {
+        background: rgba(0,0,0,0.9);
     }
 
     .burger-btn {
