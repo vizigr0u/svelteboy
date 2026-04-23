@@ -8,7 +8,7 @@ import { open, writeFile } from 'node:fs/promises';
 import { Session } from 'node:inspector/promises';
 
 const benchmarkFrames = 1500;
-const profileFrames = 5000;
+const profileFrames = 100000;
 
 let args = process.argv.filter(a => a !== '--');
 
@@ -162,7 +162,7 @@ async function runProfile(fnName = null) {
     session.connect();
     await session.post('Profiler.enable');
     await session.post('Profiler.start');
-    const steps = 4;
+    const steps = 8;
     const stepSize = Math.ceil(frames / steps);
     let nextStep = stepSize;
     runChunked(frames, (done, total) => {
