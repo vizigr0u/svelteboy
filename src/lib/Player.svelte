@@ -68,6 +68,7 @@
             {/if}
             <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">☰</button>
             {#if menuOpen}
+                <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
                 <BurgerMenu items={menuItems} />
             {/if}
             {#if $showRomsWindow}
@@ -162,5 +163,11 @@
 
     .burger-btn:hover {
         background: rgba(0,0,0,0.7);
+    }
+
+    .menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 199;
     }
 </style>
