@@ -41,6 +41,9 @@ enum EmulatorStopReason {
 
     static Init(useBootRom: boolean = true): void {
         CgbState.setIsCGB(Cartridge.Data.getCGBMode() != CGBMode.NonCGB);
+        CgbState.setDoubleSpeed(false);
+        CgbState.setKey1(0);
+        CgbState.masterCycleCount = 0;
         SaveGame.Init();
         Logger.Init()
         MemoryMap.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
@@ -63,11 +66,14 @@ enum EmulatorStopReason {
         if (Logger.verbose >= 4)
             logCpuTick(t_cycles);
 
-        Timer.Tick(t_cycles);
+        const masterCycles: u8 = CgbState.doubleSpeed ? <u8>(t_cycles >> 1) : t_cycles;
+        CgbState.masterCycleCount += masterCycles;
 
-        Ppu.TickMultiple(t_cycles);
+        Timer.Tick(masterCycles);
+
+        Ppu.TickMultiple(masterCycles);
         if (Dma.active) {
-            for (let m: u8 = 0, n: u8 = t_cycles >> 2; m < n; m++)
+            for (let m: u8 = 0, n: u8 = masterCycles >> 2; m < n; m++)
                 Dma.Tick();
         }
     }
@@ -81,16 +87,16 @@ enum EmulatorStopReason {
     static Run(timeMilliSec: f64): EmulatorStopReason {
         const maxCycles: u64 = <u64>Math.round((timeMilliSec * CYCLES_PER_SECOND) / 1000);
 
-        Emulator.targetCycles = Cpu.CycleCount + maxCycles;
+        Emulator.targetCycles = CgbState.masterCycleCount + maxCycles;
         Emulator.targetFrame = 0;
-        AudioRender.Prepare(Cpu.CycleCount);
+        AudioRender.Prepare(CgbState.masterCycleCount);
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             stopReason = Emulator.GetStopReason();
         } while (stopReason == EmulatorStopReason.None);
-        AudioRender.Render(Cpu.CycleCount);
+        AudioRender.Render(CgbState.masterCycleCount);
         return stopReason;
     }
 
@@ -99,27 +105,27 @@ enum EmulatorStopReason {
         // Safety cap: prevent infinite loop when LCD is off (Ppu.currentFrame never increments).
         // Must exceed one real hardware frame (154 scanlines × 456 dots = 70224 cycles) so
         // that EndOfFrame still fires first under normal operation.
-        Emulator.targetCycles = Cpu.CycleCount + <u64>CYCLES_PER_FRAME * (<u64>frames + 1);
+        Emulator.targetCycles = CgbState.masterCycleCount + <u64>CYCLES_PER_FRAME * (<u64>frames + 1);
         let lastFrame: u32 = Ppu.currentFrame;
-        AudioRender.Prepare(Cpu.CycleCount);
+        AudioRender.Prepare(CgbState.masterCycleCount);
         let stopReason = EmulatorStopReason.None;
         do {
             Emulator.lastPPUMode = Ppu.currentMode;
             Emulator.Tick();
             if (Ppu.currentFrame != lastFrame) {
-                AudioRender.Render(Cpu.CycleCount);
+                AudioRender.Render(CgbState.masterCycleCount);
                 AudioRender.outBuffer.markBuffersRead(AudioRender.outBuffer.getBuffersToReadCount());
-                AudioRender.Prepare(Cpu.CycleCount);
+                AudioRender.Prepare(CgbState.masterCycleCount);
                 lastFrame = Ppu.currentFrame;
             }
             stopReason = Emulator.GetStopReason();
         } while (stopReason == EmulatorStopReason.None);
-        AudioRender.Render(Cpu.CycleCount);
+        AudioRender.Render(CgbState.masterCycleCount);
         return stopReason;
     }
 
     @inline static GetStopReason(): EmulatorStopReason {
-        if (Emulator.targetCycles != 0 && Cpu.CycleCount >= Emulator.targetCycles) {
+        if (Emulator.targetCycles != 0 && CgbState.masterCycleCount >= Emulator.targetCycles) {
             if (Logger.verbose >= 2)
                 log('Emulator stopped: Target cycles reached')
             return EmulatorStopReason.TargetCyclesReached;

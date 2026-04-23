@@ -9,7 +9,7 @@
     dragStatus = $bindable(""),
     onRomReceived = (_: LocalRom) => {},
     saveRom = true,
-    validExtensions = ["gb"],
+    validExtensions = ["gb", "gbc"],
     children,
   } = $props<{
     dragState?: DragState;
