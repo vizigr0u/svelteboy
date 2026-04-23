@@ -29,7 +29,8 @@ enum InputSelector {
 export class Joypad {
     static allowOppositeKeys: boolean = true; // TODO: config?
 
-    private static readonly DefaultSelector: InputSelector = InputSelector.DirPad;
+    // DMG post-boot: both groups selected (P1=$CF = bits4+5 low)
+    private static readonly DefaultSelector: InputSelector = <InputSelector>(<u8>InputSelector.DirPad | <u8>InputSelector.Actions);
 
     private static keys: u8 = 0x00; // warning: opposite logic of gameboy for storage: 1 = pressed
     private static selector: InputSelector = Joypad.DefaultSelector;
@@ -50,7 +51,10 @@ export class Joypad {
             if (Joypad.hasKey(InputType.Left))
                 keys = keys & ~<u8>InputType.Right;
         }
-        if ((Joypad.keys & keys) != keys) { // one of the bits just got set
+        const newlyPressed: u8 = ~Joypad.keys & keys;
+        const groupMask: u8 = ((<u8>Joypad.selector & <u8>InputSelector.DirPad)  ? <u8>0x0F : <u8>0)
+                            | ((<u8>Joypad.selector & <u8>InputSelector.Actions) ? <u8>0xF0 : <u8>0);
+        if (newlyPressed & groupMask) {
             Interrupt.Request(IntType.Joypad);
         }
         if (Logger.verbose >= 3)
@@ -64,7 +68,14 @@ export class Joypad {
                 log('Joypad read with no selector: 0xFF')
             return 0xFF;
         }
-        const buttonBits: u8 = (Joypad.selector == InputSelector.Actions) ? (<u8>(~Joypad.keys) >> 4) : (<u8>(~Joypad.keys) & 0xF);
+        const dpadBits: u8 = <u8>(~Joypad.keys) & 0xF;
+        const actionBits: u8 = <u8>(~Joypad.keys) >> 4;
+        // active-low: pressing either group drives the line low → AND the two nibbles
+        const buttonBits: u8 = (Joypad.selector == InputSelector.Actions)
+            ? actionBits
+            : (Joypad.selector == InputSelector.DirPad)
+                ? dpadBits
+                : dpadBits & actionBits; // both groups selected
         // const value: u8 = <u8>Joypad.selector | ((Joypad.keys >> ((<u8>Joypad.selector >> 5) << 2)) & 0xF);
         const value: u8 = <u8>0b11000000 | <u8>(<u8>~<u8>Joypad.selector & <u8>0b00110000) | buttonBits;
         if (Logger.verbose >= 3 || Logger.verbose >= 2 && (value & 0xF) != 0xF) // TODO: tone down
@@ -81,8 +92,6 @@ export class Joypad {
         Joypad.selector = (~value) & 0b00110000;
         if (Logger.verbose >= 3)
             log('Joypad selector set to ' + (Joypad.selector == InputSelector.Actions ? 'Actions' : (Joypad.selector == InputSelector.DirPad ? 'Dir' : 'None')));
-        if (<u8>Joypad.selector == 0)
-            Joypad.selector = Joypad.DefaultSelector;
     }
 
     @inline private static hasKey(k: InputType): boolean { return (Joypad.keys & <u8>k) != 0; }

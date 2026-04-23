@@ -240,6 +240,23 @@ export function testBgRendering(): boolean {
 
         });
 
+        // ── LCDC.0 BG/Window enable ────────────────────────────────────────
+        describe("LCDC.0 BG/Window enable", () => {
+
+            it("LCDC.0=0: all BG pixels render as color 0 regardless of tile data", () => {
+                // LCDC=0x80: PPU on, bit0=0 (BG disabled)
+                setup(0x80, 0, 0, BGP_IDENTITY);
+                writeSolidTile(TILE_BLOCK0 + 0 * 16, 3); // tile 0 would be color 3 if BG enabled
+                setMapEntry(MAP_9800, 0, 0, 0);
+                ScanlineRenderer.Render();
+                assertPixel(  0, 0, "BG disabled: pixel 0 = color 0");
+                assertPixel( 80, 0, "BG disabled: pixel 80 = color 0");
+                assertPixel(159, 0, "BG disabled: pixel 159 = color 0");
+            });
+
+
+        });
+
     });
 
     return true;

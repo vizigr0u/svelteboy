@@ -8,6 +8,8 @@ import { testBgRendering } from "./bgRenderingTests";
 import { testWindowRendering } from "./windowRenderingTests";
 import { testSprites } from "./spriteTests";
 import { testFrameBuffer } from "./frameBufferTests";
+import { testPalettes } from "./paletteTests";
+import { testVramOamAccess } from "./vramOamAccessTests";
 
 export function testVideo(): boolean {
     testTileToRgba();
@@ -20,5 +22,7 @@ export function testVideo(): boolean {
     testWindowRendering();
     testSprites();
     testFrameBuffer();
+    testPalettes();
+    testVramOamAccess();
     return true;
 }

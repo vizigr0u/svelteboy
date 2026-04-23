@@ -465,6 +465,145 @@ function testJoypadInterrupt(): void {
         `Joypad: expected 0x0060, got 0x${Cpu.ProgramCounter.toString(16)}`);
 }
 
+// ---------------------------------------------------------------------------
+// Manual writes to IF: force and discard pending interrupts
+// Spec: "Manual writes to IF allowed (force or discard interrupts)."
+// ---------------------------------------------------------------------------
+
+function testManualIFWriteForceInterrupt(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0050, 0x3C);  // INC A at Timer vector
+    gbStore(0x0051, 0xC9);  // RET
+
+    // Enable Timer in IE but do NOT set IF via hardware — force it manually
+    setIeIf(0x04, 0x00);
+    Cpu.SetA(0);
+
+    Cpu.Tick(); // EI
+    // Manually write IF to force timer interrupt
+    setIeIf(0x04, 0x04);
+    Cpu.Tick(); // NOP + ISR → should dispatch to Timer
+
+    assert(Cpu.ProgramCounter == 0x0050,
+        `manual IF force: expected Timer vector 0x0050, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+function testManualIFWriteDiscardInterrupt(): void {
+    setTestRom([0xFB, 0x00, 0x00, 0x00]);
+
+    gbStore(0x0050, 0x3C);  // INC A at Timer vector
+    gbStore(0x0051, 0xC9);
+
+    // Set Timer IF, then discard it before EI enables
+    setIeIf(0x04, 0x04);
+    Cpu.SetA(0);
+
+    Cpu.Tick(); // EI (IME not yet active, no dispatch yet)
+    // Manually clear IF before IME activates and interrupt is serviced
+    setIeIf(0x04, 0x00); // discard the pending timer interrupt
+    Cpu.Tick(); // NOP — IME now active, but IF=0, no dispatch
+    Cpu.Tick(); // NOP — should NOT jump to handler
+
+    assert(Cpu.ProgramCounter == 0x0003,
+        `manual IF discard: PC should be 0x0003 (no ISR), got 0x${Cpu.ProgramCounter.toString(16)}`);
+    assert(Cpu.A() == 0, "handler should not have run after IF was discarded");
+}
+
+// ---------------------------------------------------------------------------
+// Interrupt priority: remaining pairs
+// Spec priority (high→low): VBlank > LCD STAT > Timer > Serial > Joypad
+// ---------------------------------------------------------------------------
+
+function testPriorityStatBeforeTimer(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0048, 0x3C);  // INC A at STAT vector
+    gbStore(0x0049, 0xC9);
+    gbStore(0x0050, 0x04);  // INC B at Timer vector
+    gbStore(0x0051, 0xC9);
+
+    setIeIf(0x06, 0x06);   // IE = STAT | Timer, IF = STAT | Timer
+    Cpu.SetA(0); Cpu.SetB(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR → must go to STAT (0x48), not Timer (0x50)
+
+    assert(Cpu.ProgramCounter == 0x0048,
+        `STAT>Timer: expected 0x0048, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+function testPriorityTimerBeforeSerial(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0050, 0x3C);  // INC A at Timer vector
+    gbStore(0x0051, 0xC9);
+    gbStore(0x0058, 0x04);  // INC B at Serial vector
+    gbStore(0x0059, 0xC9);
+
+    setIeIf(0x0C, 0x0C);   // IE = Timer | Serial, IF = Timer | Serial
+    Cpu.SetA(0); Cpu.SetB(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR → must go to Timer (0x50), not Serial (0x58)
+
+    assert(Cpu.ProgramCounter == 0x0050,
+        `Timer>Serial: expected 0x0050, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+function testPrioritySerialBeforeJoypad(): void {
+    setTestRom([0xFB, 0x00, 0x00]);
+
+    gbStore(0x0058, 0x3C);  // INC A at Serial vector
+    gbStore(0x0059, 0xC9);
+    gbStore(0x0060, 0x04);  // INC B at Joypad vector
+    gbStore(0x0061, 0xC9);
+
+    setIeIf(0x18, 0x18);   // IE = Serial | Joypad, IF = Serial | Joypad
+    Cpu.SetA(0); Cpu.SetB(0);
+
+    Cpu.Tick(); // EI
+    Cpu.Tick(); // NOP + ISR → must go to Serial (0x58), not Joypad (0x60)
+
+    assert(Cpu.ProgramCounter == 0x0058,
+        `Serial>Joypad: expected 0x0058, got 0x${Cpu.ProgramCounter.toString(16)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Nesting: EI inside handler allows nested interrupt
+// Spec: "By default IME=0 in handler until reti. Use ei in handler to allow nested interrupts."
+// ---------------------------------------------------------------------------
+
+function testNestedInterruptViaEIInHandler(): void {
+    // Handler for VBlank: EI, NOP, RETI
+    // While in VBlank handler with IME re-enabled, a pending Timer fires
+    // Timer handler: INC A, RETI
+    // VBlank handler then continues: INC B, RETI
+    setupRomProgram([
+        0xFB,  // EI at 0x100
+        0x00,  // NOP at 0x101 (ISR fires here → VBlank handler)
+        0x76,  // HALT at 0x102 (end marker)
+    ]);
+
+    // VBlank handler at 0x40: EI, NOP (nested Timer fires), INC B, RETI
+    memory.copy(CARTRIDGE_ROM_START + 0x40, ([0xFB, 0x00, 0x04, 0xD9] as Array<u8>).dataStart, 4);
+    // Timer handler at 0x50: INC A, RETI
+    memory.copy(CARTRIDGE_ROM_START + 0x50, ([0x3C, 0xD9] as Array<u8>).dataStart, 2);
+
+    // Both VBlank and Timer pending, both enabled
+    setIeIf(0x05, 0x05);
+    Cpu.SetA(0); Cpu.SetB(0);
+
+    // Run until HALT
+    for (let i = 0; i < 200 && !Cpu.isHalted; i++) {
+        Cpu.Tick();
+    }
+
+    assert(Cpu.isHalted, "should reach HALT (end marker)");
+    assert(Cpu.A() == 1, "Timer nested handler ran (INC A)");
+    assert(Cpu.B() == 1, "VBlank handler ran (INC B after nested Timer)");
+}
+
 export function testInterrupts(): boolean {
     describe("Interrupts", () => {
         it("timer ISR fires and increments A", () => { testInt1(); });
@@ -477,9 +616,15 @@ export function testInterrupts(): boolean {
         it("IF timer bit persists after RET ISR with IME=false", () => { testTimerIFPersistsAfterRetISR(); });
         it("RETI re-enables IME immediately after handler", () => { testRetiEnablesIMEImmediately(); });
         it("interrupt priority: VBlank before Timer when both pending", () => { testInterruptPriority(); });
+        it("interrupt priority: STAT before Timer when both pending", () => { testPriorityStatBeforeTimer(); });
+        it("interrupt priority: Timer before Serial when both pending", () => { testPriorityTimerBeforeSerial(); });
+        it("interrupt priority: Serial before Joypad when both pending", () => { testPrioritySerialBeforeJoypad(); });
         it("LCD STAT interrupt dispatches to 0x48", () => { testLcdStatInterrupt(); });
         it("Serial interrupt dispatches to 0x58", () => { testSerialInterrupt(); });
         it("Joypad interrupt dispatches to 0x60", () => { testJoypadInterrupt(); });
+        it("manual IF write forces interrupt", () => { testManualIFWriteForceInterrupt(); });
+        it("manual IF write discards pending interrupt", () => { testManualIFWriteDiscardInterrupt(); });
+        it("EI in handler enables nested interrupt dispatch", () => { testNestedInterruptViaEIInHandler(); });
     });
     return true;
 }
