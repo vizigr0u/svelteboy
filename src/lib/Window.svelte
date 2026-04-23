@@ -23,6 +23,8 @@
 <style>
     .window {
         position: absolute;
+        top: 0;
+        left: 0;
         z-index: 100;
         background: #1e1e2e;
         color: #cdd6f4;
