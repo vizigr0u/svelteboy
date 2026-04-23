@@ -13,6 +13,14 @@ export function isRamEnabled(): boolean {
     return ramEnabled;
 }
 
+export function getRamEnabled(): boolean {
+    return ramEnabled;
+}
+
+export function setRamEnabledRaw(enabled: boolean): void {
+    ramEnabled = enabled;
+}
+
 export function enableRam(enabled: boolean = true): void {
     if (Logger.verbose >= 2)
         log(enabled ? 'Enabling RAM' : 'disabling RAM');

@@ -5,7 +5,7 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryCo
 
 @final
 export class MBC2 {
-    private static romBank: u32 = 1;
+    static romBank: u32 = 1;
 
     static Init(): void {
         if (Logger.verbose >= 1)

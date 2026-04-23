@@ -6,18 +6,18 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_S
 
 @final
 export class MBC1 {
-    private static LowRegister: u8 = 1;
-    private static HighRegister: u8 = 0;
-    private static advancedMode: boolean = false;
+    static LowRegister: u8 = 1;
+    static HighRegister: u8 = 0;
+    static advancedMode: boolean = false;
 
     // private static rom0Base: u32 = 0;
     // private static rom1Base: u32 = 0;
     // private static ramBase: u32 = 0;
 
-    private static romBankMask: u8 = 0xFF;
-    private static rom0Bank: u8 = 0;
-    private static rom1Bank: u8 = 1;
-    private static ramBank: u8 = 0;
+    static romBankMask: u8 = 0xFF;
+    static rom0Bank: u8 = 0;
+    static rom1Bank: u8 = 1;
+    static ramBank: u8 = 0;
 
     static Init(): void {
         if (Logger.verbose >= 1)

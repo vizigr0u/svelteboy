@@ -5,9 +5,9 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_S
 
 @final
 export class MBC5 {
-    private static romBankLow: u8 = 1;
-    private static romBankHigh: u8 = 0;
-    private static ramBank: u8 = 0;
+    static romBankLow: u8 = 1;
+    static romBankHigh: u8 = 0;
+    static ramBank: u8 = 0;
 
     static Init(): void {
         if (Logger.verbose >= 1)
