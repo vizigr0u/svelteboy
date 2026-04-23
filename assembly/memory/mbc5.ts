@@ -39,14 +39,14 @@ export class MBC5 {
         }
     }
 
-    static MapRom(gbAddress: u16): u32 {
+    static MapRom(gbAddress: u32): u32 {
         if (gbAddress < 0x4000)
             return CARTRIDGE_ROM_START + gbAddress;
-        const romBank: u16 = (<u16>MBC5.romBankHigh << 8) | MBC5.romBankLow;
-        return CARTRIDGE_ROM_START + gbAddress - 0x4000 + <u32>romBank * ROM_BANK_SIZE;
+        const romBank: u32 = (<u32>MBC5.romBankHigh << 8) | MBC5.romBankLow;
+        return CARTRIDGE_ROM_START + gbAddress - 0x4000 + romBank * ROM_BANK_SIZE;
     }
 
-    static MapRam(gbAddress: u16): u32 {
+    static MapRam(gbAddress: u32): u32 {
         return GB_EXT_RAM_START + gbAddress - 0xA000 + <u32>MBC5.ramBank * GB_EXT_RAM_BANK_SIZE;
     }
 }

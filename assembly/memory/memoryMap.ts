@@ -66,66 +66,43 @@ export class MemoryMap {
         MemoryMap.useBootRom = useBootRom;
     }
 
-    static GBToMemory(gbAddress: u16): u32 {
-        const hiByte: u8 = <u8>(gbAddress >> 12);
-        switch (hiByte) {
-            case 0x0:
-                if (MemoryMap.useBootRom && gbAddress < MemoryMap.loadedBootRomSize)
-                    return BOOT_ROM_START + gbAddress;
-            case 0x1:
-            case 0x2:
-            case 0x3:
-            case 0x4:
-            case 0x5:
-            case 0x6:
-            case 0x7:
-                return MBC.MapRom(gbAddress);
-            case 0x8:
-            case 0x9:
-                return GB_VIDEO_START + gbAddress - 0x8000;
-            case 0xA:
-            case 0xB:
-                return MBC.MapRam(gbAddress);
-            case 0xC:
-            case 0xD:
-                return GB_WRAM_START + gbAddress - 0xC000;
-            case 0xE:
-            case 0xF:
-                if (gbAddress >= 0xFF80)
-                    return GB_HIGH_RAM_START + gbAddress - 0xFF80;
-                if (gbAddress <= 0xFDFF) {
-                    if (Logger.verbose >= 2)
-                        logEchoRam(gbAddress);
-                    return GB_RESTRICTED_AREA_ADDRESS;
-                }
-                if (gbAddress <= 0xFE9F)
-                    return GB_OAM_START + gbAddress - 0xFE00;
-                if (gbAddress <= 0xFEFF) {
-                    if (Logger.verbose >= 2)
-                        logUnusableArea(gbAddress);
-                    return GB_RESTRICTED_AREA_ADDRESS;
-                }
-                if (gbAddress < 0xFF80) {
-                    if (Logger.verbose >= 2) {
-                        log('Warning: accessing IO region through Memory Mapper instead of dedicated read/write methods.');
-                    }
-                    return GB_IO_START + gbAddress - 0xFF00;
-                }
-            default:
-                assert(false, `(?!) unmapped address: ${uToHex<u16>(gbAddress)} (hibyte: ${uToHex<u8>(hiByte)})`);
+    static GBToMemory(addr: u32): u32 {
+        if (addr < 0x8000) {
+            if (MemoryMap.useBootRom && addr < MemoryMap.loadedBootRomSize)
+                return BOOT_ROM_START + addr;
+            return MBC.MapRom(addr);
         }
-        assert(false);
-        return GB_RESTRICTED_AREA_ADDRESS;
+        if (addr < 0xA000) return addr - 0x8000; // VRAM (GB_VIDEO_START = 0)
+        if (addr < 0xC000) return MBC.MapRam(addr); // ExtRam
+        if (addr < 0xE000) return GB_WRAM_START + addr - 0xC000; // WRAM
+        // 0xE000-0xFFFF
+        if (addr >= 0xFF80) return GB_HIGH_RAM_START + addr - 0xFF80; // HRAM
+        if (addr <= 0xFDFF) {
+            if (Logger.verbose >= 2)
+                logEchoRam(<u16>addr);
+            return GB_RESTRICTED_AREA_ADDRESS;
+        }
+        if (addr <= 0xFE9F) return GB_OAM_START + addr - 0xFE00; // OAM
+        if (addr <= 0xFEFF) {
+            if (Logger.verbose >= 2)
+                logUnusableArea(<u16>addr);
+            return GB_RESTRICTED_AREA_ADDRESS;
+        }
+        // IO (0xFF00-0xFF7F)
+        if (Logger.verbose >= 2)
+            log('Warning: accessing IO region through Memory Mapper instead of dedicated read/write methods.');
+        return GB_IO_START + addr - 0xFF00;
     }
 
     static GBload<T>(gbAddress: u16): T {
-        if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) { // ROM and RAM
-            if (Dma.active && gbAddress < 0xFF80)
+        const addr: u32 = gbAddress;
+        if (addr < 0xFE00 || addr >= 0xFF80) { // ROM and RAM
+            if (Dma.active && addr < 0xFF80)
                 return <T>0xFF;
-            if (gbAddress >= 0x8000 && gbAddress < 0xA000) { // VRAM
+            if (addr >= 0x8000 && addr < 0xA000) { // VRAM
                 if (Lcd.IsPpuEnabled && Ppu.currentMode == PpuMode.Transfer)
                     return <T>0xff;
-            } else if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
+            } else if (addr >= 0xA000 && addr < 0xC000) {
                 if (!isRamEnabled()) {
                     if (Logger.verbose >= 2)
                         logRamDisabled(gbAddress);
@@ -134,11 +111,11 @@ export class MemoryMap {
                 if (Logger.verbose >= 2)
                     logExtRam();
             }
-            return load<T>(MemoryMap.GBToMemory(gbAddress));
+            return load<T>(MemoryMap.GBToMemory(addr));
         }
-        if (gbAddress < 0xFEA0) // OAM
+        if (addr < 0xFEA0) // OAM
             return Oam.Load<T>(gbAddress);
-        if (gbAddress < 0xFF00) { // Restricted Area
+        if (addr < 0xFF00) { // Restricted Area
             if (Logger.verbose >= 3)
                 log('Unexpected read in restricted area');
             return <T>-1;
@@ -154,47 +131,48 @@ export class MemoryMap {
     }
 
     static GBstore<T>(gbAddress: u16, value: T): void {
-        if (gbAddress < 0xFF80 && Dma.active) {
+        const addr: u32 = gbAddress;
+        if (addr < 0xFF80 && Dma.active) {
             if (Logger.verbose >= 2) {
                 log(`Trying to write to ${uToHex<u16>(gbAddress)} during DMA, ignored.`);
             }
             return;
         }
-        if (gbAddress < 0x8000) { // ROM
+        if (addr < 0x8000) { // ROM
             MBC.HandleWrite(gbAddress, <u8>value);
             return;
         }
-        if (gbAddress < 0xA000) { // VRAM
+        if (addr < 0xA000) { // VRAM
             if (Lcd.IsPpuEnabled && Ppu.currentMode == PpuMode.Transfer)
                 return;
-            store<T>(MemoryMap.GBToMemory(gbAddress), value);
-            if (gbAddress < 0x9800) {
+            store<T>(MemoryMap.GBToMemory(addr), value);
+            if (addr < 0x9800) {
                 TileCache.decode(gbAddress);
             }
             return;
         }
-        if (gbAddress < 0xE000 || gbAddress >= 0xFF80) { // all types of RAM
-            if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
+        if (addr < 0xE000 || addr >= 0xFF80) { // all types of RAM
+            if (addr >= 0xA000 && addr < 0xC000) {
                 setRamAltered();
                 if (Logger.verbose >= 2)
                     log('Writing to EXT RAM ' + Cpu.GetTrace())
             }
-            store<T>(MemoryMap.GBToMemory(gbAddress), value);
-            if (gbAddress < 0x9800) { // tile data
+            store<T>(MemoryMap.GBToMemory(addr), value);
+            if (addr < 0x9800) { // tile data
                 TileCache.decode(gbAddress);
             }
             return;
         }
-        if (gbAddress < 0xFE00) {
+        if (addr < 0xFE00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in echo RAM');
             return;
         }
-        if (gbAddress < 0xFEA0) {
+        if (addr < 0xFEA0) {
             Oam.Store<T>(gbAddress, value);
             return;
         }
-        if (gbAddress < 0xFF00) {
+        if (addr < 0xFF00) {
             if (Logger.verbose >= 2)
                 log('Unexpected write in restricted area');
             return;
@@ -246,7 +224,7 @@ export function hexDump(from: u16, count: u16): Uint8Array {
     const result = new Uint8Array(count);
     const oldUseBoot = MemoryMap.useBootRom;
     MemoryMap.useBootRom = false;
-    memory.copy(result.dataStart, MemoryMap.GBToMemory(from), count);
+    memory.copy(result.dataStart, MemoryMap.GBToMemory(<u32>from), count);
     MemoryMap.useBootRom = oldUseBoot;
     return result;
 }

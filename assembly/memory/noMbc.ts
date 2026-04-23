@@ -17,11 +17,11 @@ export class NoMBC {
         }
     }
 
-    static MapRom(gbAddress: u16): u32 {
-        return <u32>gbAddress + CARTRIDGE_ROM_START;
+    static MapRom(gbAddress: u32): u32 {
+        return gbAddress + CARTRIDGE_ROM_START;
     }
 
-    static MapRam(gbAddress: u16): u32 {
-        return <u32>gbAddress + GB_EXT_RAM_START - 0xA000;
+    static MapRam(gbAddress: u32): u32 {
+        return gbAddress + GB_EXT_RAM_START - 0xA000;
     }
 }

@@ -26,13 +26,13 @@ export class MBC2 {
         }
     }
 
-    static MapRom(gbAddress: u16): u32 {
+    static MapRom(gbAddress: u32): u32 {
         return gbAddress < 0x4000 ?
             CARTRIDGE_ROM_START + gbAddress
             : CARTRIDGE_ROM_START + gbAddress - 0x4000 + ROM_BANK_SIZE * MBC2.romBank;
     }
 
-    static MapRam(gbAddress: u16): u32 {
+    static MapRam(gbAddress: u32): u32 {
         return GB_EXT_RAM_START + ((gbAddress - 0xA000) & 0x01FF);
     }
 }

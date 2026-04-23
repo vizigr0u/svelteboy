@@ -81,7 +81,7 @@ export class MBC {
     }
 
     @inline
-    static MapRom(gbAddress: u16): u32 {
+    static MapRom(gbAddress: u32): u32 {
         switch (MBC.type) {
             case MBCType.None: return NoMBC.MapRom(gbAddress);
             case MBCType.MBC1: return MBC1.MapRom(gbAddress);
@@ -93,7 +93,7 @@ export class MBC {
     }
 
     @inline
-    static MapRam(gbAddress: u16): u32 {
+    static MapRam(gbAddress: u32): u32 {
         switch (MBC.type) {
             case MBCType.None: return NoMBC.MapRam(gbAddress);
             case MBCType.MBC1: return MBC1.MapRam(gbAddress);

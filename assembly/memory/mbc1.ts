@@ -88,13 +88,13 @@ export class MBC1 {
         }
     }
 
-    static MapRom(gbAddress: u16): u32 {
+    static MapRom(gbAddress: u32): u32 {
         if (gbAddress < 0x4000)
             return CARTRIDGE_ROM_START + gbAddress + MBC1.rom0Bank * ROM_BANK_SIZE;
         return CARTRIDGE_ROM_START + gbAddress - 0x4000 + MBC1.rom1Bank * ROM_BANK_SIZE;
     }
 
-    static MapRam(gbAddress: u16): u32 {
+    static MapRam(gbAddress: u32): u32 {
         return GB_EXT_RAM_START + gbAddress - 0xA000 + MBC1.ramBank * GB_EXT_RAM_BANK_SIZE;
     }
 }
