@@ -8,7 +8,7 @@ import { open, writeFile } from 'node:fs/promises';
 import { Session } from 'node:inspector/promises';
 
 const benchmarkFrames = 1500;
-const profileFrames = 2500;
+const profileFrames = 5000;
 
 let args = process.argv.filter(a => a !== '--');
 
