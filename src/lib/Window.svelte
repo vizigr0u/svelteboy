@@ -11,6 +11,7 @@
     let { title, onclose, children, wide = false }: Props = $props();
 </script>
 
+<div class="backdrop" onclick={onclose} role="presentation" aria-hidden="true"></div>
 <div class="window" class:wide>
     <div class="window-header">
         <span class="window-title">{title}</span>
@@ -22,6 +23,13 @@
 </div>
 
 <style>
+    .backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 99;
+        background: rgba(0, 0, 0, 0.3);
+    }
+
     .window {
         position: absolute;
         top: 0;
@@ -40,6 +48,24 @@
 
     .window.wide {
         width: clamp(280px, 95vw, 1400px);
+    }
+
+    @media (max-width: 600px) {
+        .window, .window.wide {
+            position: fixed;
+            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            max-width: 100vw;
+            max-height: 100dvh;
+            border-radius: 0;
+        }
+
+        .window-body {
+            flex: 1;
+            min-height: 0;
+        }
     }
 
     .window-header {
