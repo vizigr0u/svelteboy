@@ -229,6 +229,85 @@ export function testWindowRendering(): boolean {
     });
 
     // ─────────────────────────────────────────────────────────────────────────
+    describe("Window edge cases", () => {
+
+        it("WY=143: window active on last visible scanline", () => {
+            const lcdc: u8 = BASE_LCDC | LCDC_WIN_MAP_HI;
+            initTest(lcdc, 143, 7, 0, 1); // WY=143, WX=7
+            fillTileMap(BG_MAP_OFFSET,  0);
+            fillTileMap(WIN_MAP_OFFSET, 1);
+            renderToScanline(143);
+            assertEquals<u8>(getPixel(0, 143), expectedColor(1),
+                "WY=143: window renders on scanline 143");
+        });
+
+        it("WY=144: window never triggers (outside visible area)", () => {
+            const lcdc: u8 = BASE_LCDC | LCDC_WIN_MAP_HI;
+            initTest(lcdc, 144, 7, 0, 1); // WY=144, beyond last visible line
+            fillTileMap(BG_MAP_OFFSET,  0);
+            fillTileMap(WIN_MAP_OFFSET, 1);
+            renderToScanline(143);
+            assertEquals<u8>(getPixel(0, 143), expectedColor(0),
+                "WY=144: no window renders on scanline 143, only BG");
+        });
+
+        it("WLY not incremented for scanlines where window is hidden (LCDC.5=0)", () => {
+            // WY=0: LY=0 → WLY=0 → colorId 1, LY=1 → WLY=1 → colorId 2
+            // Disable window for LY=2 and LY=3 (WLY stays at 2)
+            // Re-enable for LY=4 → WLY=2 → colorId 3 (not 4)
+            initWlyTest(0);
+            renderToScanline(0);
+            assertEquals<u8>(getPixel(0, 0), expectedColor(1), "LY=0: WLY=0 → colorId 1");
+            tickPpuDots(456); // renders LY=1
+            assertEquals<u8>(getPixel(0, 1), expectedColor(2), "LY=1: WLY=1 → colorId 2");
+            MemoryMap.GBstore<u8>(0xFF40, (BASE_LCDC | LCDC_WIN_MAP_HI) & ~LCDC_WIN_EN);
+            tickPpuDots(456); // renders LY=2, window disabled
+            tickPpuDots(456); // renders LY=3, window disabled
+            MemoryMap.GBstore<u8>(0xFF40, BASE_LCDC | LCDC_WIN_MAP_HI);
+            tickPpuDots(456); // renders LY=4, WLY should be 2 not 4
+            assertEquals<u8>(getPixel(0, 4), expectedColor(3),
+                "LY=4 after 2 skipped lines: WLY=2 → colorId 3 (not 4)");
+        });
+
+        it("WX=159: last tile-aligned window start (tile at x=152 covered)", () => {
+            // WX=159: isInWindow(152) = 152+7=159 >= 159 → true → pixels 152-159 are window
+            const lcdc: u8 = BASE_LCDC | LCDC_WIN_MAP_HI;
+            initTest(lcdc, 0, 159, 0, 1);
+            fillTileMap(BG_MAP_OFFSET,  0);
+            fillTileMap(WIN_MAP_OFFSET, 1);
+            renderToScanline(0);
+            assertEquals<u8>(getPixel(151, 0), expectedColor(0),
+                "WX=159: pixel 151 is BG (tile x=144, 144+7=151 < 159)");
+            assertEquals<u8>(getPixel(152, 0), expectedColor(1),
+                "WX=159: pixel 152 is window (tile x=152, 152+7=159 >= 159)");
+        });
+
+        it("WX=167: window not visible (exceeds 166 limit)", () => {
+            const lcdc: u8 = BASE_LCDC | LCDC_WIN_MAP_HI;
+            initTest(lcdc, 0, 167, 0, 1);
+            fillTileMap(BG_MAP_OFFSET,  0);
+            fillTileMap(WIN_MAP_OFFSET, 1);
+            renderToScanline(0);
+            assertEquals<u8>(getPixel(159, 0), expectedColor(0),
+                "WX=167: window invisible, pixel 159 is BG");
+        });
+
+        it("WX=0: window covers full scanline (no hardware-bug emulation)", () => {
+            // Real HW bug at WX=0 corrupts first pixel; emulator renders cleanly from x=0.
+            const lcdc: u8 = BASE_LCDC | LCDC_WIN_MAP_HI;
+            initTest(lcdc, 0, 0, 0, 1);
+            fillTileMap(BG_MAP_OFFSET,  0);
+            fillTileMap(WIN_MAP_OFFSET, 1);
+            renderToScanline(0);
+            assertEquals<u8>(getPixel(0,   0), expectedColor(1),
+                "WX=0: pixel 0 is window");
+            assertEquals<u8>(getPixel(159, 0), expectedColor(1),
+                "WX=0: pixel 159 is window");
+        });
+
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
     describe("Window uses separate tile map from BG", () => {
 
         it("LCDC.6=1: window reads from 0x9C00, BG reads from 0x9800", () => {

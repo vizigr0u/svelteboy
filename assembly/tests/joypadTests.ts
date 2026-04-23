@@ -161,11 +161,73 @@ function testNoInterruptOnSameKeyState(): void {
 
 function testInterruptOnAdditionalKeyPress(): void {
     setTestRom([0x00]);
-    Joypad.SetKeys(0x10); // A pressed
+    joypadWrite(SELECT_DPAD); // D-pad group selected
+    Joypad.SetKeys(0x01); // Right pressed
     clearJoypadIF();
-    Joypad.SetKeys(0x30); // A + B — B is new (new 1→0 edge)
+    Joypad.SetKeys(0x03); // Right + Left — Left is new (D-pad group, must fire)
     assert(Interrupt.HasRequest(IntType.Joypad),
         "IF bit 4 must fire when an additional key is pressed");
+}
+
+// ── Neither / both groups selected ───────────────────────────────────────
+
+function testNeitherGroupSelectedReadsAllReleased(): void {
+    setTestRom([0x00]);
+    joypadWrite(0x30); // both bit4 and bit5 high → neither group selected
+    Joypad.SetKeys(0x0F); // all D-pad pressed
+    // spec: low nibble reads $F (all released) regardless of key state
+    assertEquals<u8>(joypadRead() & 0x0F, 0x0F,
+        "Neither group selected: low nibble must be $F regardless of key state");
+}
+
+function testBothGroupsSelectedActionBitsVisible(): void {
+    setTestRom([0x00]);
+    joypadWrite(0x00); // both bit4=0 and bit5=0 → both groups selected
+    Joypad.SetKeys(0x10); // A pressed (action bit 0)
+    // spec: A pulls bit 0 low (action group active)
+    assertEquals<u8>(joypadRead() & 0x01, 0x00,
+        "Both groups selected: A pressed must pull bit0 low");
+}
+
+function testBothGroupsSelectedDpadBitsVisible(): void {
+    setTestRom([0x00]);
+    joypadWrite(0x00); // both groups selected
+    Joypad.SetKeys(0x01); // Right pressed (d-pad bit 0)
+    // spec: Right pulls bit 0 low (d-pad group active)
+    assertEquals<u8>(joypadRead() & 0x01, 0x00,
+        "Both groups selected: Right pressed must pull bit0 low");
+}
+
+function testBothGroupsSelectedOverlapMasksButton(): void {
+    setTestRom([0x00]);
+    joypadWrite(0x00); // both groups selected
+    Joypad.SetKeys(0x10); // A pressed (action bit 0) — holds bit0 low
+    // spec: if action holds bit low, same-bit dpad press is undetectable
+    // pressing Right additionally still shows bit0 low (can't distinguish source)
+    Joypad.SetKeys(0x11); // A + Right
+    assertEquals<u8>(joypadRead() & 0x01, 0x00,
+        "Both groups selected: bit0 stays low with A held (Right undetectable)");
+}
+
+// ── Interrupt: group selection ────────────────────────────────────────────
+
+function testInterruptNotFiredForUnselectedGroup(): void {
+    setTestRom([0x00]);
+    joypadWrite(SELECT_DPAD); // D-pad group selected only
+    clearJoypadIF();
+    Joypad.SetKeys(0x10); // A pressed — action group, not selected
+    // spec: interrupt fires only when "that group selected"
+    assert(!Interrupt.HasRequest(IntType.Joypad),
+        "Interrupt must NOT fire for action key when only D-pad group selected");
+}
+
+function testInterruptFiredForSelectedGroup(): void {
+    setTestRom([0x00]);
+    joypadWrite(SELECT_DPAD); // D-pad group selected
+    clearJoypadIF();
+    Joypad.SetKeys(0x01); // Right pressed — D-pad key, matches selected group
+    assert(Interrupt.HasRequest(IntType.Joypad),
+        "Interrupt must fire for D-pad key when D-pad group selected");
 }
 
 // ── Opposite key prevention ───────────────────────────────────────────────
@@ -232,6 +294,12 @@ export function testJoypad(): boolean {
         it("allowOppositeKeys=false: Up held blocks Down", () => { testOppositePreventionUpBlocksDown(); });
         it("allowOppositeKeys=false: Left held blocks Right", () => { testOppositePreventionLeftBlocksRight(); });
         it("allowOppositeKeys=true (default): opposite keys both register", () => { testOppositeKeysAllowedByDefault(); });
+        it("Neither group selected ($30): low nibble = $F regardless of keys", () => { testNeitherGroupSelectedReadsAllReleased(); });
+        it("Both groups selected ($00): action bit visible in read", () => { testBothGroupsSelectedActionBitsVisible(); });
+        it("Both groups selected ($00): d-pad bit visible in read", () => { testBothGroupsSelectedDpadBitsVisible(); });
+        it("Both groups selected: action holding bit low masks same-bit d-pad", () => { testBothGroupsSelectedOverlapMasksButton(); });
+        it("Interrupt NOT fired for unselected group key press", () => { testInterruptNotFiredForUnselectedGroup(); });
+        it("Interrupt fired for selected group key press", () => { testInterruptFiredForSelectedGroup(); });
     });
     return true;
 }

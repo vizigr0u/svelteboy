@@ -7,6 +7,33 @@ import { describe, it, assertEquals } from "./framework";
 import { setupMBCCart, readRomBank0Sentinel, readRomBank1Sentinel, writeRam, readRam, mbcWrite } from "./mbcTestHelpers";
 
 export function testMbc(): boolean {
+    describe("No MBC (ROM only)", () => {
+
+        it("ROM bank 0 window maps $0000 to CARTRIDGE_ROM_START", () => {
+            setupMBCCart(CartridgeType.ROM_ONLY, 0, 0);
+            assertEquals<u32>(MBC.MapRom(0x0000), CARTRIDGE_ROM_START, "MapRom(0x0000) = ROM start");
+        });
+
+        it("ROM bank 1 window maps $4000 to CARTRIDGE_ROM_START + 0x4000 (no switching)", () => {
+            setupMBCCart(CartridgeType.ROM_ONLY, 0, 0);
+            assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 0x4000, "MapRom(0x4000) = ROM + 0x4000");
+        });
+
+        it("RAM always enabled on init", () => {
+            setupMBCCart(CartridgeType.ROM_ONLY, 0, 2);
+            assertEquals<bool>(isRamEnabled(), true, "RAM always enabled for no-MBC");
+        });
+
+        it("writes to ROM range are ignored (bank 1 window stays at physical bank 1)", () => {
+            // 4-bank ROM: bank0=sentinel0, bank1=sentinel1, bank2=sentinel2, bank3=sentinel3.
+            // Writing 3 to $2000 must NOT switch $4000 window to bank 3.
+            setupMBCCart(CartridgeType.ROM_ONLY, 1, 0); // romSizeByte=1 → 4 banks
+            mbcWrite(0x2000, 0x03); // attempt bank switch — must be ignored
+            assertEquals<u8>(readRomBank1Sentinel(), 1, "$4000 still reads bank1 sentinel=1");
+        });
+
+    });
+
     describe("MBC1", () => {
 
         describe("RAM enable/disable", () => {
@@ -39,7 +66,7 @@ export function testMbc(): boolean {
 
             it("ROM bank masked on 2-bank cart (mask=1)", () => {
                 setupMBCCart(CartridgeType.MBC1, 0, 0); // 2 banks, mask=1
-                mbcWrite(0x2000, 3); // 3 % 2 = 1 → 1 & 1 = 1
+                mbcWrite(0x2000, 3); // 3 & mask(1) = 1
                 assertEquals<u8>(readRomBank1Sentinel(), 1, "bank 3 masked to bank 1");
             });
 
@@ -85,6 +112,61 @@ export function testMbc(): boolean {
                 mbcWrite(0x6000, 0x01); // enable advanced mode
                 // rom0Bank = (1<<5) & 63 = 32
                 assertEquals<u8>(readRomBank0Sentinel(), 32, "advanced mode: rom0 remapped to bank 32");
+            });
+        });
+
+        describe("RAM enable lower-nibble rule", () => {
+            it("enable via 0x1A (any value with lower nibble 0xA)", () => {
+                setupMBCCart(CartridgeType.MBC1_RAM, 0, 2);
+                mbcWrite(0x0000, 0x1A);
+                assertEquals<bool>(isRamEnabled(), true, "0x1A enables RAM");
+            });
+
+            it("enable via 0xFA", () => {
+                setupMBCCart(CartridgeType.MBC1_RAM, 0, 2);
+                mbcWrite(0x0000, 0xFA);
+                assertEquals<bool>(isRamEnabled(), true, "0xFA enables RAM");
+            });
+
+            it("disable via 0x0B (lower nibble != 0xA)", () => {
+                setupMBCCart(CartridgeType.MBC1_RAM, 0, 2);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x0000, 0x0B);
+                assertEquals<bool>(isRamEnabled(), false, "0x0B disables RAM");
+            });
+        });
+
+        describe("mode 0 RAM bank always 0", () => {
+            it("high register set, mode 0: RAM stays at bank 0", () => {
+                setupMBCCart(CartridgeType.MBC1_RAM, 0, 3); // 4 RAM banks
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x4000, 0x02); // high=2, mode 0
+                writeRam(0x11);
+                assertEquals<u32>(
+                    MBC.MapRam(0xA000),
+                    GB_EXT_RAM_START,
+                    "mode 0: RAM locked to bank 0"
+                );
+            });
+        });
+
+        describe("banks $20/$40/$60 inaccessible in ROM bank 1 window", () => {
+            it("writing $20 to $2000 selects bank 1 (lower 5 bits = 0 → remapped)", () => {
+                setupMBCCart(CartridgeType.MBC1, 3, 0); // 16 banks
+                mbcWrite(0x2000, 0x20);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bank $20 → bank 1");
+            });
+
+            it("writing $40 to $2000 selects bank 1", () => {
+                setupMBCCart(CartridgeType.MBC1, 3, 0);
+                mbcWrite(0x2000, 0x40);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bank $40 → bank 1");
+            });
+
+            it("write $E1 to $2000 → bank 1 (upper bits discarded by 5-bit mask)", () => {
+                setupMBCCart(CartridgeType.MBC1, 3, 0);
+                mbcWrite(0x2000, 0xE1);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "0xE1 & 0x1F = 1 → bank 1");
             });
         });
 
@@ -174,6 +256,42 @@ export function testMbc(): boolean {
                 mbcWrite(0x2100, 5);
                 assertEquals<u32>(MBC.MapRam(0xA100), GB_EXT_RAM_START + 0x100, "MapRam(0xA100) offset correct");
             });
+
+            it("$A200-$BFFF echoes $A000-$A1FF (9-bit address mask)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                // $A200 & 0x01FF = 0x0000, so maps same as $A000
+                assertEquals<u32>(MBC.MapRam(0xA200), MBC.MapRam(0xA000), "0xA200 echoes 0xA000");
+                // $A1FF maps to byte 511 (0x1FF), $A3FF also maps to byte 511
+                assertEquals<u32>(MBC.MapRam(0xA3FF), MBC.MapRam(0xA1FF), "0xA3FF echoes 0xA1FF");
+            });
+        });
+
+        describe("RAM enable lower-nibble rule (bit8=0)", () => {
+            it("enable via 0x1A (lower nibble 0xA, bit8=0)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x1A);
+                assertEquals<bool>(isRamEnabled(), true, "0x1A enables RAM");
+            });
+
+            it("enable via 0xFA (lower nibble 0xA, bit8=0)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0200, 0xFA); // addr $0200, bit8=0
+                assertEquals<bool>(isRamEnabled(), true, "0xFA at bit8=0 enables RAM");
+            });
+        });
+
+        describe("ROM bank lower-4-bit mask (bit8=1)", () => {
+            it("write 0xF3 to addr with bit8=1 → bank 3 (upper nibble discarded)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0); // 16 banks
+                mbcWrite(0x2100, 0xF3);
+                assertEquals<u8>(readRomBank1Sentinel(), 3, "0xF3 masked to lower nibble → bank 3");
+            });
+
+            it("write 0x10 to addr with bit8=1 → bank 1 (0x10 & 0x0F = 0 → 1 via 0→1 rule)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x2100, 0x10);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "0x10 lower nibble = 0 → bank 1");
+            });
         });
 
     });
@@ -224,12 +342,102 @@ export function testMbc(): boolean {
             });
         });
 
+        describe("ROM bank select: banks $20/$40/$60 accessible (unlike MBC1)", () => {
+            it("bank $20 directly selectable", () => {
+                setupMBCCart(CartridgeType.MBC3, 5, 0); // 64 banks
+                mbcWrite(0x2000, 0x20);
+                assertEquals<u8>(readRomBank1Sentinel(), 0x20, "bank $20 accessible in MBC3");
+            });
+
+            it("bank $40 directly selectable", () => {
+                setupMBCCart(CartridgeType.MBC3, 7, 0); // 128 banks
+                mbcWrite(0x2000, 0x40);
+                assertEquals<u8>(readRomBank1Sentinel(), 0x40, "bank $40 accessible in MBC3");
+            });
+
+            it("bank $60 directly selectable", () => {
+                setupMBCCart(CartridgeType.MBC3, 7, 0);
+                mbcWrite(0x2000, 0x60);
+                assertEquals<u8>(readRomBank1Sentinel(), 0x60, "bank $60 accessible in MBC3");
+            });
+
+            it("bank $7F (max 7-bit) directly selectable", () => {
+                setupMBCCart(CartridgeType.MBC3, 7, 0);
+                mbcWrite(0x2000, 0x7F);
+                assertEquals<u8>(readRomBank1Sentinel(), 0x7F, "bank $7F accessible in MBC3");
+            });
+
+            it("7-bit mask: upper bit of value ignored (bit7=1 → same as bit7=0)", () => {
+                setupMBCCart(CartridgeType.MBC3, 7, 0);
+                mbcWrite(0x2000, 0x85); // 0x85 & 0x7F = 5
+                assertEquals<u8>(readRomBank1Sentinel(), 5, "0x85 masked to bank 5");
+            });
+        });
+
+        describe("RAM enable lower-nibble rule", () => {
+            it("enable via 0x0A", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3);
+                mbcWrite(0x0000, 0x0A);
+                assertEquals<bool>(isRamEnabled(), true, "0x0A enables RAM");
+            });
+
+            it("disable via non-0xA nibble value (0x01)", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x0000, 0x01);
+                assertEquals<bool>(isRamEnabled(), false, "0x01 disables RAM");
+            });
+        });
+
+        describe("RAM banks 0-7 accessible (MBC3/MBC30)", () => {
+            it("bank 4 selectable", () => {
+                setupMBCCart(CartridgeType.MBC3_RAM_2, 0, 3);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x4000, 4);
+                assertEquals<u32>(
+                    MBC.MapRam(0xA000),
+                    GB_EXT_RAM_START + 4 * GB_EXT_RAM_BANK_SIZE,
+                    "RAM bank 4 mapped"
+                );
+            });
+        });
+
+        describe("ROM bank switch does not affect RAM enable", () => {
+            it("writing ROM bank $05 to $2000 keeps RAM enabled", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3);
+                mbcWrite(0x0000, 0x0A); // enable RAM
+                mbcWrite(0x2000, 0x05); // switch ROM bank
+                assertEquals<bool>(isRamEnabled(), true, "RAM still enabled after ROM bank switch");
+            });
+        });
+
         describe("RTC stub (0x4000-0x5FFF)", () => {
             it("writing 0x08-0x0C does not crash", () => {
                 setupMBCCart(CartridgeType.MBC3, 3, 0);
                 for (let v: u8 = 0x08; v <= 0x0C; v++) {
                     mbcWrite(0x4000, v);
                 }
+            });
+
+            it("RAM bank switch to $08-$0C does not corrupt RAM bank state", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 3);
+                mbcWrite(0x0000, 0x0A);
+                mbcWrite(0x4000, 0x02); // select RAM bank 2
+                mbcWrite(0x4000, 0x08); // RTC select
+                mbcWrite(0x4000, 0x02); // back to RAM bank 2
+                assertEquals<u32>(
+                    MBC.MapRam(0xA000),
+                    GB_EXT_RAM_START + 2 * GB_EXT_RAM_BANK_SIZE,
+                    "RAM bank 2 restored after RTC select"
+                );
+            });
+        });
+
+        describe("latch clock ($6000-$7FFF)", () => {
+            it("write $00 then $01 to $6000 does not crash", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 0);
+                mbcWrite(0x6000, 0x00);
+                mbcWrite(0x6000, 0x01);
             });
         });
 

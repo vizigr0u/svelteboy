@@ -1,7 +1,7 @@
 import { Alu } from "./alu";
 import { CpuOps } from "./cpuOps";
 import { disassembleInstruction, getMnemonicName, getOperandTargetName } from "../debug/disassemble";
-import { Interrupt } from "./interrupts";
+import { Interrupt, IntType } from "./interrupts";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes, prefixedPackedOps, unprefixedPackedOps } from "./opcodes";
@@ -40,6 +40,7 @@ export class Cpu {
     static isStopped: boolean = false;
     static failedLastCondition: boolean = false;
     static isEnablingIME: boolean = false;
+    static haltBug: boolean = false;
 
     @inline static A(): u8 { return <u8>(Cpu.AF >> 8) };
     @inline static F(): u8 { return <u8>(Cpu.AF & 0xFF) };
@@ -85,16 +86,21 @@ export class Cpu {
         Cpu.failedLastCondition = false;
         Cpu.CycleCount = 0;
         Cpu.isEnablingIME = false;
+        Cpu.haltBug = false;
 
         Interrupt.Init();
     }
 
     static Tick(): u8 {
         const wasHalted = Cpu.isHalted;
-        let t_cycles: u8 = wasHalted ? 4 : Cpu.executeNextInstruction();
+        const wasStopped = Cpu.isStopped;
+        let t_cycles: u8 = (wasHalted || wasStopped) ? 4 : Cpu.executeNextInstruction();
 
         if (wasHalted && (Interrupt.Requests() & Interrupt.GetEnabled()) != 0) {
             Cpu.isHalted = false;
+        }
+        if (wasStopped && (Interrupt.Requests() & <u8>IntType.Joypad) != 0) {
+            Cpu.isStopped = false;
         }
 
         if (Interrupt.masterEnabled) {
@@ -152,7 +158,10 @@ export class Cpu {
         if (Logger.verbose >= (opCode == 0 ? 3 : 2))
             log('executing ' + uToHex<u16>(originalPc) + '\t' + disassembleInstruction(MemoryMap.GBToMemory(originalPc)));
 
-        const nextPc: u16 = originalPc + totalInstructionSize;
+        const applyHaltBug = Cpu.haltBug;
+        Cpu.haltBug = false;
+        // halt bug: PC was not incremented during HALT fetch, so this instruction's nextPc = originalPc
+        const nextPc: u16 = applyHaltBug ? originalPc : originalPc + totalInstructionSize;
         Cpu.ProgramCounter = nextPc;
         Cpu.failedLastCondition = false;
 
@@ -191,7 +200,12 @@ export class Cpu {
                 Alu.ScfOp();
                 break;
             case Op.HALT:
-                Cpu.isHalted = true;
+                if (!Interrupt.masterEnabled && (Interrupt.Requests() & Interrupt.GetEnabled()) != 0) {
+                    // halt bug: pending interrupt with IME=0 → skip halt, next instr PC doesn't advance
+                    Cpu.haltBug = true;
+                } else {
+                    Cpu.isHalted = true;
+                }
                 if (Logger.verbose >= 2)
                     log("CPU Halt");
                 break;

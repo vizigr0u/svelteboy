@@ -7,9 +7,6 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_S
 export class MBC3 {
     private static romBank: u32 = 1;
     private static ramBank: u8 = 0;
-    private static ramEnabled: boolean = false;
-
-    static get RamEnabled(): boolean { return MBC3.ramEnabled; }
 
     static Init(): void {
         if (Logger.verbose >= 1)
@@ -24,57 +21,39 @@ export class MBC3 {
         switch (hiByte) {
             case 0x0:
             case 0x1:
-                if (value == 0x0A)
-                    enableRam(true);
-                else if (value == 0)
-                    enableRam(false);
-                else if (Logger.verbose >= 1) {
-                    log(`Unhandled value written at ${uToHex<u16>(gbAddress)}: ` + value.toString())
-                }
+                enableRam((value & 0xF) == 0xA);
                 return;
             case 0x2:
             case 0x3:
-                const newRomBank = value == 0 ? 1 : value;
-                if (newRomBank != MBC3.romBank) {
-                    if (Logger.verbose >= 2)
-                        log(`Switching ROM bank(1) from #${MBC3.romBank} to ${newRomBank}`)
-                }
+                const newRomBank: u32 = value == 0 ? 1 : (value & 0x7F);
+                if (newRomBank != MBC3.romBank && Logger.verbose >= 2)
+                    log(`Switching ROM bank(1) from #${MBC3.romBank} to ${newRomBank}`)
                 MBC3.romBank = newRomBank;
-                break;
+                return;
             case 0x4:
             case 0x5:
-                if (value <= 3) {
-                    const newRamBank = value & 0x3;
+                if (value <= 7) {
+                    const newRamBank = value & 0x7;
                     if (newRamBank != MBC3.ramBank && Logger.verbose >= 2)
                         log(`Switching RAM bank from #${MBC3.ramBank} to ${newRamBank}`)
                     MBC3.ramBank = newRamBank;
-                }
-                else if (value >= 0x8 && value <= 0xC) {
-                    if (Logger.verbose >= 2) {
+                } else if (value >= 0x8 && value <= 0xC) {
+                    if (Logger.verbose >= 2)
                         log('RTC not supported. Ignoring this write to ' + uToHex<u16>(gbAddress));
-                    }
                 } else if (Logger.verbose >= 2) {
                     log('Ignoring unhandled value write to ' + uToHex<u16>(gbAddress))
                 }
-                break;
+                return;
             case 0x6:
             case 0x7:
-                if (Logger.verbose >= 2) {
+                if (Logger.verbose >= 2)
                     log('RTC not supported. Ignoring this write to ' + uToHex<u16>(gbAddress));
-                }
-                break;
+                return;
             case 0xA:
             case 0xB:
-                if (Logger.verbose >= 2) {
+                if (Logger.verbose >= 2)
                     log('RTC not supported. Ignoring this write to ' + uToHex<u16>(gbAddress));
-                }
-                break;
-        }
-
-        if ((gbAddress & 0x1000) == 0) { // Ram enabled register bit
-            enableRam((value & 0xF) == 0xA);
-        } else {
-            MBC3.romBank = value & 0xF;
+                return;
         }
     }
 

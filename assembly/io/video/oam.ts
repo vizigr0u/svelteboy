@@ -44,7 +44,9 @@ export class Oam {
 
     @inline
     static Load<T>(gbAddress: u16): T {
-        return Dma.active ? <T>0xff : load<T>(GB_OAM_START + gbAddress - 0xFE00);
+        if (Dma.active || (Lcd.IsPpuEnabled && (Ppu.currentMode == PpuMode.OAMScan || Ppu.currentMode == PpuMode.Transfer)))
+            return <T>0xff;
+        return load<T>(GB_OAM_START + gbAddress - 0xFE00);
     }
 
     @inline
