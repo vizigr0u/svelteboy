@@ -14,6 +14,7 @@ import {
     GB_VIDEO_START,
     GB_VIDEO_BANK_SIZE,
     GB_WRAM_START,
+    GB_WRAM_BANK_SIZE,
     GB_IO_START,
     GB_HIGH_RAM_START,
     GB_RESTRICTED_AREA_ADDRESS,
@@ -89,8 +90,9 @@ export class MemoryMap {
             case 0xB:
                 return MBC.MapRam(gbAddress);
             case 0xC:
-            case 0xD:
                 return GB_WRAM_START + gbAddress - 0xC000;
+            case 0xD:
+                return GB_WRAM_START + gbAddress - 0xC000 + (CgbState.isCgbMode ? (CgbState.wramBank - 1) * GB_WRAM_BANK_SIZE : 0);
             case 0xE:
             case 0xF:
                 if (gbAddress >= 0xFF80)
