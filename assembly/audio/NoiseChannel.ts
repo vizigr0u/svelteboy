@@ -25,6 +25,11 @@ export class NoiseChannel extends AudioChannelBase {
     }
 
     setLsfrClock(shift: u8, divider: u8): void {
+        // Spec: shift 14 or 15 → LFSR receives no clocks (hardware clock generator broken at these values)
+        if (shift >= 14) {
+            this.lsfrPeriod = 1e38;
+            return;
+        }
         this.lsfrPeriod = (divider == 0)
             ? <f64>1 / <f64>(524288 >> shift)
             : <f64>divider / <f64>(262144 >> shift);

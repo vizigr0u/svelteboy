@@ -67,6 +67,15 @@ function testSbReceivesFFWhenDisconnected(): void {
         "SB must read $FF after disconnected transfer (no external device)");
 }
 
+// External clock: no transfer → SB retains written value (not overwritten with $FF)
+function testSbRetainsValueOnExternalClock(): void {
+    setupSerial();
+    MemoryMap.GBstore<u8>(SB, 0x42);
+    MemoryMap.GBstore<u8>(SC, 0x80); // bit 7 set, bit 0=0 (external/slave, no transfer)
+    assertEquals<u8>(MemoryMap.GBload<u8>(SB), 0x42,
+        "SB must retain written value when no transfer occurs (external clock)");
+}
+
 export function testSerial(): boolean {
     describe("Serial", () => {
         it("SC bit 7 clears after internal-clock transfer", () => { testScStartBitClears(); });
@@ -75,6 +84,7 @@ export function testSerial(): boolean {
         it("IF bit 3 set after internal-clock transfer completes", () => { testTransferCompleteInterrupt(); });
         it("SB read/write", () => { testSbReadWrite(); });
         it("SB reads $FF after disconnected transfer", () => { testSbReceivesFFWhenDisconnected(); });
+        it("SB retains value when external clock (no transfer)", () => { testSbRetainsValueOnExternalClock(); });
     });
     return true;
 }

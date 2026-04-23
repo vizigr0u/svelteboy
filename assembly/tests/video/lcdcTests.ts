@@ -73,6 +73,14 @@ export function testLcdc(): boolean {
                 assertEquals<bool>(Lcd.IsPpuEnabled, true, "PPU re-enabled");
             });
 
+            it("STAT mode bits report 0 when PPU disabled (LCDC.7=0)", () => {
+                initPpu();
+                tickPpuDots(144 * 456); // enter VBlank
+                setLCDC(0x00);          // disable PPU
+                const stat = MemoryMap.GBload<u8>(0xFF41);
+                assertEquals<u8>(stat & 0x03, 0, "STAT mode bits = 0 when PPU off");
+            });
+
             // Regression: guard checked (value & 7) instead of (value & 0x80)
             it("disabling with other bits set (e.g. 0x04) outside VBlank is ignored", () => {
                 initPpu();
@@ -102,6 +110,16 @@ export function testLcdc(): boolean {
                 assertEquals<bool>(Lcd.BGandWindowVisible, true, "BG on");
                 setLCDC(0x80);
                 assertEquals<bool>(Lcd.BGandWindowVisible, false, "BG off");
+            });
+
+            it("window enable (bit 5) ignored when bit 0 = 0 (DMG: window overridden off)", () => {
+                initPpu();
+                MemoryMap.GBstore<u8>(WY_ADDR, 0);
+                MemoryMap.GBstore<u8>(WX_ADDR, 7);
+                // bit5=1 (window enable) but bit0=0 (BG+Win disabled) → window must not show
+                setLCDC(0x80 | 0x20); // PPU + window enable, no bit 0
+                tickPpuDots(456);
+                assertEquals<bool>(Lcd.IsWindowVisible, false, "window suppressed when LCDC.0=0");
             });
         });
 
@@ -209,11 +227,11 @@ export function testLcdc(): boolean {
                 assertEquals<bool>(Lcd.IsWindowVisible, false, "window not visible");
             });
 
-            it("window visible when bit 5 = 1 with valid WY/WX", () => {
+            it("window visible when bit 5 = 1 with valid WY/WX (bit 0 also set)", () => {
                 initPpu();
                 MemoryMap.GBstore<u8>(WY_ADDR, 0);
                 MemoryMap.GBstore<u8>(WX_ADDR, 7);
-                setLCDC(0x80 | 0x20); // bit 5 = 1
+                setLCDC(0x80 | 0x20 | 0x01); // bit 5 = 1, bit 0 = 1 (BG+Win enable required)
                 tickPpuDots(456); // LY becomes 1, NextLine checks WY=0 ≤ LY=1
                 assertEquals<bool>(Lcd.IsWindowVisible, true, "window visible");
             });
@@ -222,10 +240,10 @@ export function testLcdc(): boolean {
                 initPpu();
                 MemoryMap.GBstore<u8>(WY_ADDR, 0);
                 MemoryMap.GBstore<u8>(WX_ADDR, 7);
-                setLCDC(0x80 | 0x20);
+                setLCDC(0x80 | 0x20 | 0x01); // bit 5 = 1, bit 0 = 1
                 tickPpuDots(456);
                 assertEquals<bool>(Lcd.IsWindowVisible, true, "window on");
-                setLCDC(0x80); // clear bit 5
+                setLCDC(0x80 | 0x01); // clear bit 5, keep bit 0
                 tickPpuDots(456); // NextLine updates _windowVisible
                 assertEquals<bool>(Lcd.IsWindowVisible, false, "window off");
             });

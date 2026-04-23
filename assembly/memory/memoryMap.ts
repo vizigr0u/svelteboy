@@ -2,7 +2,9 @@ import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { IO } from "../io/io";
 import { Dma } from "../io/video/dma";
+import { Lcd } from "../io/video/lcd";
 import { Oam } from "../io/video/oam";
+import { Ppu, PpuMode } from "../io/video/ppu";
 import { TileCache } from "../io/video/tileCache";
 import { uToHex } from "../utils/stringUtils";
 import { MBC } from "./mbc";
@@ -118,7 +120,12 @@ export class MemoryMap {
 
     static GBload<T>(gbAddress: u16): T {
         if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) { // ROM and RAM
-            if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
+            if (Dma.active && gbAddress < 0xFF80)
+                return <T>0xFF;
+            if (gbAddress >= 0x8000 && gbAddress < 0xA000) { // VRAM
+                if (Lcd.IsPpuEnabled && Ppu.currentMode == PpuMode.Transfer)
+                    return <T>0xff;
+            } else if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
                 if (!isRamEnabled()) {
                     if (Logger.verbose >= 2)
                         logRamDisabled(gbAddress);
@@ -155,6 +162,15 @@ export class MemoryMap {
         }
         if (gbAddress < 0x8000) { // ROM
             MBC.HandleWrite(gbAddress, <u8>value);
+            return;
+        }
+        if (gbAddress < 0xA000) { // VRAM
+            if (Lcd.IsPpuEnabled && Ppu.currentMode == PpuMode.Transfer)
+                return;
+            store<T>(MemoryMap.GBToMemory(gbAddress), value);
+            if (gbAddress < 0x9800) {
+                TileCache.decode(gbAddress);
+            }
             return;
         }
         if (gbAddress < 0xE000 || gbAddress >= 0xFF80) { // all types of RAM

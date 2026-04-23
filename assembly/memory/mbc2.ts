@@ -16,9 +16,10 @@ export class MBC2 {
 
     static HandleWrite(gbAddress: u16, value: u8): void {
         if ((gbAddress & 0x0100) == 0) { // bit 8 of address: 0=RAM enable, 1=ROM bank select (Pan Docs)
-            enableRam(value == 0xA);
+            enableRam((value & 0xF) == 0xA);
         } else {
-            const newRomBank = value == 0 ? 1 : value;
+            const nibble = value & 0x0F;
+            const newRomBank = nibble == 0 ? 1 : nibble;
             if (newRomBank != MBC2.romBank && Logger.verbose >= 2)
                 log(`Switching ROM bank(1) from #${MBC2.romBank} to ${newRomBank}`)
             MBC2.romBank = newRomBank;
@@ -32,7 +33,7 @@ export class MBC2 {
     }
 
     static MapRam(gbAddress: u16): u32 {
-        return GB_EXT_RAM_START + gbAddress - 0xA000;
+        return GB_EXT_RAM_START + ((gbAddress - 0xA000) & 0x01FF);
     }
 }
 
