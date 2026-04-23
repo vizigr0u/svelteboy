@@ -1,8 +1,9 @@
 import { Dma } from "../../io/video/dma";
 import { MemoryMap } from "../../memory/memoryMap";
-import { GB_OAM_START } from "../../memory/memoryConstants";
+import { BOOT_ROM_START, GB_EXT_RAM_START, GB_HIGH_RAM_START, GB_OAM_START, GB_WRAM_START } from "../../memory/memoryConstants";
 import { describe, it, assertEquals } from "../framework";
 import { setTestRom } from "../cpuTests";
+import { tickPpuDots } from "./ppuTestHelpers";
 
 const DMA_REG: u16 = 0xFF46;
 const OAM_ADDR: u16 = 0xFE00;
@@ -113,6 +114,55 @@ export function testDma(): boolean {
             });
         });
 
+        describe("DMA source $DF (last valid source address)", () => {
+            it("DMA from $DF copies 160 bytes correctly", () => {
+                initDma();
+                const SRC_DF: u8 = 0xDF; // upper WRAM on DMG ($DF00-$DF9F)
+                for (let i: u16 = 0; i < 160; i++) {
+                    MemoryMap.GBstore<u8>((<u16>SRC_DF << 8) + i, <u8>(0x30 + i));
+                }
+                triggerDma(SRC_DF);
+                tickDma(162);
+                assertEquals<u8>(load<u8>(GB_OAM_START),       0x30,                "DMA $DF: OAM[0]");
+                assertEquals<u8>(load<u8>(GB_OAM_START + 159), <u8>(0x30 + 159),    "DMA $DF: OAM[159]");
+                assertEquals<bool>(Dma.active, false, "DMA inactive after $DF transfer");
+            });
+        });
+
+        describe("GBload blocked during active DMA (HRAM excepted)", () => {
+            it("ROM read returns 0xFF during active DMA", () => {
+                initDma();
+                store<u8>(BOOT_ROM_START, 0x42);
+                triggerDma(SRC_HIGH);
+                tickDma(1); // delay period, DMA active
+                assertEquals<u8>(MemoryMap.GBload<u8>(0x0000), 0xFF, "ROM read blocked during DMA");
+            });
+
+            it("WRAM read returns 0xFF during active DMA", () => {
+                initDma();
+                store<u8>(GB_WRAM_START, 0x42);
+                triggerDma(SRC_HIGH);
+                tickDma(1);
+                assertEquals<u8>(MemoryMap.GBload<u8>(0xC000), 0xFF, "WRAM read blocked during DMA");
+            });
+
+            it("ext-RAM read returns 0xFF during active DMA", () => {
+                initDma();
+                store<u8>(GB_EXT_RAM_START, 0x42);
+                triggerDma(SRC_HIGH);
+                tickDma(1);
+                assertEquals<u8>(MemoryMap.GBload<u8>(0xA000), 0xFF, "ext-RAM read blocked during DMA");
+            });
+
+            it("HRAM accessible during active DMA", () => {
+                initDma();
+                store<u8>(GB_HIGH_RAM_START, 0x42);
+                triggerDma(SRC_HIGH);
+                tickDma(1);
+                assertEquals<u8>(MemoryMap.GBload<u8>(0xFF80), 0x42, "HRAM accessible during DMA");
+            });
+        });
+
         describe("OAM reads return 0xFF during active DMA", () => {
             it("OAM read returns 0xFF during delay period", () => {
                 initDma();
@@ -137,6 +187,7 @@ export function testDma(): boolean {
                 fillSrc(0x77);
                 triggerDma(SRC_HIGH);
                 tickDma(162);
+                tickPpuDots(252); // advance to HBlank so OAM reads are not blocked by PPU mode
                 assertEquals<u8>(MemoryMap.GBload<u8>(OAM_ADDR), 0x77, "OAM readable after DMA");
                 assertEquals<u8>(MemoryMap.GBload<u8>(OAM_ADDR + 10), <u8>(0x77 + 10), "OAM[10] readable after DMA");
             });

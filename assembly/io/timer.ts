@@ -26,6 +26,8 @@ export class Timer {
 
     private static DivWatchBit: u16 = 1 << 9;
     private static Enabled: boolean = false;
+    // 1 M-cycle overflow delay: TIMA=$00 for one M-cycle before TMA reload + IF fire.
+    static overflowPending: boolean = false;
 
     static Init(): void {
         Timer.Tima = 0;
@@ -34,6 +36,7 @@ export class Timer {
         Timer.internalDiv = Timer.InitialDiv;
         Timer.DivWatchBit = Timer.getDivWatchBit(Timer.Tac);
         Timer.Enabled = false;
+        Timer.overflowPending = false;
     }
 
     private static logTick(tCycles: u8): void {
@@ -44,14 +47,12 @@ export class Timer {
         log(`Timer edge: DivWatchBit=${Timer.DivWatchBit.toString(2)} internalDiv=${uToHex<u16>(Timer.internalDiv)} Tima=${uToHex<u8>(Timer.Tima)}`);
     }
 
-    // Falling edge on the watched bit -> increment TIMA (or overflow to TMA + request interrupt).
+    // Falling edge on the watched bit -> increment TIMA (or begin overflow sequence).
+    // Overflow is delayed by 1 M-cycle: TIMA=$00 this cycle, TMA reload + IF on next M-cycle.
     private static fallingEdgeTick(): void {
         if (Timer.Tima == 0xFF) {
-            Timer.Tima = Timer.Tma;
-            Interrupt.Request(IntType.Timer);
-            if (Logger.verbose >= 2) {
-                log(`Requested Int Timer and set Tima to ${uToHex<u8>(Timer.Tma)}`)
-            }
+            Timer.Tima = 0;
+            Timer.overflowPending = true;
         } else {
             Timer.Tima++;
         }
@@ -60,6 +61,15 @@ export class Timer {
     @inline
     static Tick(tCycles: u8 = 4): void {
         if (Logger.verbose >= 2) Timer.logTick(tCycles);
+        // Cycle B: complete pending overflow from previous M-cycle.
+        if (Timer.overflowPending) {
+            Timer.Tima = Timer.Tma;
+            Interrupt.Request(IntType.Timer);
+            Timer.overflowPending = false;
+            if (Logger.verbose >= 2) {
+                log(`Requested Int Timer and set Tima to ${uToHex<u8>(Timer.Tma)}`)
+            }
+        }
         const prevDiv = Timer.internalDiv;
         Timer.internalDiv += tCycles;
         if (Timer.Enabled) {
@@ -95,6 +105,8 @@ export class Timer {
                 Timer.internalDiv = 0;
                 break;
             case TIMA_ADDRESS:
+                // Write on cycle A cancels pending overflow (TMA not loaded, IF not fired).
+                Timer.overflowPending = false;
                 Timer.Tima = value;
                 if (Logger.verbose >= 2) {
                     log(`TIMA set to ${uToHex<u8>(value)}`)

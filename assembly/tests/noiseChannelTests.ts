@@ -383,6 +383,86 @@ function testLengthCounter(): void {
     });
 }
 
+// ─── Shift ≥14: LFSR Not Clocked ─────────────────────────────────────────────
+
+function testLfsrShift14NotClocked(): void {
+    // Pan Docs NR43: "Shift ≥ 14 → LFSR not clocked."
+    // At shift=14, div=1 with correct impl: no LFSR ticks ever. Current impl may tick at
+    // 262144/16 = 16384 Hz (2756 samples/tick) — this test exposes that gap if present.
+    // At shift=13, div=1: 262144/32 = 8192 Hz → ~1378 samples/tick → visible in 3072 samples.
+    describe("NR43 shift≥14: LFSR not clocked (Pan Docs obscure)", () => {
+        it("shift=14: LFSR stays at 0 after 3072 samples (never clocked per spec)", () => {
+            initAudio();
+            triggerCH4(makeNR43(14, false, 1), 0xF0, 0, false);
+            assertEquals<u16>(ch4().Lsfr, 0, "LFSR=0 after trigger");
+            for (let i = 0; i < 24; i++) ch4().Render(0, BUF); // 24×128=3072 samples
+            assertEquals<u16>(ch4().Lsfr, 0,
+                "LFSR must not advance with shift=14 (LFSR not clocked per spec)");
+        });
+
+        it("shift=15: LFSR stays at 0 after 3072 samples (never clocked per spec)", () => {
+            initAudio();
+            triggerCH4(makeNR43(15, false, 1), 0xF0, 0, false);
+            for (let i = 0; i < 24; i++) ch4().Render(0, BUF);
+            assertEquals<u16>(ch4().Lsfr, 0,
+                "LFSR must not advance with shift=15 (LFSR not clocked per spec)");
+        });
+
+        it("shift=13 does tick within 3072 samples (contrast: confirms threshold at 14)", () => {
+            // shift=13, div=1: 262144/32 = 8192 Hz → ~1378 samples/tick → 2 ticks in 3072
+            initAudio();
+            triggerCH4(makeNR43(13, false, 1), 0xF0, 0, false);
+            for (let i = 0; i < 24; i++) ch4().Render(0, BUF);
+            assert(ch4().Lsfr != 0,
+                `shift=13 LFSR should have advanced from 0 after 3072 samples (got ${ch4().Lsfr})`);
+        });
+    });
+}
+
+// ─── LFSR 7-bit Lockup ────────────────────────────────────────────────────────
+
+function testLfsr7BitLockup(): void {
+    // Pan Docs NR43: "7-bit mode lockup: switching to 7-bit when bottom 7 bits all 1
+    // → LFSR locked → constant output until retrigger."
+    // Proof: in 7-bit mode, XNOR(bit0=1, bit1=1)=1 → bit15=bit7=1 set, shift right →
+    // bits 0-6 remain all 1. Pattern locks — bit0 always 1 → constant volume output.
+    describe("LFSR 7-bit lockup: bits 0-6 all 1 → pattern locks", () => {
+        it("bits 0-6 remain all 1 after ticks when in 7-bit mode (lockup)", () => {
+            initAudio();
+            triggerCH4(makeNR43(0, true, 1), 0xF0, 0, false); // 7-bit mode
+            ch4().Lsfr = 0x007F; // manually set lower 7 bits all to 1
+            ch4().TickLsfr(); // XNOR(1,1)=1 → bit15=1, bit7=1, shift right → 0x407F
+            assertEquals<u16>(ch4().Lsfr & 0x7F, 0x7F,
+                "bits 0-6 must stay all 1 after 1 tick (locked pattern)");
+            ch4().TickLsfr();
+            ch4().TickLsfr();
+            ch4().TickLsfr();
+            assertEquals<u16>(ch4().Lsfr & 0x7F, 0x7F,
+                "bits 0-6 still all 1 after 4 total ticks (locked)");
+        });
+
+        it("15-bit mode with same bits does NOT lock (bits 0-6 diverge)", () => {
+            // In 15-bit mode, bit7 feedback is absent, so pattern escapes
+            initAudio();
+            triggerCH4(makeNR43(0, false, 1), 0xF0, 0, false); // 15-bit mode
+            ch4().Lsfr = 0x007F;
+            for (let i = 0; i < 20; i++) ch4().TickLsfr();
+            assert((ch4().Lsfr & 0x7F) != 0x7F,
+                "15-bit mode should not lock: bits 0-6 should diverge from all-1 after 20 ticks");
+        });
+
+        it("retrigger resets LFSR to 0, breaking 7-bit lockup", () => {
+            initAudio();
+            triggerCH4(makeNR43(0, true, 1), 0xF0, 0, false);
+            ch4().Lsfr = 0x007F;
+            for (let i = 0; i < 10; i++) ch4().TickLsfr();
+            assert((ch4().Lsfr & 0x7F) == 0x7F, "LFSR locked before retrigger");
+            triggerCH4(makeNR43(0, true, 1), 0xF0, 0, false); // retrigger → Reset() → Lsfr=0
+            assertEquals<u16>(ch4().Lsfr, 0, "LFSR reset to 0 by retrigger, lockup broken");
+        });
+    });
+}
+
 // ─── Entry Point ──────────────────────────────────────────────────────────────
 
 export function testNoiseChannel(): boolean {
@@ -393,5 +473,7 @@ export function testNoiseChannel(): boolean {
     testClockShift();
     testEnvelope();
     testLengthCounter();
+    testLfsrShift14NotClocked();
+    testLfsr7BitLockup();
     return true;
 }

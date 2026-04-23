@@ -265,12 +265,97 @@ function testReservedRegistersRead(): void {
     });
 }
 
+function testNR52CH2CH4ChannelStatus(): void {
+    describe("NR52 channel active status: CH2 bit1 and CH4 bit3", () => {
+        it("bit 1 set when CH2 active after trigger (NR22 DAC on)", () => {
+            initAudio();
+            MemoryMap.GBstore<u8>(0xFF26, 0x80);
+            MemoryMap.GBstore<u8>(0xFF17, 0xF3); // NR22: vol=15, DAC on
+            MemoryMap.GBstore<u8>(0xFF19, 0x80); // NR24: trigger CH2
+            flushAudioEvents();
+            const nr52 = MemoryMap.GBload<u8>(0xFF26);
+            assert((nr52 & 0x02) != 0, `NR52 bit 1 should be set (CH2 active), got 0x${nr52.toString(16)}`);
+        });
+
+        it("bit 1 clears when CH2 DAC disabled via NR22 & $F8 = 0", () => {
+            initAudio();
+            MemoryMap.GBstore<u8>(0xFF26, 0x80);
+            MemoryMap.GBstore<u8>(0xFF17, 0xF3);
+            MemoryMap.GBstore<u8>(0xFF19, 0x80);
+            flushAudioEvents();
+            MemoryMap.GBstore<u8>(0xFF17, 0x00); // NR22 bits 3-7 all 0 → DAC off
+            flushAudioEvents();
+            const nr52 = MemoryMap.GBload<u8>(0xFF26);
+            assert((nr52 & 0x02) == 0, `NR52 bit 1 should be clear (CH2 DAC off), got 0x${nr52.toString(16)}`);
+        });
+
+        it("bit 3 set when CH4 active after trigger (NR42 DAC on)", () => {
+            initAudio();
+            MemoryMap.GBstore<u8>(0xFF26, 0x80);
+            MemoryMap.GBstore<u8>(0xFF21, 0xF3); // NR42: vol=15, DAC on
+            MemoryMap.GBstore<u8>(0xFF22, 0x11); // NR43: shift=1, divider=1
+            MemoryMap.GBstore<u8>(0xFF23, 0x80); // NR44: trigger CH4
+            flushAudioEvents();
+            const nr52 = MemoryMap.GBload<u8>(0xFF26);
+            assert((nr52 & 0x08) != 0, `NR52 bit 3 should be set (CH4 active), got 0x${nr52.toString(16)}`);
+        });
+
+        it("bit 3 clears when CH4 DAC disabled via NR42 & $F8 = 0", () => {
+            initAudio();
+            MemoryMap.GBstore<u8>(0xFF26, 0x80);
+            MemoryMap.GBstore<u8>(0xFF21, 0xF3);
+            MemoryMap.GBstore<u8>(0xFF22, 0x11);
+            MemoryMap.GBstore<u8>(0xFF23, 0x80);
+            flushAudioEvents();
+            MemoryMap.GBstore<u8>(0xFF21, 0x00); // NR42 & $F8 = 0 → DAC off
+            flushAudioEvents();
+            const nr52 = MemoryMap.GBload<u8>(0xFF26);
+            assert((nr52 & 0x08) == 0, `NR52 bit 3 should be clear (CH4 DAC off), got 0x${nr52.toString(16)}`);
+        });
+    });
+}
+
+function testWaveRamUnaffectedByAPUOff(): void {
+    // Pan Docs: APU off (NR52 bit7=0) clears NR10-NR51 only. Wave RAM ($FF30-$FF3F) is unaffected.
+    describe("wave RAM unaffected by APU power-off", () => {
+        it("wave RAM bytes survive NR52=0x00 power-off", () => {
+            initAudio();
+            for (let i = 0; i < 16; i++) {
+                MemoryMap.GBstore<u8>(<u16>(0xFF30 + i), <u8>(0xA0 + i));
+            }
+            MemoryMap.GBstore<u8>(0xFF26, 0x00); // APU off
+            flushAudioEvents();
+            for (let i = 0; i < 16; i++) {
+                assertEquals<u8>(MemoryMap.GBload<u8>(<u16>(0xFF30 + i)), <u8>(0xA0 + i),
+                    `Wave RAM byte ${i} should survive APU off`);
+            }
+        });
+
+        it("wave RAM unchanged through full off/on cycle", () => {
+            initAudio();
+            for (let i = 0; i < 16; i++) {
+                MemoryMap.GBstore<u8>(<u16>(0xFF30 + i), <u8>(0x10 + i));
+            }
+            MemoryMap.GBstore<u8>(0xFF26, 0x00); // APU off
+            flushAudioEvents();
+            MemoryMap.GBstore<u8>(0xFF26, 0x80); // APU on
+            flushAudioEvents();
+            for (let i = 0; i < 16; i++) {
+                assertEquals<u8>(MemoryMap.GBload<u8>(<u16>(0xFF30 + i)), <u8>(0x10 + i),
+                    `Wave RAM byte ${i} should survive off/on cycle`);
+            }
+        });
+    });
+}
+
 export function testAudioRegisters(): boolean {
     testNR52MasterEnableDisable();
     testNR52ChannelEnableReadback();
+    testNR52CH2CH4ChannelStatus();
     testNR50VolumeExtraction();
     testNR51Panning();
     testRegisterBitFieldMasking();
     testReservedRegistersRead();
+    testWaveRamUnaffectedByAPUOff();
     return true;
 }

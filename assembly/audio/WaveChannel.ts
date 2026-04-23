@@ -28,7 +28,12 @@ export class WaveChannel extends AudioChannelBase {
         return c;
     }
 
-    @inline setEnabled(enabled: boolean): void { this.enabled = enabled; }
+    private dacOn: boolean = false;
+
+    setDacOn(on: boolean): void {
+        this.dacOn = on;
+        if (!on) this.disable();
+    }
 
     set PeriodLow(value: u8) {
         this.frequencyBits = (this.frequencyBits & 0xFF00) | value;
@@ -47,7 +52,9 @@ export class WaveChannel extends AudioChannelBase {
     }
 
     // Pan Docs: trigger resets sample index to 1 (skipping sample 0).
+    // Trigger is ignored when DAC is off (NR30 bit7=0).
     trigger(): void {
+        if (!this.dacOn) return;
         this.phase = 1.0;
         this.baseTrigger();
     }

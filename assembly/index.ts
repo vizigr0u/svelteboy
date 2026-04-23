@@ -41,6 +41,7 @@ export { testInstructions } from './tests/instructions';
 export { testVideo } from './tests/video';
 export { testMisc } from './tests/miscTests';
 export { testInterrupts } from './tests/interruptTests';
+export { testHalt } from './tests/haltTests';
 export { testFifo } from './tests/fifoTests';
 export { testPixelFifo } from './tests/pixelFifoTests';
 export { testUint4Array } from './tests/Uint4ArrayTests';
@@ -51,9 +52,11 @@ export { testNoiseChannel } from './tests/noiseChannelTests';
 export { testAudioRender } from './tests/audioRenderTests';
 export { testMbc } from './tests/mbcTests';
 export { testSerial } from './tests/serialTests';
+export { testMetadata } from './tests/metadataTests';
 export { testEmulator } from './tests/emulatorTests';
 export { testTimer } from './tests/timerTests';
 export { testJoypad } from './tests/joypadTests';
+export { testPowerUp } from './tests/powerUpTests';
 // #strip-end
 
 export {
