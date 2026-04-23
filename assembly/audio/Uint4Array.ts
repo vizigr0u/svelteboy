@@ -15,7 +15,7 @@ export class Uint4Array {
         const index8: i32 = i >> 1;
         assert(index8 >= 0 && index8 < this.internal.length);
         const shift: u8 = <u8>((i % 2) << 2);
-        return (this.internal[index8] >> shift) & 0xF;
+        return (unchecked(this.internal[index8]) >> shift) & 0xF;
     }
 
     @operator("[]=")
@@ -24,10 +24,10 @@ export class Uint4Array {
         const index8: i32 = i >> 1;
         assert(index8 >= 0 && index8 < this.internal.length);
         const shift: u8 = <u8>((i % 2) << 2);
-        var val: u8 = this.internal[index8];
+        var val: u8 = unchecked(this.internal[index8]);
         val &= 0b11110000 >> shift;
         val |= value << shift;
-        this.internal[index8] = val;
+        unchecked(this.internal[index8] = val);
     }
 
     static wrap(buffer: ArrayBuffer, byteOffset: i32, length: i32): Uint4Array {

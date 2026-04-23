@@ -123,8 +123,8 @@ export class AudioRender {
         const left: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Left);
         const right: Float32Array = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Right);
         for (let i: i32 = start; i < end; i++) {
-            left[i] = AudioRender.LeftVolume;
-            right[i] = AudioRender.RightVolume;
+            unchecked(left[i] = AudioRender.LeftVolume);
+            unchecked(right[i] = AudioRender.RightVolume);
         }
     }
 
@@ -139,28 +139,28 @@ export class AudioRender {
                 let l: f32 = 0;
                 let r: f32 = 0;
                 if (AudioRender.channel1.Enabled && !AudioRender.debugMute1) {
-                    const x = (<f32>AudioRender.channel1.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    const x = (<f32>unchecked(AudioRender.channel1.Buffer[bufferStart + i]) / 7.5) - 1.0;
                     l = ((panning & 0x10) != 0) ? x : 0;
                     r = ((panning & 0x1) != 0) ? x : 0;
                 }
                 if (AudioRender.channel2.Enabled && !AudioRender.debugMute2) {
-                    const x = (<f32>AudioRender.channel2.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    const x = (<f32>unchecked(AudioRender.channel2.Buffer[bufferStart + i]) / 7.5) - 1.0;
                     l += ((panning & 0x20) != 0) ? x : 0;
                     r += ((panning & 0x2) != 0) ? x : 0;
                 }
                 if (AudioRender.channel3.Enabled && !AudioRender.debugMute3) {
-                    const x = (<f32>AudioRender.channel3.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    const x = (<f32>unchecked(AudioRender.channel3.Buffer[bufferStart + i]) / 7.5) - 1.0;
                     l += ((panning & 0x40) != 0) ? x : 0;
                     r += ((panning & 0x4) != 0) ? x : 0;
                 }
                 if (AudioRender.channel4.Enabled && !AudioRender.debugMute4) {
-                    const x = (<f32>AudioRender.channel4.Buffer[bufferStart + i] / 7.5) - 1.0;
+                    const x = (<f32>unchecked(AudioRender.channel4.Buffer[bufferStart + i]) / 7.5) - 1.0;
                     l += ((panning & 0x80) != 0) ? x : 0;
                     r += ((panning & 0x8) != 0) ? x : 0;
                 }
 
-                left[bufferStart + i] *= l / numChans;
-                right[bufferStart + i] *= r / numChans;
+                unchecked(left[bufferStart + i] *= l / numChans);
+                unchecked(right[bufferStart + i] *= r / numChans);
             }
         } else {
             left.fill(0, bufferStart, bufferStart + numSamples);
