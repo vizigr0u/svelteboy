@@ -122,6 +122,37 @@ export function testStatInterrupts(): boolean {
             });
         });
 
+        describe("LYC write STAT interrupt", () => {
+            it("fires STAT interrupt when writing LYC=LY with STAT bit 6 set", () => {
+                initPpu();
+                setStat(0x40); // bit 6 LYC int select
+                // IE left at 0 — should fire based on STAT bit 6, not IE
+                tickPpuDots(5 * 456); // advance to LY=5
+                clearIF();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 5); // write LYC=5 when LY already=5
+                assertInterruptFlag(<u8>IntType.LcdSTAT, true, "STAT fires when writing LYC=current LY with bit 6 set");
+            });
+
+            it("does NOT fire STAT interrupt when writing LYC=LY with STAT bit 6 clear", () => {
+                initPpu();
+                setStat(0x00); // bit 6 clear
+                MemoryMap.GBstore<u8>(0xFFFF, 0x02); // IE LcdSTAT enabled — ensures we test STAT bit 6, not IE
+                tickPpuDots(5 * 456);
+                clearIF();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 5); // write LYC=5 when LY=5
+                assertInterruptFlag(<u8>IntType.LcdSTAT, false, "no STAT when writing LYC=LY with bit 6 clear");
+            });
+
+            it("does NOT fire STAT interrupt when writing LYC != LY", () => {
+                initPpu();
+                setStat(0x40);
+                tickPpuDots(5 * 456); // LY=5
+                clearIF();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 10); // write LYC=10 when LY=5 (no match)
+                assertInterruptFlag(<u8>IntType.LcdSTAT, false, "no STAT when writing LYC != LY");
+            });
+        });
+
         describe("No double-fire (STAT blocking)", () => {
             it("only sets STAT IF bit once when VBlank mode and LYC both trigger at LY=144", () => {
                 // At LY=144: NextLine LYC match (bit 6) + enterMode VBlank mode int (bit 4)
