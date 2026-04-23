@@ -8,6 +8,7 @@
     "asbuild:debug": "asc assembly/index.ts --target debug",
     "asbuild:debugrelease": "asc assembly/index.ts --target debugrelease",
     "asbuild:release": "asc assembly/index.ts --target release",
+    "asbuild:release:stripped": "asc assembly/index.stripped.ts --target release",
     "asbuild:instrumented": "asc assembly/index.ts --target release --use INSTRUMENTED=1",
     "asbuild:profilerelease": "asc assembly/index.ts --target profilerelease",
     "dev": "vite",
