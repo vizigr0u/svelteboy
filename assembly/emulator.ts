@@ -10,6 +10,9 @@ import { SaveGame } from "./memory/savegame";
 import { AudioRender } from "./audio/render";
 import { CYCLES_PER_SECOND, CYCLES_PER_FRAME } from './constants';
 import { APU } from "./audio/apu";
+import { Cartridge } from "./cartridge";
+import { CGBMode } from "./metadata";
+import { setIsCGB } from "./cgbState";
 
 function log(s: string): void {
     Logger.Log("EMU: " + s);
@@ -37,6 +40,7 @@ enum EmulatorStopReason {
     private static targetCycles: u64;
 
     static Init(useBootRom: boolean = true): void {
+        setIsCGB(Cartridge.Data.getCGBMode() != CGBMode.NonCGB);
         SaveGame.Init();
         Logger.Init()
         MemoryMap.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);

@@ -26,6 +26,7 @@ export { loadBootRom, hexDump } from './memory/memoryMap';
 export { TOTAL_MEMORY_SIZE } from './memory/memoryConstants';
 
 export { loadCartridgeRom } from './cartridge';
+export { isCgbMode } from './cgbState';
 
 // #strip-start
 export { testRegisters } from "./tests/registerTests";
@@ -55,6 +56,7 @@ export { testSerial } from './tests/serialTests';
 export { testMetadata } from './tests/metadataTests';
 export { testEmulator } from './tests/emulatorTests';
 export { testTimer } from './tests/timerTests';
+export { testCgbState } from './tests/cgbStateTests';
 export { testJoypad } from './tests/joypadTests';
 export { testPowerUp } from './tests/powerUpTests';
 export { testSaveState } from './tests/saveStateTests';

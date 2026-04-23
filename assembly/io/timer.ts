@@ -2,6 +2,7 @@ import { Interrupt, IntType } from "../cpu/interrupts";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { uToHex } from "../utils/stringUtils";
+import { isCgbMode } from "../cgbState";
 
 const DIV_ADDRESS: u16 = 0xFF04;
 const TIMA_ADDRESS: u16 = 0xFF05;
@@ -32,8 +33,8 @@ export class Timer {
     static Init(): void {
         Timer.Tima = 0;
         Timer.Tma = 0;
-        Timer.Tac = MemoryMap.useBootRom ? 0x00 : Timer.InitialTac;
-        Timer.internalDiv = Timer.InitialDiv;
+        Timer.Tac = MemoryMap.useBootRom ? 0x00 : (isCgbMode() ? 0xF8 : 0x00);
+        Timer.internalDiv = isCgbMode() ? 0xABCC : 0xAC00;
         Timer.DivWatchBit = Timer.getDivWatchBit(Timer.Tac);
         Timer.Enabled = false;
         Timer.overflowPending = false;

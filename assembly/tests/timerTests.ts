@@ -1,6 +1,11 @@
 import { Timer } from "../io/timer";
 import { Interrupt } from "../cpu/interrupts";
 import { MemoryMap } from "../memory/memoryMap";
+import { CARTRIDGE_ROM_START } from "../memory/memoryConstants";
+import { Cartridge } from "../cartridge";
+import { CGBMode } from "../metadata";
+import { Emulator } from "../emulator";
+import { setIsCGB } from "../cgbState";
 import { setTestRom } from "./cpuTests";
 import { describe, it, assertEquals } from "./framework";
 
@@ -30,8 +35,20 @@ function testDivReadsUpperByte(): void {
 
 function testDivAfterInit(): void {
     setup();
-    // InitialDiv = 0xABCC (no boot ROM), upper byte = 0xAB (pandocs: DIV=$AB at boot)
-    assertEquals<u8>(Timer.Div, 0xAB, "DIV after init = 0xAB (pandocs boot state)");
+    // DMG internalDiv = 0xAC00 without boot ROM; upper byte = 0xAC
+    assertEquals<u8>(Timer.Div, 0xAC, "DIV after DMG init = 0xAC");
+}
+
+function testDivAfterCgbInit(): void {
+    memory.fill(CARTRIDGE_ROM_START, 0x00, 0x8000);
+    store<u8>(CARTRIDGE_ROM_START + 0x143, CGBMode.CGBOnly as u8);
+    MemoryMap.loadedCartridgeRomSize = 0x8000;
+    Cartridge.Data.cgbFlag = CGBMode.CGBOnly as u8;
+    Emulator.Init(false);
+    // GBC internalDiv = 0xABCC without boot ROM; upper byte = 0xAB
+    assertEquals<u8>(Timer.Div, 0xAB, "DIV after CGB init = 0xAB");
+    Cartridge.Data.cgbFlag = 0x00;
+    setIsCGB(false);
 }
 
 function testDivViaGBload(): void {
@@ -338,7 +355,8 @@ function testTmaWriteAfterCycleAUsesNewValue(): void {
 export function testTimer(): boolean {
     describe("Timer", () => {
         it("DIV = upper byte of internalDiv", () => { testDivReadsUpperByte(); });
-        it("DIV after init = 0xAB (pandocs boot state)", () => { testDivAfterInit(); });
+        it("DIV after DMG init = 0xAC", () => { testDivAfterInit(); });
+        it("DIV after CGB init = 0xAB", () => { testDivAfterCgbInit(); });
         it("GBload DIV returns upper byte of internalDiv", () => { testDivViaGBload(); });
         it("DIV write resets internalDiv to 0", () => { testDivWriteResetsCounter(); });
         it("DIV write ticks TIMA when watched bit was 1", () => { testDivWriteTicksTimaWhenBitSet(); });
