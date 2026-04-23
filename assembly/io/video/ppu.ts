@@ -180,8 +180,8 @@ export class Ppu {
     }
 
     static Tick(): void {
-        // if (!Lcd.PPUenabled))
-        //     return;
+        if (!Lcd.IsPpuEnabled)
+            return;
         if (Logger.verbose >= 4)
             log('PPU TICK');
         Ppu.currentDot++;
@@ -218,6 +218,8 @@ export class Ppu {
     }
 
     static TickMultiple(n: u8): void {
+        if (!Lcd.IsPpuEnabled)
+            return;
         Ppu.currentDot += n;
 
         switch (Ppu.currentMode) {

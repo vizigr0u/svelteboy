@@ -1,8 +1,9 @@
 import { Ppu, PpuMode } from "../../io/video/ppu";
+import { Lcd } from "../../io/video/lcd";
 import { MemoryMap } from "../../memory/memoryMap";
 import { GB_OAM_START, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { describe, it, assertEquals } from "../framework";
-import { initPpu, tickPpuDots, assertPpuMode } from "./ppuTestHelpers";
+import { initPpu, tickPpuDots, assertPpuMode, assertLY } from "./ppuTestHelpers";
 
 // Prime OAM raw memory directly (bypasses protection, used as sentinel).
 function primeOam(offset: u32, value: u8): void {
@@ -172,6 +173,55 @@ export function testVramOamAccess(): boolean {
 
         // NOTE: OAM corruption bug (DMG only, Mode 2 + 16-bit reg in $FE00-$FEFF range)
         // is not implemented. Known spec gap.
+    });
+
+    // Spec: when LCDC.7 is cleared, LY resets to 0 and PPU stops advancing.
+    // Games disable PPU during scene transitions to safely write VRAM without tearing.
+    describe("PPU disabled (LCDC.7=0)", () => {
+
+        it("LY resets to 0 when PPU disabled during VBlank", () => {
+            initPpu();
+            tickPpuDots(144 * 456); // reach VBlank — only safe window to disable PPU
+            assertLY(144, "LY=144 at VBlank before disable");
+            MemoryMap.GBstore<u8>(0xFF40, 0x00); // disable PPU during VBlank
+            assertLY(0, "LY must reset to 0 when PPU disabled");
+        });
+
+        it("LY stays at 0 while PPU is disabled (ticking does not advance LY)", () => {
+            initPpu();
+            tickPpuDots(144 * 456); // reach VBlank — safe to disable
+            MemoryMap.GBstore<u8>(0xFF40, 0x00);
+            tickPpuDots(456 * 10); // tick through what would be a full frame
+            assertLY(0, "LY stays at 0 while PPU disabled");
+        });
+
+        it("PPU mode is HBlank (0) while disabled", () => {
+            initPpu();
+            tickPpuDots(144 * 456); // enter VBlank (safe to disable)
+            MemoryMap.GBstore<u8>(0xFF40, 0x00); // disable during VBlank
+            assertPpuMode(PpuMode.HBlank, "Mode must be HBlank (0) while PPU disabled");
+        });
+
+        it("no VBlank interrupt fires while PPU is disabled", () => {
+            initPpu();
+            tickPpuDots(144 * 456); // reach VBlank → VBlank interrupt fires
+            // Clear IF
+            MemoryMap.GBstore<u8>(0xFF0F, 0x00);
+            MemoryMap.GBstore<u8>(0xFF40, 0x00); // disable PPU
+            tickPpuDots(456 * 12); // tick through another full frame's worth
+            const ifReg = MemoryMap.GBload<u8>(0xFF0F);
+            assertEquals<u8>(ifReg & 0x01, 0, "no VBlank interrupt while PPU disabled");
+        });
+
+        it("VRAM write succeeds while PPU disabled (no mode-3 block)", () => {
+            initPpu();
+            tickPpuDots(144 * 456); // enter VBlank (safe to disable)
+            MemoryMap.GBstore<u8>(0xFF40, 0x00); // disable PPU
+            primeVram(0, 0x42);
+            MemoryMap.GBstore<u8>(0x8000, 0xBB);
+            assertEquals<u8>(readVramRaw(0), 0xBB, "VRAM write succeeds while PPU disabled");
+        });
+
     });
 
     return true;
