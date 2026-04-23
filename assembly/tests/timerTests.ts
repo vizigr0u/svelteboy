@@ -35,8 +35,8 @@ function testDivReadsUpperByte(): void {
 
 function testDivAfterInit(): void {
     setup();
-    // DMG internalDiv = 0xAC00 without boot ROM; upper byte = 0xAC
-    assertEquals<u8>(Timer.Div, 0xAC, "DIV after DMG init = 0xAC");
+    // DMG internalDiv = 0xABCC without boot ROM; upper byte = 0xAB (spec: DIV=$AB at $0100)
+    assertEquals<u8>(Timer.Div, 0xAB, "DIV after DMG init = 0xAC");
 }
 
 function testDivAfterCgbInit(): void {
