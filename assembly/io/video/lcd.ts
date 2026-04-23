@@ -5,7 +5,6 @@ import { GB_IO_START, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { uToHex } from "../../utils/stringUtils";
 import { Ppu, PpuMode } from "./ppu";
 import { Dma } from "./dma";
-import { Cpu } from "../../cpu/cpu";
 import { LCD_HEIGHT } from "./constants";
 
 const LCD_GB_START_ADDRESS: u16 = 0xFF40;
@@ -181,8 +180,6 @@ export class Lcd {
             && Lcd._ppuEnabled
             && (value & (1 << <u8>LcdControlBit.LCDandPPUenabled)) == 0
             && Ppu.currentMode != PpuMode.VBlank) {
-            if (Logger.verbose >= 1)
-                log('Ignoring disabling PPU outside of VBlank ' + Cpu.GetTrace())
             return;
         }
         if (gbAddress == LcdGbData.getLyAddress()) {
@@ -201,6 +198,7 @@ export class Lcd {
         }
         IO.MemStore<u8>(gbAddress, value);
         if (gbAddress == LcdGbData.getControlAddress()) {
+            const wasEnabled = Lcd._ppuEnabled;
             Lcd._windowEnabled = Lcd.data.hasControlBit(LcdControlBit.WindowEnabled);
             Lcd._bgAndWindowEnabled = Lcd.data.hasControlBit(LcdControlBit.BGandWindowEnabled);
             Lcd._spritesVisible = Lcd.data.hasControlBit(LcdControlBit.ObjEnabled);
@@ -209,6 +207,14 @@ export class Lcd {
             Lcd._bgTileMapBaseAddress = Lcd.data.hasControlBit(LcdControlBit.BGTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
             Lcd._windowTileMapBaseAddress = Lcd.data.hasControlBit(LcdControlBit.WindowTileMapArea) ? MAP_BASE_HI : MAP_BASE_LO;
             Lcd._TilesBaseAddress = Lcd.data.hasControlBit(LcdControlBit.BGandWindowTileArea) ? TILE_BASE_LO : TILE_BASE_HI;
+            if (wasEnabled && !Lcd._ppuEnabled) {
+                // PPU disabled: reset LY to 0, fix mode to HBlank, reset dot counter
+                Lcd.data.lY = 0;
+                Lcd.windowLy = 0;
+                Lcd._windowVisible = false;
+                Ppu.currentMode = PpuMode.HBlank;
+                Ppu.currentDot = 0;
+            }
         }
     }
 
@@ -251,18 +257,31 @@ export class Lcd {
         }
     }
 
-    @inline
     static ResetLine(): void {
-        Lcd.data.lY = 0;
+        const data = Lcd.data;
+        data.lY = 0;
         Lcd.windowLy = 0;
         Lcd._windowVisible = Lcd.isWindowVisible();
+        if (data.lYcompare == 0) {
+            data.stat = data.stat | 0b100;
+            if (data.stat & 0b1000000)
+                Interrupt.Request(IntType.LcdSTAT);
+        } else {
+            data.stat = data.stat & ~0b100;
+        }
     }
 
     static CheckStatInterrupt(ly: u8, lyc: u8): void {
-        if (ly == lyc && Interrupt.IsEnabled(IntType.LcdSTAT)) {
-            if (Logger.verbose >= 3)
-                log(`LY == LYC == ${ly} -> INT LCD_FLAG`);
-            Interrupt.Request(IntType.LcdSTAT);
+        const data = Lcd.data;
+        if (ly == lyc) {
+            data.stat = data.stat | 0b100;
+            if (data.stat & 0b1000000) {
+                if (Logger.verbose >= 3)
+                    log(`LY == LYC == ${ly} -> INT LCD_FLAG`);
+                Interrupt.Request(IntType.LcdSTAT);
+            }
+        } else {
+            data.stat = data.stat & ~0b100;
         }
     }
 }

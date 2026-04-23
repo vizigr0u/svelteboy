@@ -96,6 +96,27 @@ export function testLyLyc(): boolean {
             });
         });
 
+        describe("LY frame boundary LYC=0", () => {
+            it("fires STAT interrupt when LY resets to 0 matching LYC=0 at frame boundary", () => {
+                initPpu();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 0);
+                MemoryMap.GBstore<u8>(STAT_ADDR, 0x40);
+                tickPpuDots(456); // advance past initial LY=0
+                clearIF();
+                tickPpuDots(153 * 456); // LY: 1→...→154→reset→0
+                assertLY(0, "LY=0 after frame boundary");
+                assertInterruptFlag(<u8>IntType.LcdSTAT, true, "STAT fires when LY resets to 0=LYC");
+            });
+
+            it("STAT bit 2 set when LY resets to 0 matching LYC=0", () => {
+                initPpu();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 0);
+                tickPpuDots(456); // past initial LY=0
+                tickPpuDots(153 * 456); // LY wraps to 0
+                assertStatBit(2, true, "STAT bit 2 reflects LY==LYC==0 after frame reset");
+            });
+        });
+
         describe("VBlank interrupt at LY=144", () => {
             it("VBlank interrupt fires on entering LY=144", () => {
                 initPpu();
