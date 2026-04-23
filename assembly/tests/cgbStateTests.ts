@@ -45,7 +45,7 @@ function testDmgInit(): void {
         it("Timer internalDiv is DMG value", () => {
             setupRom(0x00);
             Emulator.Init(false);
-            assertEquals<u16>(Timer.internalDiv, 0xAC00, "internalDiv DMG");
+            assertEquals<u16>(Timer.internalDiv, 0xABCC, "internalDiv DMG");
             assertEquals<u8>(Timer.Tac, 0x00, "TAC DMG");
         });
     });

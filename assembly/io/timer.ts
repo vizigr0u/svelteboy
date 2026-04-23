@@ -15,7 +15,7 @@ function log(s: string): void {
 
 @final
 export class Timer {
-    private static readonly InitialDiv: u16 = 0xABCC; // gb: 0xAC00, gbc: 0xABCC; // value found on boot in cgb emu
+    private static readonly InitialDiv: u16 = 0xABCC; // DMG+CGB: DIV=$AB at $0100
     private static readonly InitialTac: u8 = 0xF8; // gb: 0, gbc: 0xF8; // value found on boot in cgb emu
 
     static internalDiv: u16 = Timer.InitialDiv;
@@ -34,7 +34,7 @@ export class Timer {
         Timer.Tima = 0;
         Timer.Tma = 0;
         Timer.Tac = MemoryMap.useBootRom ? 0x00 : (CgbState.isCgbMode ? 0xF8 : 0x00);
-        Timer.internalDiv = CgbState.isCgbMode ? 0xABCC : 0xAC00;
+        Timer.internalDiv = 0xABCC;
         Timer.DivWatchBit = Timer.getDivWatchBit(Timer.Tac);
         Timer.Enabled = false;
         Timer.overflowPending = false;
