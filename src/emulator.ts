@@ -43,6 +43,9 @@ import {
     Verbose
 } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
+import { writable } from "svelte/store";
+
+export const AudioSuspended = writable<boolean>(false);
 import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData } from "./types";
 import { AudioMasterVolume, EmulatorSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
@@ -167,6 +170,10 @@ export const Audio = {
 
         destinationNode = analyzerNode;
         Emulator.AddPostRunCallback(postRunAudio);
+
+        const updateSuspended = () => AudioSuspended.set(audioCtx.state === 'suspended');
+        audioCtx.addEventListener('statechange', updateSuspended);
+        updateSuspended();
 
         const resumeOnGesture = () => { audioCtx?.resume(); };
         document.addEventListener('click', resumeOnGesture);
