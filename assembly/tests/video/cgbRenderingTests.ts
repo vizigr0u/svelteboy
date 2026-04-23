@@ -320,5 +320,211 @@ export function testCgbRendering(): boolean {
 
     });
 
+    describe("CGB priority — LCDC.0=0 master BG priority off", () => {
+
+        it("LCDC.0=0: OBJ wins over BG even when BG tile has bgPriority attr set", () => {
+            // Spec: CGB LCDC.0=0 → OBJ always on top regardless of BG attr bit7 or OAM attr bit7
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x92); // PPU on, TILE_$8000, sprites enabled, BG on, LCDC.0=0
+            writeCgbSolidTile(0, 0, 1);          // BG tile colorId 1
+            setMapEntry(0, 0, 0, 0x80);           // attrs: bgPriority=1 (strongest BG priority)
+            setCgbBgColor(0, 1, BLUE);             // BG color = BLUE
+
+            writeCgbSolidTile(1, 0, 2);
+            setCgbObjColor(0, 2, RED);             // OBJ color = RED
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            // LCDC.0=0 → OBJ always wins regardless of bgPriority attr
+            assertCgbPixel(0, RED, "LCDC.0=0: OBJ (RED) wins over BG with bgPriority attr");
+        });
+
+        it("LCDC.0=0: OBJ wins even when OAM BGoverOBJ flag is set", () => {
+            // Spec: LCDC.0=0 → OBJ always on top, overrides OAM bit7 as well
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x92); // sprites enabled, LCDC.0=0
+            writeCgbSolidTile(0, 0, 1);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 1, BLUE);
+
+            writeCgbSolidTile(1, 0, 2);
+            setCgbObjColor(0, 2, RED);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x80; // BGoverOBJ set — normally OBJ loses to BG
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            assertCgbPixel(0, RED, "LCDC.0=0: OBJ (RED) wins even with OAM BGoverOBJ flag");
+        });
+
+    });
+
+    describe("CGB priority — OAM index order", () => {
+
+        it("lower OAM index wins over higher OAM index at same pixel (regardless of X)", () => {
+            // Spec: CGB OBJ priority = earlier in OAM = higher priority (not X coord like DMG)
+            // OAM[0] at xPos=10 (spriteX=2), OAM[1] at xPos=8 (spriteX=0)
+            // Both overlap at screen x=2. CGB → OAM[0] (lower index) wins.
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93); // sprites enabled, LCDC.0=1
+
+            writeCgbSolidTile(0, 0, 0);    // BG transparent (colorId 0)
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(1, 0, 1);    // tile 1 = solid colorId 1
+            writeCgbSolidTile(2, 0, 1);    // tile 2 = solid colorId 1
+
+            setCgbObjColor(0, 1, RED);     // OBJ palette 0 color 1 = RED  (OAM[0])
+            setCgbObjColor(1, 1, GREEN);   // OBJ palette 1 color 1 = GREEN (OAM[1])
+
+            // OAM[0]: xPos=10 (covers screen x=2..9), OBJ palette 0 → RED
+            Oam.view[0].xPos = 10;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00; // palette 0
+
+            // OAM[1]: xPos=8 (covers screen x=0..7), OBJ palette 1 → GREEN
+            Oam.view[1].xPos = 8;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01; // palette 1
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            // x=0: only OAM[1] covers (OAM[0] starts at x=2) → GREEN
+            assertCgbPixel(0, GREEN, "x=0: only OAM[1] visible → GREEN");
+            // x=2: both overlap. CGB OAM-index priority: OAM[0] (lower index) wins → RED
+            assertCgbPixel(2, RED, "x=2: CGB OAM-index priority: OAM[0] (RED) beats OAM[1] (GREEN)");
+            // x=8: only OAM[0] covers (OAM[1] ends at x=7) → RED
+            assertCgbPixel(8, RED, "x=8: only OAM[0] visible → RED");
+        });
+
+    });
+
+    describe("CGB sprite — VRAM bank (OAM bit 3)", () => {
+
+        it("OAM bit3=0 fetches sprite tile from VRAM bank 0", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);    // BG transparent
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(1, 0, 1);    // tile 1 in VRAM bank 0 = colorId 1 → RED
+            writeCgbSolidTile(1, 1, 2);    // tile 1 in VRAM bank 1 = colorId 2 → GREEN
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(0, 2, GREEN);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;   // bit3=0 → bank 0
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            assertCgbPixel(0, RED, "OAM bit3=0: sprite uses bank 0 tile → RED (colorId 1)");
+        });
+
+        it("OAM bit3=1 fetches sprite tile from VRAM bank 1", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(1, 0, 1);    // tile 1 in VRAM bank 0 = colorId 1 → RED
+            writeCgbSolidTile(1, 1, 2);    // tile 1 in VRAM bank 1 = colorId 2 → GREEN
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(0, 2, GREEN);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x08;   // bit3=1 → bank 1
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            assertCgbPixel(0, GREEN, "OAM bit3=1: sprite uses bank 1 tile → GREEN (colorId 2)");
+        });
+
+    });
+
+    describe("CGB priority — BGoverOBJ masking of lower-priority sprites", () => {
+
+        it("higher-priority OBJ with BGoverOBJ blocks lower-priority OBJ from showing", () => {
+            // Spec: higher-priority OBJ with BGoverOBJ set masks lower-priority OBJs
+            // OAM[0] has BGoverOBJ=1 and non-transparent pixel → loses to BG, but blocks OAM[1]
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93); // sprites enabled, LCDC.0=1
+            writeCgbSolidTile(0, 0, 1);          // BG colorId 1 (non-transparent)
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 1, WHITE);            // BG = WHITE
+
+            writeCgbSolidTile(1, 0, 1);
+            writeCgbSolidTile(2, 0, 1);
+            setCgbObjColor(0, 1, RED);             // OAM[0] palette 0 = RED
+            setCgbObjColor(1, 1, GREEN);           // OAM[1] palette 1 = GREEN
+
+            // OAM[0]: higher priority (lower index), BGoverOBJ set, same position
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x80; // BGoverOBJ=1, palette 0
+
+            // OAM[1]: lower priority, no BGoverOBJ, same position
+            Oam.view[1].xPos = 8;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01; // palette 1, no BGoverOBJ
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            // OAM[0] loses to BG (BGoverOBJ + bgColorId!=0), and its presence blocks OAM[1]
+            // Result: WHITE (BG wins, GREEN blocked)
+            assertCgbPixel(0, WHITE, "BGoverOBJ on OAM[0] masks OAM[1]: BG (WHITE) wins, GREEN blocked");
+        });
+
+        it("transparent higher-priority OBJ allows lower-priority OBJ to show", () => {
+            // If OAM[0] pixel is transparent (colorId 0), it does NOT mask OAM[1]
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);    // BG transparent
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(1, 0, 0);    // OAM[0] tile = all transparent (colorId 0)
+            writeCgbSolidTile(2, 0, 1);    // OAM[1] tile = solid colorId 1
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(1, 1, GREEN);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00; // palette 0, no BGoverOBJ
+
+            Oam.view[1].xPos = 8;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01; // palette 1
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            // OAM[0] is transparent → OAM[1] (GREEN) shows through
+            assertCgbPixel(0, GREEN, "transparent OAM[0] allows OAM[1] (GREEN) to show");
+        });
+
+    });
+
     return true;
 }

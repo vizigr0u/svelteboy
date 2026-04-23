@@ -2,7 +2,7 @@ import { CgbState } from "../cgbState";
 import { Emulator } from "../emulator";
 import { Dma } from "../io/video/dma";
 import { MemoryMap } from "../memory/memoryMap";
-import { GB_VIDEO_START, GB_VIDEO_BANK_SIZE, CARTRIDGE_ROM_START } from "../memory/memoryConstants";
+import { GB_VIDEO_START, GB_VIDEO_BANK_SIZE, GB_WRAM_START, GB_WRAM_BANK_SIZE, CARTRIDGE_ROM_START } from "../memory/memoryConstants";
 import { CGBMode } from "../metadata";
 import { Cartridge } from "../cartridge";
 import { describe, it, assertEquals } from "./framework";
@@ -192,9 +192,57 @@ function testHBlankHDMA(): void {
     });
 }
 
+function testHdmaInitValues(): void {
+    describe("HDMA initial register values after CGB init", () => {
+        it("HDMA1-4 read 0xFF (write-only registers)", () => {
+            setupCGB();
+            assertEquals<u8>(Dma.Load(0xFF51), 0xFF, "HDMA1 = 0xFF");
+            assertEquals<u8>(Dma.Load(0xFF52), 0xFF, "HDMA2 = 0xFF");
+            assertEquals<u8>(Dma.Load(0xFF53), 0xFF, "HDMA3 = 0xFF");
+            assertEquals<u8>(Dma.Load(0xFF54), 0xFF, "HDMA4 = 0xFF");
+        });
+
+        it("HDMA5 reads 0xFF when inactive after init", () => {
+            setupCGB();
+            assertEquals<u8>(Dma.Load(0xFF55), 0xFF, "HDMA5 = 0xFF inactive");
+        });
+
+        it("hdmaActive is false after init", () => {
+            setupCGB();
+            assertEquals<boolean>(Dma.hdmaActive, false, "hdmaActive = false");
+        });
+    });
+}
+
+function testGDMAFromWRAM(): void {
+    describe("GDMA from WRAM source (0xD000-0xDFF0)", () => {
+        it("GDMA copies from WRAM bank 1 to VRAM", () => {
+            setupCGB();
+            // Write pattern directly to WRAM bank 1 physical memory (bank 1 is default after CGB init)
+            const wramBank1Phys: u32 = GB_WRAM_START + 1 * GB_WRAM_BANK_SIZE;
+            for (let i: u32 = 0; i < 16; i++) {
+                store<u8>(wramBank1Phys + i, <u8>(0xE0 + i));
+            }
+            // Source: GB address 0xD000 maps to WRAM bank 1
+            Dma.Store(0xFF51, 0xD0); // src high = 0xD0 → 0xD000
+            Dma.Store(0xFF52, 0x00); // src low  = 0x00
+            Dma.Store(0xFF53, 0x84); // dst high → 0x8400
+            Dma.Store(0xFF54, 0x00); // dst low  = 0x00
+            Dma.Store(0xFF55, 0x00); // GDMA, 1 block (16 bytes)
+            assertEquals<boolean>(Dma.hdmaActive, false, "GDMA done");
+            const vramDst: u32 = GB_VIDEO_START + 0x400;
+            for (let i: u32 = 0; i < 16; i++) {
+                assertEquals<u8>(load<u8>(vramDst + i), <u8>(0xE0 + i), "WRAM→VRAM byte " + i.toString());
+            }
+        });
+    });
+}
+
 export function testHdma(): boolean {
     testHdmaRegisters();
+    testHdmaInitValues();
     testGDMA();
+    testGDMAFromWRAM();
     testHBlankHDMA();
     // reset all CGB state so subsequent tests (e.g. testInstructions) run in DMG mode
     Cartridge.Data.cgbFlag = 0x00;
