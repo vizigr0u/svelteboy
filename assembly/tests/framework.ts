@@ -4,25 +4,34 @@ import { MemoryMap } from "../memory/memoryMap";
 let _suite: string = "";
 let _case: string = "";
 let _beforeEachFn: (() => void) | null = null;
+let _afterEachFn: (() => void) | null = null;
 
 export function describe(name: string, fn: () => void): void {
     const prev = _suite;
     const prevBeforeEach = _beforeEachFn;
+    const prevAfterEach = _afterEachFn;
     _suite = name;
     _beforeEachFn = null;
+    _afterEachFn = null;
     fn();
     _suite = prev;
     _beforeEachFn = prevBeforeEach;
+    _afterEachFn = prevAfterEach;
 }
 
 export function beforeEach(fn: () => void): void {
     _beforeEachFn = fn;
 }
 
+export function afterEach(fn: () => void): void {
+    _afterEachFn = fn;
+}
+
 export function it(name: string, fn: () => void): void {
     _case = name;
     if (_beforeEachFn !== null) _beforeEachFn!();
     fn();
+    if (_afterEachFn !== null) _afterEachFn!();
     _case = "";
 }
 
