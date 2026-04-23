@@ -40,6 +40,16 @@ export function testLyLyc(): boolean {
             });
         });
 
+        describe("LY is read-only", () => {
+            it("write to LY ($FF44) has no effect on LY value", () => {
+                initPpu();
+                tickPpuDots(5 * 456);
+                assertLY(5, "LY=5 before write");
+                MemoryMap.GBstore<u8>(0xFF44, 99); // attempt write
+                assertLY(5, "LY unchanged after write to $FF44");
+            });
+        });
+
         describe("LY == LYC sets STAT bit 2", () => {
             it("STAT bit 2 set when LY==LYC==0 at init", () => {
                 initPpu();
@@ -83,6 +93,27 @@ export function testLyLyc(): boolean {
                 tickPpuDots(10 * 456);
                 assertLY(10, "LY=10");
                 assertInterruptFlag(<u8>IntType.LcdSTAT, false, "no STAT interrupt without bit 6");
+            });
+        });
+
+        describe("LY frame boundary LYC=0", () => {
+            it("fires STAT interrupt when LY resets to 0 matching LYC=0 at frame boundary", () => {
+                initPpu();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 0);
+                MemoryMap.GBstore<u8>(STAT_ADDR, 0x40);
+                tickPpuDots(456); // advance past initial LY=0
+                clearIF();
+                tickPpuDots(153 * 456); // LY: 1→...→154→reset→0
+                assertLY(0, "LY=0 after frame boundary");
+                assertInterruptFlag(<u8>IntType.LcdSTAT, true, "STAT fires when LY resets to 0=LYC");
+            });
+
+            it("STAT bit 2 set when LY resets to 0 matching LYC=0", () => {
+                initPpu();
+                MemoryMap.GBstore<u8>(LYC_ADDR, 0);
+                tickPpuDots(456); // past initial LY=0
+                tickPpuDots(153 * 456); // LY wraps to 0
+                assertStatBit(2, true, "STAT bit 2 reflects LY==LYC==0 after frame reset");
             });
         });
 

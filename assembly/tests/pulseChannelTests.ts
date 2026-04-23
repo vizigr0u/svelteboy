@@ -689,6 +689,234 @@ function testTriggerResetsEnvelope(): void {
     });
 }
 
+// ─── DAC Disable via NRx2 ────────────────────────────────────────────────────
+
+function testDacDisableViaNR12(): void {
+    // Pan Docs CH1/CH2: "DAC on iff NRx2 & $F8 != 0." Writing NRx2 with bits 3-7 all 0
+    // while channel is enabled → DAC off → channel immediately disabled.
+    describe("DAC off via NRx2 & $F8 = 0 disables channel", () => {
+        it("CH1: write NR12=0x00 while enabled → channel disabled", () => {
+            initAudio();
+            triggerCH1(0, 0x80, 0xF0, 2040, false); // vol=15, DAC on
+            assert(AudioRender.channel1.Enabled, "CH1 should be enabled after trigger");
+            MemoryMap.GBstore<u8>(0xFF12, 0x00); // bits 3-7 all 0 → DAC off
+            flushAudioEvents();
+            assert(!AudioRender.channel1.Enabled, "CH1 should be disabled when NR12 & $F8 = 0");
+        });
+
+        it("CH2: write NR22=0x00 while enabled → channel disabled", () => {
+            initAudio();
+            triggerCH2(0x80, 0xF0, 2040, false);
+            assert(AudioRender.channel2.Enabled, "CH2 should be enabled after trigger");
+            MemoryMap.GBstore<u8>(0xFF17, 0x00); // NR22 & $F8 = 0
+            flushAudioEvents();
+            assert(!AudioRender.channel2.Enabled, "CH2 should be disabled when NR22 & $F8 = 0");
+        });
+
+        it("CH1: NR12=0x08 (increase dir, vol=0) has bits 3-7 non-zero → DAC stays on", () => {
+            // Bit3=1 (increase direction) counts as DAC on even with vol=0
+            initAudio();
+            triggerCH1(0, 0x80, 0xF0, 2040, false);
+            MemoryMap.GBstore<u8>(0xFF12, 0x08); // bit3=1, bits 7-4=0 → NR12 & $F8 = 0x08 != 0
+            flushAudioEvents();
+            assert(AudioRender.channel1.Enabled, "CH1 should stay enabled: NR12=0x08 has bit3=1 (DAC on)");
+        });
+    });
+}
+
+// ─── Envelope at Vol=0: Channel Stays Enabled ────────────────────────────────
+
+function testEnvelopeFloorChannelStaysEnabled(): void {
+    // Pan Docs: "Envelope reaching 0 does NOT turn channel off."
+    // Channel stays enabled at vol=0; just outputs silence.
+    describe("envelope reaching vol=0 does not disable channel", () => {
+        it("CH1 vol=1 decrease pace=1: channel still enabled after vol decays to 0", () => {
+            initAudio();
+            triggerCH1(0, 0x80, 0x11, 2040, false); // NR12=0x11: vol=1, decrease, pace=1
+            advancePasses(AudioRender.channel1, ENV_PASSES); // vol → 0
+            assertEquals<u8>(AudioRender.channel1.GetCurrentEnvelopeVolume(), 0, "vol should be 0");
+            assert(AudioRender.channel1.Enabled,
+                "CH1 must remain enabled even when envelope vol reaches 0");
+        });
+
+        it("CH2 vol=1 decrease pace=1: channel still enabled after vol decays to 0", () => {
+            initAudio();
+            triggerCH2(0x80, 0x11, 2040, false);
+            advancePasses(AudioRender.channel2, ENV_PASSES);
+            assertEquals<u8>(AudioRender.channel2.GetCurrentEnvelopeVolume(), 0, "vol should be 0");
+            assert(AudioRender.channel2.Enabled,
+                "CH2 must remain enabled even when envelope vol reaches 0");
+        });
+
+        it("CH1 vol=0 stays 0 after additional passes (never goes negative)", () => {
+            initAudio();
+            triggerCH1(0, 0x80, 0x11, 2040, false);
+            for (let i = 0; i < 10; i++) advancePasses(AudioRender.channel1, ENV_PASSES);
+            assertEquals<u8>(AudioRender.channel1.GetCurrentEnvelopeVolume(), 0,
+                "vol stays at 0 floor indefinitely");
+            assert(AudioRender.channel1.Enabled, "CH1 still enabled after many steps at vol=0");
+        });
+    });
+}
+
+// ─── CH1 Sweep: NR13/NR14 writes don't update shadow ─────────────────────────
+
+function testSweepShadowNotUpdatedByNR13NR14(): void {
+    // Pan Docs / PulseChannel.ts: NR13/NR14 writes do NOT update sweepShadowPeriod.
+    // Shadow is only updated by trigger or sweep ticks.
+    // Test: trigger with period=200, step=4 (add), pace=1.
+    //   Shadow=200. Trigger check: 200+(200>>4)=212 ≤ 2047 → no immediate disable.
+    //   Write NR13/NR14 with period=1900 (no trigger). Shadow must stay 200.
+    //   Fire one tick: shadow 200 → 212, second check 225 ≤ 2047 → still enabled.
+    //   If shadow was wrongly updated to 1900: 2018, second check 2144 > 2047 → disabled.
+    describe("NR13/NR14 writes don't update sweep shadow register", () => {
+        it("channel stays enabled after writing high period to NR13/NR14 during active sweep", () => {
+            initAudio();
+            // NR10=0x14: pace=1, negate=0, step=4. period=200.
+            triggerCH1(0x14, 0x80, 0xF0, 200, false);
+            // Write NR13/NR14 with period=1900 (no trigger) — must NOT update shadow.
+            MemoryMap.GBstore<u8>(0xFF13, <u8>(1900 & 0xFF));
+            MemoryMap.GBstore<u8>(0xFF14, <u8>((1900 >> 8) & 0x7)); // no trigger bit
+            flushAudioEvents();
+            // Fire one sweep tick: shadow=200 → 212, second check 225 ≤ 2047 → enabled.
+            advancePasses(AudioRender.channel1, SWEEP_PASSES);
+            assert(AudioRender.channel1.Enabled,
+                "channel must stay enabled: shadow=200, NR13/NR14 write to 1900 must not update shadow");
+        });
+
+        it("retrigger DOES update shadow to new period", () => {
+            initAudio();
+            triggerCH1(0x14, 0x80, 0xF0, 200, false);
+            // Write period=1900 WITH trigger → shadow becomes 1900.
+            // Immediate check: 1900+(1900>>4)=2018 ≤ 2047 → alive after trigger.
+            // One sweep tick → 2018+(2018>>4)=2018+126=2144 > 2047 → disable.
+            MemoryMap.GBstore<u8>(0xFF13, <u8>(1900 & 0xFF));
+            MemoryMap.GBstore<u8>(0xFF14, 0x80 | <u8>((1900 >> 8) & 0x7)); // with trigger
+            flushAudioEvents();
+            assert(AudioRender.channel1.Enabled, "channel alive right after retrigger with period=1900");
+            advancePasses(AudioRender.channel1, SWEEP_PASSES);
+            assert(!AudioRender.channel1.Enabled,
+                "channel disabled after one tick with shadow=1900 (second overflow 2144>2047)");
+        });
+    });
+}
+
+// ─── Pulse phase NOT reset on retrigger ──────────────────────────────────────
+
+function testPulsePhaseNotResetOnRetrigger(): void {
+    // Spec: retrigger resets duty step TIMER but NOT step counter (phase position).
+    // PulseChannel.trigger() calls baseTrigger() only — phase NOT reset to 0.
+    //
+    // Proof by distinguishing phase-continue vs phase-reset:
+    //   duty=50% (waveHighRatio=0.5), period=2040.
+    //   angularFreq = 131072/8/44100 ≈ 0.37143/sample.
+    //   Render 4 samples → phase = 4*0.37143 = 1.4857 → 0.4857 (below 0.5, all 4 samples output 0 except j=2).
+    //   Render 1 more sample → output at phase=0.4857 < 0.5 → 0; phase advances to 0.857.
+    //   Retrigger at phase=0.857.
+    //   Continue (phase=0.857 ≥ 0.5): first post-retrigger sample = vol = 15.
+    //   Reset (phase=0.0 < 0.5):    first post-retrigger sample = 0.
+    describe("pulse phase not reset on retrigger", () => {
+        it("first sample after retrigger is vol=15 when continued phase=0.857 (not 0 from reset)", () => {
+            initAudio();
+            // duty=50% (NR11=0x80), vol=15 frozen (NR12=0xF0), period=2040.
+            triggerCH1(0, 0x80, 0xF0, 2040, false);
+            // Render 4 samples: phase ends at 0.4857, Buffer[2]=15, rest=0.
+            AudioRender.channel1.Render(0, 4);
+            // Render 1 more: output 0 (phase=0.4857<0.5), phase → 0.857.
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 0,
+                "pre-retrigger sample must be 0 (phase=0.4857 < 0.5)");
+            // Retrigger — phase must NOT reset to 0.
+            MemoryMap.GBstore<u8>(0xFF14, 0x80 | <u8>((2040 >> 8) & 0x7));
+            flushAudioEvents();
+            // If phase continues (0.857 ≥ 0.5) → first sample = 15.
+            // If phase resets (0.0 < 0.5) → first sample = 0.
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 15,
+                "first sample after retrigger must be 15 (phase=0.857≥0.5, not reset to 0)");
+        });
+    });
+}
+
+// ─── First pulse sample after power-on trigger = 0 ───────────────────────────
+
+function testFirstPulseSampleAfterPowerOnIsZero(): void {
+    // Spec: first output after power-on trigger always digital 0 (duty step=0 after APU power-on).
+    // PulseChannel initial phase=0. For all duty patterns: phase(0.0) < waveHighRatio → output=0.
+    describe("first pulse sample after power-on trigger is 0", () => {
+        it("CH1 duty00 (12.5%): first sample=0", () => {
+            initAudio();
+            triggerCH1(0, 0x00, 0xF0, 2040, false);
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 0, "duty00 first sample must be 0");
+        });
+        it("CH1 duty01 (25%): first sample=0", () => {
+            initAudio();
+            triggerCH1(0, 0x40, 0xF0, 2040, false);
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 0, "duty01 first sample must be 0");
+        });
+        it("CH1 duty10 (50%): first sample=0", () => {
+            initAudio();
+            triggerCH1(0, 0x80, 0xF0, 2040, false);
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 0, "duty10 first sample must be 0");
+        });
+        it("CH1 duty11 (75%): first sample=0", () => {
+            initAudio();
+            triggerCH1(0, 0xC0, 0xF0, 2040, false);
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 0, "duty11 first sample must be 0");
+        });
+        it("CH2 duty10 (50%): first sample=0", () => {
+            initAudio();
+            triggerCH2(0x80, 0xF0, 2040, false);
+            AudioRender.channel2.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel2.Buffer[0], 0, "CH2 duty10 first sample must be 0");
+        });
+    });
+}
+
+// ─── APU off resets pulse duty step (phase) ──────────────────────────────────
+
+function testApuOffResetsDutyStep(): void {
+    // Spec: APU off resets duty step to 0 for CH1 and CH2.
+    // After APU off + on + retrigger: first sample must be 0 (same as fresh power-on).
+    // render.ts NR52 off handler calls channel.Reset() → phase=0.
+    describe("APU off resets CH1/CH2 duty step to 0", () => {
+        it("CH1 duty11: first sample=0 after APU off/on + retrigger (phase reset)", () => {
+            initAudio();
+            // duty=75%: after many passes, phase is past 0.
+            triggerCH1(0, 0xC0, 0xF0, 2040, false);
+            advancePasses(AudioRender.channel1, 5); // advance phase
+            // APU off → Reset() → phase=0.
+            MemoryMap.GBstore<u8>(0xFF26, 0x00);
+            flushAudioEvents();
+            // APU on + retrigger.
+            MemoryMap.GBstore<u8>(0xFF26, 0x80);
+            flushAudioEvents();
+            triggerCH1(0, 0xC0, 0xF0, 2040, false);
+            AudioRender.channel1.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel1.Buffer[0], 0,
+                "first sample after APU off/on + retrigger must be 0 (duty step reset to 0)");
+        });
+
+        it("CH2 duty11: first sample=0 after APU off/on + retrigger", () => {
+            initAudio();
+            triggerCH2(0xC0, 0xF0, 2040, false);
+            advancePasses(AudioRender.channel2, 5);
+            MemoryMap.GBstore<u8>(0xFF26, 0x00);
+            flushAudioEvents();
+            MemoryMap.GBstore<u8>(0xFF26, 0x80);
+            flushAudioEvents();
+            triggerCH2(0xC0, 0xF0, 2040, false);
+            AudioRender.channel2.Render(0, 1);
+            assertEquals<u8>(AudioRender.channel2.Buffer[0], 0,
+                "CH2 first sample after APU off/on + retrigger must be 0");
+        });
+    });
+}
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export function testPulseChannel(): boolean {
@@ -706,5 +934,11 @@ export function testPulseChannel(): boolean {
     testCH1SweepPaceZero();
     testCH1NegateAddDisable();
     testTriggerResetsEnvelope();
+    testDacDisableViaNR12();
+    testEnvelopeFloorChannelStaysEnabled();
+    testSweepShadowNotUpdatedByNR13NR14();
+    testPulsePhaseNotResetOnRetrigger();
+    testFirstPulseSampleAfterPowerOnIsZero();
+    testApuOffResetsDutyStep();
     return true;
 }

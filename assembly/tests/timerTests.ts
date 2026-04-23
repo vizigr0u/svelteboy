@@ -118,8 +118,12 @@ function testTimaOverflowReloadsToTma(): void {
     Timer.Tima = 0xFF;
     Timer.internalDiv = 0;
     Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
-    // Tick 16 T-cycles: period=16, offset=0, edges=(0+16)/16=1 → one TIMA increment
+    // Cycle A: overflow detected → TIMA=$00, IF not yet set
     Timer.Tick(16);
+    assertEquals<u8>(Timer.Tima, 0x00, "Cycle A: TIMA=$00 after overflow");
+    assert((Interrupt.Requests() & 0x04) == 0, "Cycle A: IF not yet set");
+    // Cycle B: TMA loaded, IF fired
+    Timer.Tick(4);
     assertEquals<u8>(Timer.Tima, 0x42, "TIMA overflow reloads to TMA");
     assert((Interrupt.Requests() & 0x04) != 0, "TIMA overflow sets timer IF bit");
 }
@@ -131,13 +135,14 @@ function testTimaOverflowWithTmaZero(): void {
     Timer.Tima = 0xFF;
     Timer.internalDiv = 0;
     Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
-    Timer.Tick(16);
+    Timer.Tick(16); // cycle A
+    Timer.Tick(4);  // cycle B
     assertEquals<u8>(Timer.Tima, 0x00, "TIMA overflow with TMA=0 reloads to 0");
     assert((Interrupt.Requests() & 0x04) != 0, "TIMA overflow with TMA=0 still sets IF");
 }
 
 // ── TMA write before overflow uses new value ──────────────────────────────
-// Pandocs: TMA is the reload value read at overflow time.
+// Pandocs: TMA is the reload value read at overflow time (cycle B).
 
 function testTmaWriteBeforeOverflowUsesNewValue(): void {
     setup();
@@ -146,7 +151,8 @@ function testTmaWriteBeforeOverflowUsesNewValue(): void {
     Timer.Tima = 0xFF;
     Timer.internalDiv = 0;
     MemoryMap.GBstore<u8>(TMA_ADDR, 0xBB); // update TMA before overflow tick
-    Timer.Tick(16);
+    Timer.Tick(16); // cycle A
+    Timer.Tick(4);  // cycle B: reads Tma=$BB
     assertEquals<u8>(Timer.Tima, 0xBB,
         "TMA written before overflow: new value used for reload");
 }
@@ -164,36 +170,6 @@ function testTimaNoIncrementWhenDisabled(): void {
 
 // ── TAC clock-select bits map to correct periods ───────────────────────────
 // Pandocs: 00=4096Hz(256M), 01=262144Hz(4M=16T), 10=65536Hz(16M=64T), 11=16384Hz(64M=256T)
-
-function testTacMode00Period(): void {
-    setup();
-    timerOn(0x00); // bit 9, period = 512 T (128 M)... wait: 256 M-cycles = 1024 T
-    // Actually pandocs: mode 00 = every 256 M-cycles = 1024 T-cycles
-    // getDivWatchBit returns 1<<9=512; period = 512<<1 = 1024
-    Timer.Tima = 0;
-    Timer.internalDiv = 0;
-    Timer.Tick(u8.MAX_VALUE); // 255 T — not enough for one full period (1024 T)
-    assertEquals<u8>(Timer.Tima, 0, "mode 00: no TIMA tick in first 255 T-cycles");
-    // One more to ensure we can trigger it: advance to 1024 total
-    // We can't use Tick(1024) since tCycles is u8. Use multiple ticks.
-    Timer.internalDiv = 0;
-    Timer.Tima = 0;
-    for (let i: u16 = 0; i < 1024 / 255; i++) {
-        Timer.Tick(u8.MAX_VALUE);
-    }
-    Timer.Tick(<u8>(1024 % 255 + 255 * (1024 / 255) - 255 * (1024 / 255)));
-    // Simpler: reset and tick 4 times 256 each to reach 1024
-    Timer.internalDiv = 0;
-    Timer.Tima = 0;
-    // Can't do 256 in u8. Use 252 (divisible) + extras to reach 1024.
-    // Just verify: 4 ticks of 4 M = 16T each = no increment per tick in mode 00
-    // Instead: trust the algorithm, test via a targeted falling-edge setup
-    Timer.internalDiv = 0x01FF; // bit 9 = 0, one step from bit-9 becoming 1 needs +1
-    // 0x01FF = 511, bit 9 = 0; 0x0200 = 512, bit 9 = 1; 0x0400 = 1024, bit 9 = 0 (fall)
-    Timer.Tick(4); // 511→515: no edge
-    assertEquals<u8>(Timer.Tima, 0,
-        "mode 00: bit 9 not yet set, no edge in 4 T");
-}
 
 function testTacMode01Period(): void {
     setup();
@@ -222,6 +198,143 @@ function testTacMode11Period(): void {
     assertEquals<u8>(Timer.Tima, 1, "mode 11: TIMA increments every 256 T-cycles");
 }
 
+// ── DIV counts even when timer disabled ───────────────────────────────────
+// Pandocs: "DIV always counts regardless of TAC bit 2."
+
+function testDivIncrementsWhenTimerDisabled(): void {
+    setup();
+    // TAC bit2=0 (timer disabled) — don't call timerOn()
+    Timer.internalDiv = 0;
+    Timer.Tick(255);
+    Timer.Tick(1);
+    assertEquals<u8>(Timer.Div, 1, "DIV increments even when timer is disabled");
+}
+
+// ── Mode 00 period (1024 T-cycles) ────────────────────────────────────────
+
+function testTacMode00Period(): void {
+    setup();
+    timerOn(0x00); // bit 9, falling edge every 1024 T
+    Timer.Tima = 0;
+    // Place internalDiv one T before the falling edge of bit 9.
+    // bit9=1 at 0x0200 (512); falls at 0x0400 (1024).
+    // Set to 0x03FF (1023): bit9=1, one T from falling edge.
+    Timer.internalDiv = 0x03FF;
+    Timer.Tick(1);
+    assertEquals<u8>(Timer.Tima, 1, "mode 00: TIMA increments at 1024 T boundary");
+}
+
+// ── TMA determines effective overflow frequency ───────────────────────────
+// Pandocs: TMA=$FF → every tick; TMA=$FE → every 2 ticks; TMA=$00 → every 256 ticks.
+
+function testTmaFfInterruptsEveryTick(): void {
+    setup();
+    timerOn(0x01); // mode 01: every 16 T
+    Timer.Tma  = 0xFF;
+    Timer.Tima = 0xFF;
+    Timer.internalDiv = 0;
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(16); // cycle A: overflow → TIMA=$00
+    Timer.Tick(4);  // cycle B: TIMA=TMA=$FF, IF set
+    assertEquals<u8>(Timer.Tima, 0xFF, "TMA=FF: TIMA reloaded to $FF");
+    assert((Interrupt.Requests() & 0x04) != 0, "TMA=FF: IF fired");
+    // Next period: TIMA=$FF, one tick → overflow again
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(16); // cycle A: TIMA=$FF overflows to $00
+    Timer.Tick(4);  // cycle B: TIMA=$FF again
+    assertEquals<u8>(Timer.Tima, 0xFF, "TMA=FF: second overflow also reloads $FF");
+    assert((Interrupt.Requests() & 0x04) != 0, "TMA=FF: second IF fired");
+}
+
+function testTmaFeTwoTicksPerInterrupt(): void {
+    setup();
+    timerOn(0x01); // mode 01: every 16 T
+    Timer.Tma  = 0xFE;
+    Timer.Tima = 0xFF;
+    Timer.internalDiv = 0;
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(16); // cycle A: TIMA=$FF → $00
+    Timer.Tick(4);  // cycle B: TIMA=$FE, IF set
+    assertEquals<u8>(Timer.Tima, 0xFE, "TMA=FE: TIMA=$FE after first overflow");
+    assert((Interrupt.Requests() & 0x04) != 0, "TMA=FE: IF fired at first overflow");
+    // One more tick: $FE → $FF (no overflow yet)
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(16);
+    assertEquals<u8>(Timer.Tima, 0xFF, "TMA=FE: TIMA=$FF after second tick (no overflow)");
+    assert((Interrupt.Requests() & 0x04) == 0, "TMA=FE: no IF after second tick");
+    // One more tick: $FF overflows
+    Timer.Tick(16); // cycle A
+    Timer.Tick(4);  // cycle B
+    assertEquals<u8>(Timer.Tima, 0xFE, "TMA=FE: TIMA=$FE after second overflow");
+    assert((Interrupt.Requests() & 0x04) != 0, "TMA=FE: IF fired at second overflow");
+}
+
+// ── TAC clock-select: no tick when new watched bit also set ───────────────
+
+function testTacClockSelectNoTickWhenNewBitAlsoSet(): void {
+    setup();
+    MemoryMap.GBstore<u8>(TAC_ADDR, 0x05); // mode 01 (bit3), enabled
+    Timer.Tima = 0x20;
+    // bit3=1 AND bit5=1: 0x28 = 40 (bit3=8<40✓, bit5=32<40✓)
+    Timer.internalDiv = 0x0028;
+    // Switch mode 01→10 (bit3→bit5): old=1, new=1 → no falling edge, no tick
+    MemoryMap.GBstore<u8>(TAC_ADDR, 0x06); // mode 10, still enabled
+    assertEquals<u8>(Timer.Tima, 0x20,
+        "TAC clock-select: no tick when new watched bit is also set");
+}
+
+// ── 1 M-cycle overflow delay: cycle A ─────────────────────────────────────
+// Pandocs: TIMA=$00 for 1 M-cycle after overflow; TMA not copied, IF not set.
+
+function testTimaOverflowCycleAState(): void {
+    setup();
+    timerOn(0x01); // every 16 T
+    Timer.Tma  = 0x42;
+    Timer.Tima = 0xFF;
+    Timer.internalDiv = 0x0008; // bit3=1, 8 T from falling edge
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(8); // triggers overflow: TIMA=$FF → $00 (cycle A)
+    assertEquals<u8>(Timer.Tima, 0x00, "Cycle A: TIMA=$00 (TMA not yet loaded)");
+    assert((Interrupt.Requests() & 0x04) == 0, "Cycle A: IF timer bit not yet set");
+    assert(Timer.overflowPending, "Cycle A: overflowPending flag set");
+}
+
+// ── Write to TIMA on cycle A cancels overflow ─────────────────────────────
+// Pandocs: "Write to TIMA on cycle A: overflow cancelled. TMA not copied. IF not set."
+
+function testTimaWriteOnCycleACancelsOverflow(): void {
+    setup();
+    timerOn(0x01);
+    Timer.Tma  = 0x42;
+    Timer.Tima = 0xFF;
+    Timer.internalDiv = 0x0008;
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(8); // cycle A: TIMA=$00, overflowPending=true
+    MemoryMap.GBstore<u8>(TIMA_ADDR, 0x99); // write on cycle A → cancel
+    assert(!Timer.overflowPending, "Cycle A write: overflowPending cleared");
+    Timer.Tick(4); // cycle B: pending=false, no reload
+    assertEquals<u8>(Timer.Tima, 0x99, "Cycle A write: TIMA stays at written value");
+    assert((Interrupt.Requests() & 0x04) == 0, "Cycle A write: IF never set");
+}
+
+// ── Write to TMA between cycle A and B uses new TMA at reload ─────────────
+// Pandocs: "Write to TMA on cycle B: new TMA value also copied to TIMA on same cycle."
+
+function testTmaWriteAfterCycleAUsesNewValue(): void {
+    setup();
+    timerOn(0x01);
+    Timer.Tma  = 0x42;
+    Timer.Tima = 0xFF;
+    Timer.internalDiv = 0x0008;
+    Interrupt.SetRequests(Interrupt.Requests() & ~<u8>0x04);
+    Timer.Tick(8); // cycle A: overflow, pending=true
+    MemoryMap.GBstore<u8>(TMA_ADDR, 0xBB); // write new TMA before cycle B
+    Timer.Tick(4); // cycle B: TIMA=Tma=$BB (reads updated value)
+    assertEquals<u8>(Timer.Tima, 0xBB,
+        "TMA write between A and B: new TMA value loaded into TIMA at reload");
+    assert((Interrupt.Requests() & 0x04) != 0, "IF still set even with new TMA");
+}
+
 export function testTimer(): boolean {
     describe("Timer", () => {
         it("DIV = upper byte of internalDiv", () => { testDivReadsUpperByte(); });
@@ -237,9 +350,17 @@ export function testTimer(): boolean {
         it("TIMA overflow with TMA=0 reloads to 0 and sets IF", () => { testTimaOverflowWithTmaZero(); });
         it("TMA write before overflow uses new TMA value", () => { testTmaWriteBeforeOverflowUsesNewValue(); });
         it("TIMA no increment when timer disabled", () => { testTimaNoIncrementWhenDisabled(); });
+        it("DIV increments even when timer disabled", () => { testDivIncrementsWhenTimerDisabled(); });
+        it("mode 00: TIMA increments every 1024 T-cycles", () => { testTacMode00Period(); });
         it("mode 01: TIMA increments every 16 T-cycles", () => { testTacMode01Period(); });
         it("mode 10: TIMA increments every 64 T-cycles", () => { testTacMode10Period(); });
         it("mode 11: TIMA increments every 256 T-cycles", () => { testTacMode11Period(); });
+        it("TMA=FF: interrupt fires every TIMA tick", () => { testTmaFfInterruptsEveryTick(); });
+        it("TMA=FE: interrupt fires every 2 TIMA ticks", () => { testTmaFeTwoTicksPerInterrupt(); });
+        it("TAC clock-select: no tick when new watched bit also set", () => { testTacClockSelectNoTickWhenNewBitAlsoSet(); });
+        it("Cycle A: TIMA=$00, IF not set, overflowPending=true", () => { testTimaOverflowCycleAState(); });
+        it("Write to TIMA on cycle A cancels overflow", () => { testTimaWriteOnCycleACancelsOverflow(); });
+        it("Write to TMA between cycle A and B: new value used at reload", () => { testTmaWriteAfterCycleAUsesNewValue(); });
     });
     return true;
 }

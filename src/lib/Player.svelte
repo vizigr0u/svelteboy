@@ -7,11 +7,32 @@
     import { onMount } from "svelte";
     import { Emulator } from "../emulator";
     import RomDropZone from "./RomDropZone.svelte";
+    import BurgerMenu from "./BurgerMenu.svelte";
+    import Window from "./Window.svelte";
+    import RomsSection from "./RomsSection.svelte";
+    import SavesViewer from "./SavesViewer.svelte";
+    import OptionsView from "./OptionsView.svelte";
+    import DebugSection from "./debug/DebugSection.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
+    import { showRomsWindow, showSavesWindow, showOptionsWindow, showDebugWindow } from "../stores/windowStores";
+    import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
+    let menuOpen: boolean = $state(false);
+
+    function toggleWindow(store: Writable<boolean>) {
+        store.update(v => !v);
+        menuOpen = false;
+    }
+
+    const menuItems = $derived([
+        { label: 'ROMs',    active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
+        { label: 'Saves',   active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow) },
+        { label: 'Options', active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
+        { label: 'Debug',   active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
+    ]);
 
     onMount(() => {
         const drawCallback = () => webglCanvas?.draw(Emulator.GetGameFrame());
@@ -44,6 +65,31 @@
                 <div class="fps-wrapper">
                     <FpsCounter />
                 </div>
+            {/if}
+            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">☰</button>
+            {#if menuOpen}
+                <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
+                <BurgerMenu items={menuItems} />
+            {/if}
+            {#if $showRomsWindow}
+                <Window title="ROMs" onclose={() => showRomsWindow.set(false)}>
+                    <RomsSection />
+                </Window>
+            {/if}
+            {#if $showSavesWindow}
+                <Window title="Saves" onclose={() => showSavesWindow.set(false)}>
+                    <SavesViewer />
+                </Window>
+            {/if}
+            {#if $showOptionsWindow}
+                <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
+                    <OptionsView />
+                </Window>
+            {/if}
+            {#if $showDebugWindow}
+                <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
+                    <DebugSection />
+                </Window>
             {/if}
         </div>
     </RomDropZone>
@@ -99,5 +145,29 @@
 
     .fps-wrapper {
         position: absolute;
+    }
+
+    .burger-btn {
+        position: absolute;
+        top: 0.4em;
+        right: 0.4em;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        color: #eee;
+        font-size: 1.2em;
+        cursor: pointer;
+        border-radius: 0.3em;
+        padding: 0.1em 0.3em;
+        line-height: 1;
+    }
+
+    .burger-btn:hover {
+        background: rgba(0,0,0,0.7);
+    }
+
+    .menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 199;
     }
 </style>

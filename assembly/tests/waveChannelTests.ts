@@ -446,6 +446,38 @@ function testLengthCounter(): void {
     });
 }
 
+// ─── CH3 Trigger Ignored When DAC Off ────────────────────────────────────────
+
+function testCH3TriggerIgnoredWhenDACOff(): void {
+    // Pan Docs: "Trigger ignored if DAC off." CH3 DAC = NR30 bit7. If NR30=0x00 (DAC off),
+    // writing NR34 bit7=1 must NOT enable the channel.
+    // NOTE: current implementation may not guard trigger on DAC state — test may fail.
+    describe("CH3 trigger ignored when DAC off (NR30 bit7=0)", () => {
+        it("channel stays disabled when NR34 trigger fires with NR30=0x00", () => {
+            initAudio();
+            fillWaveRam(0xFF);
+            MemoryMap.GBstore<u8>(0xFF1A, 0x00); // NR30: DAC off
+            MemoryMap.GBstore<u8>(0xFF1B, 0);
+            MemoryMap.GBstore<u8>(0xFF1C, LEVEL_MAX);
+            MemoryMap.GBstore<u8>(0xFF1D, <u8>(MID_PERIOD & 0xFF));
+            MemoryMap.GBstore<u8>(0xFF1E, 0x80 | <u8>((MID_PERIOD >> 8) & 0x7)); // trigger bit set
+            flushAudioEvents();
+            assert(!ch3().Enabled,
+                "CH3 must not be enabled when triggered with DAC off (NR30 bit7=0)");
+        });
+
+        it("channel enables normally after DAC turned on, then triggered", () => {
+            initAudio();
+            fillWaveRam(0xFF);
+            MemoryMap.GBstore<u8>(0xFF1A, 0x00); // DAC off
+            flushAudioEvents();
+            MemoryMap.GBstore<u8>(0xFF1A, 0x80); // DAC on
+            triggerCH3(LEVEL_MAX, MID_PERIOD, 0, false);
+            assert(ch3().Enabled, "CH3 should be enabled when triggered with DAC on");
+        });
+    });
+}
+
 // ─── Entry Point ──────────────────────────────────────────────────────────────
 
 export function testWaveChannel(): boolean {
@@ -458,5 +490,6 @@ export function testWaveChannel(): boolean {
     testPhaseWraps();
     testTriggerResetsPhase();
     testLengthCounter();
+    testCH3TriggerIgnoredWhenDACOff();
     return true;
 }

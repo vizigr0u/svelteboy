@@ -217,7 +217,7 @@ export class AudioRender {
                         AudioRender.channel2.trigger();
                     break;
                 case AudioRegisterType.NR30_C3Enable:
-                    AudioRender.channel3.setEnabled((ev.Value & 0x80) != 0);
+                    AudioRender.channel3.setDacOn((ev.Value & 0x80) != 0);
                     break;
                 case AudioRegisterType.NR31_C3Length:
                     AudioRender.channel3.LengthTimer = ev.Value; // this one is 8 bit
@@ -262,9 +262,18 @@ export class AudioRender {
                 case AudioRegisterType.NR52_SoundOnOff:
                     AudioRender.AudioOn = (ev.Value & 0x80) != 0;
                     if (!AudioRender.AudioOn) {
-                        // Pan Docs: turning APU off clears all registers NR10-NR51
+                        // Pan Docs: turning APU off clears all registers NR10-NR51 and resets channel state
                         memory.fill(SoundDataPtr, 0, 0x16);
                         AudioData.registers.fill(0, 0, 0x16);
+                        // Disable all channels and reset internal state (duty step/phase/LFSR)
+                        AudioRender.channel1.disable();
+                        AudioRender.channel1.Reset();
+                        AudioRender.channel2.disable();
+                        AudioRender.channel2.Reset();
+                        AudioRender.channel3.setDacOn(false);
+                        AudioRender.channel3.Reset();
+                        AudioRender.channel4.disable();
+                        AudioRender.channel4.Reset();
                     }
                     if (Logger.verbose >= 1) {
                         log('Sound ' + (AudioRender.AudioOn ? 'ON' : 'OFF'))
