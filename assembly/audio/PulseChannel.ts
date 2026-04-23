@@ -183,7 +183,7 @@ export class PulseChannel extends AudioChannelBase {
             }
 
             for (let j: i32 = i; j < segEnd; j++) {
-                this.Buffer[j] = this.phase >= this.waveHighRatio ? volume : 0;
+                unchecked(this.Buffer[j] = this.phase >= this.waveHighRatio ? volume : 0);
                 if (Logger.verbose >= 3)
                     log(`pulse Sound[${j}] = ${uToHex<u8>(this.Buffer[j])}`);
                 this.phase += this.angularFrequency;

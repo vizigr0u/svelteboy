@@ -52,7 +52,7 @@ export class NoiseChannel extends AudioChannelBase {
         assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
         while (i < end) {
             if (!this.Enabled) {
-                for (let j = i; j < end; j++) this.Buffer[j] = 0;
+                for (let j = i; j < end; j++) unchecked(this.Buffer[j] = 0);
                 return;
             }
             const numSamplesUntilEnvelopeChange: i32 = this.GetNumSamplesUntilEnvelopeVolumeChange();
@@ -60,7 +60,7 @@ export class NoiseChannel extends AudioChannelBase {
             const segEnd: i32 = numSamplesUntilEnvelopeChange > 0 && numSamplesUntilEnvelopeChange < (end - i) ? i + numSamplesUntilEnvelopeChange : end;
 
             for (let j: i32 = i; j < segEnd; j++) {
-                this.Buffer[j] = (this.Lsfr & 1) != 0 ? volume : 0;
+                unchecked(this.Buffer[j] = (this.Lsfr & 1) != 0 ? volume : 0);
                 if (Logger.verbose >= 4)
                     log(`c4Sound[${j}] = ${uToHex<u8>(this.Buffer[j])}`);
                 this.lsfrSampleCount++;

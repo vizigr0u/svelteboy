@@ -83,7 +83,7 @@ export class WaveChannel extends AudioChannelBase {
     Render(start: i32, end: i32): void {
         if (this.Level == OutputLevel.Mute) {
             for (let i: i32 = start; i < end; i++) {
-                this.Buffer[i] = 0;
+                unchecked(this.Buffer[i] = 0);
             }
         } else {
             const shift: u8 = (<u8>this.Level) - 1;
@@ -92,7 +92,7 @@ export class WaveChannel extends AudioChannelBase {
                     assert(i >= 0 && i < this.Buffer.length, `i = ${i} start = ${start} end = ${end}`);
                     const waveIndex: u8 = <u8>Math.floor(this.phase);
                     const x: u8 = this.waveData[waveIndex];
-                    this.Buffer[i] = x >> shift;
+                    unchecked(this.Buffer[i] = x >> shift);
                     if (Logger.verbose >= 3)
                         log(`Wave Sound[${i}] = ${uToHex<u8>(this.Buffer[i])}`);
                     this.phase += this.angularFrequency;
@@ -103,7 +103,7 @@ export class WaveChannel extends AudioChannelBase {
                         this.phase -= 32.0;
                     }
                 } else {
-                    this.Buffer[i] = 0;
+                    unchecked(this.Buffer[i] = 0);
                 }
             }
         }
