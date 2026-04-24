@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head><title>SvelteBoy Browser Benchmark</title></head>
+<body>
+<pre id="log"></pre>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const bootUrl = params.get('boot');
+const romUrl = params.get('rom');
+const log = document.getElementById('log');
+const print = s => { log.textContent += s + '\n'; console.log(s); };
+
+try {
+  const { loadBootRom, loadCartridgeRom, initEmulator, runFrames } =
+    await import('/build/backend.js');
+
+  const [bootData, romData] = await Promise.all([
+    fetch(bootUrl).then(r => { if (!r.ok) throw new Error(`fetch ${bootUrl}: ${r.status}`); return r.arrayBuffer(); }),
+    fetch(romUrl).then(r => { if (!r.ok) throw new Error(`fetch ${romUrl}: ${r.status}`); return r.arrayBuffer(); }),
+  ]);
+
+  loadBootRom(bootData);
+  loadCartridgeRom(romData);
+  initEmulator();
+
+  const FRAMES = 1500;
+  const ITERATIONS = 10;
+  let totalTime = 0;
+  let low = 0;
+  let high = Infinity;
+
+  for (let i = 0; i < ITERATIONS; i++) {
+    const t0 = performance.now();
+    runFrames(FRAMES);
+    const t = performance.now() - t0;
+    totalTime += t;
+    if (t > low) low = t;
+    if (t < high) high = t;
+    print(`Iteration ${i + 1}/${ITERATIONS}: ${t.toFixed(1)}ms`);
+  }
+
+  const avg = totalTime / ITERATIONS;
+  const fmt = n => ((FRAMES * 1000) / n).toFixed(1);
+  const result = { avg: fmt(avg), low: fmt(low), high: fmt(high) };
+  print(`Avg: ${result.avg}, Low: ${result.low}, High: ${result.high}`);
+  window.__benchResult = result;
+} catch (e) {
+  window.__benchError = e.message;
+  console.error(e);
+}
+</script>
+</body>
+</html>
