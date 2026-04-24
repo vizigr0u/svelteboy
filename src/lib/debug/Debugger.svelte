@@ -20,7 +20,7 @@
         class="debugger-attach-toggle"
         type="checkbox"
         checked={$DebuggerAttached}
-        on:change={() => ($DebuggerAttached = !$DebuggerAttached)}
+        onchange={() => ($DebuggerAttached = !$DebuggerAttached)}
       />
       Debugger {$DebuggerAttached ? "" : "(detached)"}
     </label>

@@ -8,8 +8,8 @@
 
     const maxToShow = 50;
 
-    let files;
-    let relevantSaves = [];
+    let files: any = $state();
+    let relevantSaves: any[] = $state([]);
 
     function onLoadClick(save: SaveGameData) {
         Emulator.LoadSave(save);
@@ -17,7 +17,7 @@
 
     function onDownloadClick(save: SaveGameData) {
         const link = document.createElement("a");
-        const file = new Blob([save.buffer]);
+        const file = new Blob([save.buffer as BlobPart]);
         link.href = URL.createObjectURL(file);
         link.download = $loadedCartridge.name + ".sav";
         link.click();
@@ -54,20 +54,17 @@
         });
     }
 
-    function updateRelevantSaves() {
+    $effect(() => {
         if ($loadedCartridge == undefined) {
             relevantSaves = [];
             return;
         }
-        const currentSha1 = $loadedCartridge.sha1;
-        relevantSaves = $SaveGames.filter((s) => s.gameSha1 == currentSha1);
-        if ($AutoSave !== undefined && $AutoSave.gameSha1 == currentSha1)
-            relevantSaves.push($AutoSave);
-    }
-
-    loadedCartridge.subscribe(updateRelevantSaves);
-    SaveGames.subscribe(updateRelevantSaves);
-    AutoSave.subscribe(updateRelevantSaves);
+        const sha1 = $loadedCartridge.sha1;
+        const filtered: any[] = $SaveGames.filter((s) => s.gameSha1 == sha1);
+        if ($AutoSave !== undefined && $AutoSave.gameSha1 == sha1)
+            filtered.push($AutoSave);
+        relevantSaves = filtered;
+    });
 
     function onClearAllClick() {
         $AutoSave = undefined;

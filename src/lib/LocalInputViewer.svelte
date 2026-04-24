@@ -9,6 +9,9 @@
     let hintVisible = $state(false);
     let userInteracted = false;
 
+    let buttons: NodeListOf<HTMLButtonElement>;
+    let inputsByButton: Map<HTMLButtonElement, InputType>;
+
     function showHint() { userInteracted = true; hintVisible = true; }
     function hideHint() { userInteracted = true; hintVisible = false; $HideKeyboardWarning = true; }
 
@@ -19,38 +22,34 @@
     }
 
     onMount(() => {
-        const buttons = buttonContainer.querySelectorAll<HTMLButtonElement>("button[data-input]");
+        buttons = buttonContainer.querySelectorAll<HTMLButtonElement>("button[data-input]");
         const InputsAndButtons = Array.from(buttons).map(
             (b) =>
                 [b, getInputTypeForButton(b)] as [HTMLButtonElement, InputType]
         );
-        const inputsByButton = new Map<HTMLButtonElement, InputType>(
-            InputsAndButtons
-        );
+        inputsByButton = new Map<HTMLButtonElement, InputType>(InputsAndButtons);
         buttons.forEach((button) => {
             const input = inputsByButton.get(button)!;
-            button.ontouchstart = () => {
-                updateInput(input, true);
-            };
-            button.onmousedown = () => {
-                updateInput(input, true);
-            };
+            button.ontouchstart = () => updateInput(input, true);
+            button.onmousedown = () => updateInput(input, true);
             button.onmouseup = () => updateInput(input, false);
             button.onblur = () => updateInput(input, false);
             button.onmouseleave = () => updateInput(input, false);
             button.ontouchend = () => updateInput(input, false);
             button.ontouchcancel = () => updateInput(input, false);
         });
-        const keyUnsub = KeyPressMap.subscribe((inputs) => {
-            buttons.forEach((button) => {
-                const input = inputsByButton.get(button)!;
-                button.classList.toggle("pressed", inputs.has(input));
-            });
+    });
+
+    $effect(() => {
+        if (!buttons) return;
+        const inputs = $KeyPressMap;
+        buttons.forEach((button) => {
+            button.classList.toggle("pressed", inputs.has(inputsByButton.get(button)!));
         });
-        const warningUnsub = HideKeyboardWarning.subscribe(v => {
-            if (!userInteracted) hintVisible = !v;
-        });
-        return () => { keyUnsub(); warningUnsub(); };
+    });
+
+    $effect(() => {
+        if (!userInteracted) hintVisible = !$HideKeyboardWarning;
     });
 </script>
 

@@ -2,10 +2,11 @@ import { writable } from "svelte/store";
 import { DebugStopReason, MemoryRegion, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
 import { MakeIDBStore as MakeLocalStore } from "./idbStore";
 
-export const disassembledRomsStore = writable<DisassembledCode>(undefined);
+export const disassembledRomsStore = writable<DisassembledCode | undefined>(undefined);
 
 export function setDisassemlyForRom(rom: RomReference, isLoading: boolean, programLines: ProgramLine[]) {
     disassembledRomsStore.update(roms => {
+        if (!roms) return roms;
         roms.isLoading = isLoading;
         roms.programLines = programLines;
         return roms;

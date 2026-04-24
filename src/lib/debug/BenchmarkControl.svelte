@@ -21,7 +21,7 @@
             Frames
             <input type="number" bind:value={numFrames} min="1" max="5000" />
         </label>
-        <button on:click={onButtonClick}>Benchmark</button>
+        <button onclick={onButtonClick}>Benchmark</button>
     </div>
     <div class="benchmark-status">{status}</div>
 </div>

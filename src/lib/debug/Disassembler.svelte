@@ -1,8 +1,9 @@
 <script lang="ts">
   import DebuggerLine from "./DebuggerLine.svelte";
 
+  import { untrack } from "svelte";
   import { get } from "svelte/store";
-  import { type GbDebugInfo, type RomReference } from "../../types";
+  import { type RomReference } from "../../types";
   import MyVirtualList from "../MyVirtualList.svelte";
   import {
     DebuggerAttached,
@@ -13,7 +14,7 @@
   import { fetchDisassembly } from "../../debug";
   import { EmulatorInitialized, EmulatorPaused } from "stores/playStores";
 
-  let virtualList = $state(null);
+  let virtualList = $state<any>(null);
   let lastJumpTime: number = 0;
   const minJumpDelay: number = 200;
 
@@ -26,9 +27,7 @@
   let firstLine: number = $state(0);
   let lastLine: number = $state(0);
 
-  $effect(() => {
-    return loadedCartridge.subscribe((rom) => disassembleRom(rom));
-  });
+  $effect(() => disassembleRom($loadedCartridge));
 
   function disassembleRom(rom: RomReference): void {
     if (rom && get(disassembledRomsStore)?.sha1 != rom.sha1) {
@@ -39,29 +38,27 @@
   }
 
   $effect(() => {
-    return EmulatorInitialized.subscribe((initialized) => {
-      if ($DebuggerAttached && initialized && $disassembledRomsStore != undefined) {
-        virtualList?.scrollToIndex(0);
-      }
-    });
+    if ($DebuggerAttached && $EmulatorInitialized && $disassembledRomsStore != undefined) {
+      virtualList?.scrollToIndex(0);
+    }
   });
 
   $effect(() => {
-    return disassembledRomsStore.subscribe((info) => {
-      if (info == undefined) {
-        lineMap = {};
-        return;
-      }
-      const d: Record<string, number> = {};
-      info.programLines.forEach((line, index) => {
-        d[line.pc] = index;
-      });
-      lineMap = d;
+    const info = $disassembledRomsStore;
+    if (info == undefined) {
+      lineMap = {};
+      return;
+    }
+    const d: Record<string, number> = {};
+    info.programLines.forEach((line, index) => {
+      d[line.pc] = index;
     });
+    lineMap = d;
   });
 
   $effect(() => {
-    return GbDebugInfoStore.subscribe((info: GbDebugInfo) => {
+    const info = $GbDebugInfoStore;
+    untrack(() => {
       if (!info) return;
       const t = performance.now();
       const lineNumber = lineMap[info.registers.PC.toString()];
