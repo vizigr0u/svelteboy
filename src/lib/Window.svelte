@@ -9,10 +9,35 @@
     }
 
     let { title, onclose, children, wide = false }: Props = $props();
+
+    function stopProp(e: Event) {
+        e.stopPropagation();
+    }
 </script>
 
-<div class="backdrop" onclick={onclose} role="presentation" aria-hidden="true"></div>
-<div class="window" class:wide>
+<div
+    class="backdrop"
+    onclick={onclose}
+    ondrop={stopProp}
+    ondragover={stopProp}
+    ondragenter={stopProp}
+    ondragleave={stopProp}
+    onkeydown={stopProp}
+    onkeyup={stopProp}
+    role="presentation"
+    aria-hidden="true"
+></div>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+    class="window"
+    class:wide
+    ondrop={stopProp}
+    ondragover={stopProp}
+    ondragenter={stopProp}
+    ondragleave={stopProp}
+    onkeydown={stopProp}
+    onkeyup={stopProp}
+>
     <div class="window-header">
         <span class="window-title">{title}</span>
         <button class="close-btn" onclick={onclose} aria-label="Close">✕</button>
