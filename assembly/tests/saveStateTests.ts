@@ -20,7 +20,12 @@ import {
     CARTRIDGE_ROM_START,
     ROM_BANK_SIZE
 } from "../memory/memoryConstants";
-import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION, SAVESTATE_FIXED_SIZE, isAtFrameBoundary } from "../savestate";
+import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION, SAVESTATE_FIXED_SIZE, isAtFrameBoundary, APU_STATE_SIZE } from "../savestate";
+import { AudioRender } from "../audio/render";
+import { PulseChannel, PULSE_CHANNEL_SERIALIZED_SIZE } from "../audio/PulseChannel";
+import { WaveChannel, WAVE_CHANNEL_SERIALIZED_SIZE } from "../audio/WaveChannel";
+import { NoiseChannel, NOISE_CHANNEL_SERIALIZED_SIZE } from "../audio/NoiseChannel";
+import { AudioChannelBase, AudioChannelId } from "../audio/AudioChannelBase";
 import { describe, it, assertEquals } from "./framework";
 
 function setupClean(): void {
@@ -41,11 +46,11 @@ function testHeaderMagic(): void {
 }
 
 function testHeaderVersion(): void {
-    it("version is 2 at offset 4", () => {
+    it("version is 3 at offset 4", () => {
         setupClean();
         const state = createSaveState();
         assertEquals<u16>(load<u16>(state.dataStart + 4), SAVESTATE_VERSION, "version");
-        assertEquals<u16>(SAVESTATE_VERSION, 2, "SAVESTATE_VERSION");
+        assertEquals<u16>(SAVESTATE_VERSION, 3, "SAVESTATE_VERSION");
     });
 }
 
@@ -75,11 +80,20 @@ function testRejectV1(): void {
 }
 
 function testAcceptV2(): void {
-    it("loadSaveState accepts freshly-created v2 blob", () => {
+    it("loadSaveState accepts v2 blob (no APU block)", () => {
         setupClean();
         const state = createSaveState();
-        assertEquals<u16>(load<u16>(state.dataStart + 4), 2, "version=2");
+        store<u16>(state.dataStart + 4, 2); // force version=2, APU block ignored
         assert(loadSaveState(state), "should succeed on v2 blob");
+    });
+}
+
+function testAcceptV3(): void {
+    it("loadSaveState accepts freshly-created v3 blob", () => {
+        setupClean();
+        const state = createSaveState();
+        assertEquals<u16>(load<u16>(state.dataStart + 4), 3, "version=3");
+        assert(loadSaveState(state), "should succeed on v3 blob");
     });
 }
 
@@ -521,6 +535,161 @@ function testFrameBoundaryTransfer(): void {
     });
 }
 
+// --- APU savestate tests ---
+
+function bytesEqual(a: Uint8Array, b: Uint8Array, size: u32, label: string): void {
+    assertEquals<i32>(a.byteLength, b.byteLength, label + " length");
+    for (let i: u32 = 0; i < size; i++) {
+        assertEquals<u8>(a[i], b[i], label + " byte " + i.toString());
+    }
+}
+
+// Channel bytewise roundtrip: serialize orig, deserialize into fresh, re-serialize fresh,
+// assert byte blobs match. Validates pairing without touching private fields.
+function channelRoundTrip(
+    orig: AudioChannelBase, fresh: AudioChannelBase, size: u32, label: string
+): void {
+    const a = new Uint8Array(size);
+    const b = new Uint8Array(size);
+    orig.serialize(a.dataStart);
+    fresh.deserialize(a.dataStart);
+    fresh.serialize(b.dataStart);
+    bytesEqual(a, b, size, label);
+}
+
+function testPulseChannelRoundTrip(): void {
+    it("PulseChannel serialize/deserialize is lossless", () => {
+        const orig = new PulseChannel(AudioChannelId.Channel1);
+        orig.LengthTimer = 17;
+        orig.HandleEnvelopeEvent(0xA3); // vol=0xA, pace=3, dir up
+        orig.HandleSweepEvent(0x5B);     // pace=5, negate, step=3
+        orig.setDutyCycle(3);
+        orig.PeriodLow = 0x33;
+        orig.PeriodHigh = 0x07;
+        orig.trigger();
+        orig.LengthEnabled = true;
+
+        const fresh = new PulseChannel(AudioChannelId.Channel1);
+        channelRoundTrip(orig, fresh, PULSE_CHANNEL_SERIALIZED_SIZE, "pulse");
+    });
+}
+
+function testWaveChannelRoundTrip(): void {
+    it("WaveChannel serialize/deserialize is lossless", () => {
+        const orig = WaveChannel.Create();
+        orig.LengthTimer = 42;
+        orig.Level = 2; // Half
+        orig.setDacOn(true);
+        orig.PeriodLow = 0x11;
+        orig.PeriodHigh = 0x02;
+        orig.trigger();
+        orig.LengthEnabled = true;
+
+        const fresh = WaveChannel.Create();
+        channelRoundTrip(orig, fresh, WAVE_CHANNEL_SERIALIZED_SIZE, "wave");
+    });
+}
+
+function testNoiseChannelRoundTrip(): void {
+    it("NoiseChannel serialize/deserialize is lossless", () => {
+        const orig = new NoiseChannel(AudioChannelId.Channel4);
+        orig.LengthTimer = 9;
+        orig.HandleEnvelopeEvent(0xF7); // vol=0xF, pace=7, dir up
+        orig.ShortMode = true;
+        orig.Lsfr = 0x7FFF;
+        orig.setLsfrClock(3, 2);
+        orig.trigger();
+        orig.LengthEnabled = true;
+
+        const fresh = new NoiseChannel(AudioChannelId.Channel4);
+        channelRoundTrip(orig, fresh, NOISE_CHANNEL_SERIALIZED_SIZE, "noise");
+    });
+}
+
+function testApuStateSize(): void {
+    it("APU_STATE_SIZE matches sum of channel sizes + global (262 bytes)", () => {
+        const expected: u32 = 2 * PULSE_CHANNEL_SERIALIZED_SIZE
+            + WAVE_CHANNEL_SERIALIZED_SIZE
+            + NOISE_CHANNEL_SERIALIZED_SIZE
+            + 25;
+        assertEquals<u32>(APU_STATE_SIZE, expected, "APU_STATE_SIZE");
+    });
+}
+
+function testSaveStateIncludesApuBlock(): void {
+    it("v3 blob size includes APU block appended after ext RAM", () => {
+        setupClean();
+        const state = createSaveState();
+        // ROM-only cart: RamBankCount=0 → extRamSize=0. Size = FIXED + APU.
+        assertEquals<i32>(state.byteLength, <i32>(SAVESTATE_FIXED_SIZE + APU_STATE_SIZE), "total size");
+    });
+}
+
+function testApuRenderStateRoundTrip(): void {
+    it("AudioRender sampleIndex/initialCycles/volumes round-trip", () => {
+        setupClean();
+        const sampleIdx: u64 = 0x0000BEEF12345678;
+        const initCyc: u64 = 0x00001122334455;
+        AudioRender.sampleIndex = sampleIdx;
+        AudioRender.initialCycles = initCyc;
+        AudioRender.LeftVolume = 0.625;
+        AudioRender.RightVolume = 0.875;
+        AudioRender.AudioOn = true;
+        const state = createSaveState();
+
+        AudioRender.sampleIndex = 0;
+        AudioRender.initialCycles = 0;
+        AudioRender.LeftVolume = 1.0;
+        AudioRender.RightVolume = 1.0;
+        AudioRender.AudioOn = false;
+
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u64>(AudioRender.sampleIndex, sampleIdx, "sampleIndex");
+        assertEquals<u64>(AudioRender.initialCycles, initCyc, "initialCycles");
+        assertEquals<f32>(AudioRender.LeftVolume, 0.625, "LeftVolume");
+        assertEquals<f32>(AudioRender.RightVolume, 0.875, "RightVolume");
+        assert(AudioRender.AudioOn, "AudioOn");
+    });
+}
+
+function testApuNoiseLsfrRoundTrip(): void {
+    it("NoiseChannel.Lsfr/ShortMode round-trip through savestate", () => {
+        setupClean();
+        AudioRender.channel4.Lsfr = 0x2A5B;
+        AudioRender.channel4.ShortMode = true;
+        const state = createSaveState();
+        AudioRender.channel4.Lsfr = 0;
+        AudioRender.channel4.ShortMode = false;
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u16>(AudioRender.channel4.Lsfr, 0x2A5B, "Lsfr");
+        assert(AudioRender.channel4.ShortMode, "ShortMode");
+    });
+}
+
+function testApuWaveLevelRoundTrip(): void {
+    it("WaveChannel.Level round-trips through savestate", () => {
+        setupClean();
+        AudioRender.channel3.Level = 2; // Half
+        const state = createSaveState();
+        AudioRender.channel3.Level = 0;
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(<u8>AudioRender.channel3.Level, 2, "Level=Half");
+    });
+}
+
+function testApuV2BlobSkipsDeserialize(): void {
+    it("v2 blob does NOT restore APU state (backward compat)", () => {
+        setupClean();
+        AudioRender.channel4.Lsfr = 0x1234;
+        const state = createSaveState();
+        store<u16>(state.dataStart + 4, 2); // force v2
+        AudioRender.channel4.Lsfr = 0xABCD;
+        assert(loadSaveState(state), "load failed");
+        // v2 load must NOT overwrite runtime APU state.
+        assertEquals<u16>(AudioRender.channel4.Lsfr, 0xABCD, "Lsfr untouched by v2 load");
+    });
+}
+
 function testIsAtFrameBoundary(): void {
     it("isAtFrameBoundary true iff VBlank or lY>=144", () => {
         setupClean();
@@ -551,6 +720,7 @@ export function testSaveState(): boolean {
         testBadVersion();
         testRejectV1();
         testAcceptV2();
+        testAcceptV3();
         testSizeMinimum();
         testSizeShrunk();
     });
@@ -598,6 +768,17 @@ export function testSaveState(): boolean {
         testIsAtFrameBoundary();
         testFrameBoundaryVBlank();
         testFrameBoundaryTransfer();
+    });
+    describe("SaveState - APU", () => {
+        testApuStateSize();
+        testPulseChannelRoundTrip();
+        testWaveChannelRoundTrip();
+        testNoiseChannelRoundTrip();
+        testSaveStateIncludesApuBlock();
+        testApuRenderStateRoundTrip();
+        testApuNoiseLsfrRoundTrip();
+        testApuWaveLevelRoundTrip();
+        testApuV2BlobSkipsDeserialize();
     });
     return true;
 }

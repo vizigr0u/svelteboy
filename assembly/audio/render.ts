@@ -3,8 +3,8 @@ import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { uToHex } from "../utils/stringUtils";
-import { NoiseChannel } from "./NoiseChannel";
-import { DutyCycle, PulseChannel } from "./PulseChannel";
+import { NoiseChannel, NOISE_CHANNEL_SERIALIZED_SIZE } from "./NoiseChannel";
+import { DutyCycle, PulseChannel, PULSE_CHANNEL_SERIALIZED_SIZE } from "./PulseChannel";
 import { log } from "./apu";
 import { AudioOutBuffer } from "./audioBuffer";
 import { SAMPLE_RATE, CYCLES_PER_SAMPLE } from "./constants";
@@ -12,9 +12,15 @@ import { SoundDataPtr, SoundDataSize } from "./audioRegisters";
 import { AudioChannel, AudioEvent, AudioRegisterType, getRegisterIndex } from "./audioTypes";
 import { AudioEventQueue } from "./eventQueue";
 
-import { OutputLevel, WaveChannel } from "./WaveChannel";
+import { OutputLevel, WaveChannel, WAVE_CHANNEL_SERIALIZED_SIZE } from "./WaveChannel";
 import { AudioData } from "./AudioData";
 import { AudioChannelId } from "./AudioChannelBase";
+
+export const AUDIO_RENDER_GLOBAL_SIZE: u32 = 25;
+export const APU_STATE_SIZE: u32 = 2 * PULSE_CHANNEL_SERIALIZED_SIZE
+    + WAVE_CHANNEL_SERIALIZED_SIZE
+    + NOISE_CHANNEL_SERIALIZED_SIZE
+    + AUDIO_RENDER_GLOBAL_SIZE;
 
 @final
 export class AudioRender {
@@ -281,6 +287,34 @@ export class AudioRender {
                     unreachable();
             }
         }
+    }
+
+    static SerializeState(ptr: usize): usize {
+        ptr = AudioRender.channel1.serialize(ptr);
+        ptr = AudioRender.channel2.serialize(ptr);
+        ptr = AudioRender.channel3.serialize(ptr);
+        ptr = AudioRender.channel4.serialize(ptr);
+        store<u8>(ptr, AudioRender.AudioOn ? 1 : 0); ptr += 1;
+        store<u64>(ptr, AudioRender.sampleIndex); ptr += 8;
+        store<u64>(ptr, AudioRender.initialCycles); ptr += 8;
+        store<f32>(ptr, AudioRender.LeftVolume); ptr += 4;
+        store<f32>(ptr, AudioRender.RightVolume); ptr += 4;
+        return ptr;
+    }
+
+    static DeserializeState(ptr: usize): usize {
+        ptr = AudioRender.channel1.deserialize(ptr);
+        ptr = AudioRender.channel2.deserialize(ptr);
+        ptr = AudioRender.channel3.deserialize(ptr);
+        ptr = AudioRender.channel4.deserialize(ptr);
+        AudioRender.AudioOn = load<u8>(ptr) != 0; ptr += 1;
+        AudioRender.sampleIndex = load<u64>(ptr); ptr += 8;
+        AudioRender.initialCycles = load<u64>(ptr); ptr += 8;
+        AudioRender.LeftVolume = load<f32>(ptr); ptr += 4;
+        AudioRender.RightVolume = load<f32>(ptr); ptr += 4;
+        // Clear any pending events left over from the pre-load session.
+        AudioEventQueue.Reset();
+        return ptr;
     }
 
     static Render(currentCycles: u64): void {

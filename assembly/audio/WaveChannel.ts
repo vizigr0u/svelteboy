@@ -1,7 +1,7 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
-import { AudioChannelBase, AudioChannelId } from "./AudioChannelBase";
+import { AudioChannelBase, AudioChannelId, AUDIO_CHANNEL_BASE_SIZE } from "./AudioChannelBase";
 import { AudioData } from "./AudioData";
 import { SAMPLE_RATE } from "./constants";
 import { Uint4Array } from "./Uint4Array";
@@ -12,6 +12,9 @@ export enum OutputLevel {
     Half = 2,
     Quarter = 3
 }
+
+export const WAVE_CHANNEL_EXTRA_SIZE: u32 = 20;
+export const WAVE_CHANNEL_SERIALIZED_SIZE: u32 = AUDIO_CHANNEL_BASE_SIZE + WAVE_CHANNEL_EXTRA_SIZE;
 
 @final
 export class WaveChannel extends AudioChannelBase {
@@ -78,6 +81,26 @@ export class WaveChannel extends AudioChannelBase {
 
     Reset(): void {
         this.phase = 1.0;
+    }
+
+    serialize(ptr: usize): usize {
+        ptr = super.serialize(ptr);
+        store<u8>(ptr, <u8>this.Level); ptr += 1;
+        store<u16>(ptr, this.frequencyBits); ptr += 2;
+        store<f64>(ptr, this.angularFrequency); ptr += 8;
+        store<f64>(ptr, this.phase); ptr += 8;
+        store<u8>(ptr, this.dacOn ? 1 : 0); ptr += 1;
+        return ptr;
+    }
+
+    deserialize(ptr: usize): usize {
+        ptr = super.deserialize(ptr);
+        this.Level = <OutputLevel>load<u8>(ptr); ptr += 1;
+        this.frequencyBits = load<u16>(ptr); ptr += 2;
+        this.angularFrequency = load<f64>(ptr); ptr += 8;
+        this.phase = load<f64>(ptr); ptr += 8;
+        this.dacOn = load<u8>(ptr) != 0; ptr += 1;
+        return ptr;
     }
 
     Render(start: i32, end: i32): void {

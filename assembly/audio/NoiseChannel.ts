@@ -1,8 +1,11 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
-import { AudioChannelBase } from "./AudioChannelBase";
+import { AudioChannelBase, AUDIO_CHANNEL_BASE_SIZE } from "./AudioChannelBase";
 import { SAMPLE_RATE } from "./constants";
+
+export const NOISE_CHANNEL_EXTRA_SIZE: u32 = 23;
+export const NOISE_CHANNEL_SERIALIZED_SIZE: u32 = AUDIO_CHANNEL_BASE_SIZE + NOISE_CHANNEL_EXTRA_SIZE;
 
 @final
 export class NoiseChannel extends AudioChannelBase {
@@ -36,6 +39,26 @@ export class NoiseChannel extends AudioChannelBase {
         if (Logger.verbose >= 3) {
             log(`Set LSFR clock: shift ${shift}, divider ${divider} -> period ${this.lsfrPeriod}`);
         }
+    }
+
+    serialize(ptr: usize): usize {
+        ptr = super.serialize(ptr);
+        store<u8>(ptr, this.ShortMode ? 1 : 0); ptr += 1;
+        store<u16>(ptr, this.Lsfr); ptr += 2;
+        store<f64>(ptr, this.lsfrPeriod); ptr += 8;
+        store<f64>(ptr, this.lsfrTimeOffset); ptr += 8;
+        store<u32>(ptr, this.lsfrSampleCount); ptr += 4;
+        return ptr;
+    }
+
+    deserialize(ptr: usize): usize {
+        ptr = super.deserialize(ptr);
+        this.ShortMode = load<u8>(ptr) != 0; ptr += 1;
+        this.Lsfr = load<u16>(ptr); ptr += 2;
+        this.lsfrPeriod = load<f64>(ptr); ptr += 8;
+        this.lsfrTimeOffset = load<f64>(ptr); ptr += 8;
+        this.lsfrSampleCount = load<u32>(ptr); ptr += 4;
+        return ptr;
     }
 
     TickLsfr(): void {
