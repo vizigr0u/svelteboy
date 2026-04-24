@@ -63,6 +63,7 @@ export { testPowerUp } from './tests/powerUpTests';
 export { testSaveState } from './tests/saveStateTests';
 export { testHdma } from './tests/hdmaTests';
 export { testCgbIoRegs } from './tests/cgbIoRegsTests';
+export { testCgbSpeedSwitch } from './tests/cgbSpeedSwitchTests';
 // #strip-end
 
 export {

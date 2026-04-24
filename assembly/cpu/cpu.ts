@@ -7,6 +7,7 @@ import { MemoryMap } from "../memory/memoryMap";
 import { Op, OpTarget, Operand, prefixedOpCodes, unprefixedOpCodes, prefixedPackedOps, unprefixedPackedOps } from "./opcodes";
 import { uToHex } from "../utils/stringUtils";
 import { CgbState } from "../cgbState";
+import { Timer } from "../io/timer";
 
 export enum Flag {
     Z_Zero = 0b10000000,
@@ -42,6 +43,11 @@ export class Cpu {
     static failedLastCondition: boolean = false;
     static isEnablingIME: boolean = false;
     static haltBug: boolean = false;
+
+    // STOP post-tick side-effect: Timer.internalDiv is reset inline at STOP execution
+    // for direct-call paths, and again after subsystem ticks so Timer.Tick's increment
+    // (for STOP's own 4 T-cycles) doesn't leak into internalDiv.
+    static stopDivResetPending: boolean = false;
 
     @inline static A(): u8 { return <u8>(Cpu.AF >> 8) };
     @inline static F(): u8 { return <u8>(Cpu.AF & 0xFF) };
@@ -95,6 +101,7 @@ export class Cpu {
         Cpu.CycleCount = 0;
         Cpu.isEnablingIME = false;
         Cpu.haltBug = false;
+        Cpu.stopDivResetPending = false;
 
         Interrupt.Init();
     }
@@ -218,9 +225,14 @@ export class Cpu {
                     log("CPU Halt");
                 break;
             case Op.STOP:
+                // Pan Docs: STOP resets the full internal DIV counter.
+                Timer.internalDiv = 0;
+                Cpu.stopDivResetPending = true;
                 if (CgbState.isCgbMode && (CgbState.key1 & 0x01) != 0) {
                     CgbState.setDoubleSpeed(!CgbState.doubleSpeed);
                     CgbState.setKey1((<u8>(CgbState.key1 ^ 0x80)) & 0xFE);
+                    // 2050 M-cycle × 4 T/M = 8200 T-cycles CPU stall during speed switch.
+                    Cpu.CycleCount += 8200;
                     if (Logger.verbose >= 1)
                         log("Speed switch → " + (CgbState.doubleSpeed ? "double" : "normal"));
                 } else {
