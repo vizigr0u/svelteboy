@@ -1,7 +1,7 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { log } from "./apu";
-import { AudioChannelBase } from "./AudioChannelBase";
+import { AudioChannelBase, AUDIO_CHANNEL_BASE_SIZE } from "./AudioChannelBase";
 import { SAMPLE_RATE } from "./constants";
 
 export enum DutyCycle {
@@ -29,6 +29,9 @@ function DutyCycleHighRatio(dc: DutyCycle): f32 {
 }
 
 const SAMPLES_PER_SWEEP_TICK: f64 = SAMPLE_RATE / 128.0;
+
+export const PULSE_CHANNEL_EXTRA_SIZE: u32 = 37;
+export const PULSE_CHANNEL_SERIALIZED_SIZE: u32 = AUDIO_CHANNEL_BASE_SIZE + PULSE_CHANNEL_EXTRA_SIZE;
 
 @final
 export class PulseChannel extends AudioChannelBase {
@@ -160,6 +163,38 @@ export class PulseChannel extends AudioChannelBase {
 
     Reset(): void {
         this.phase = 0.0;
+    }
+
+    serialize(ptr: usize): usize {
+        ptr = super.serialize(ptr);
+        store<f32>(ptr, this.waveHighRatio); ptr += 4;
+        store<u16>(ptr, this.frequencyBits); ptr += 2;
+        store<f64>(ptr, this.angularFrequency); ptr += 8;
+        store<f64>(ptr, this.phase); ptr += 8;
+        store<u16>(ptr, this.sweepShadowPeriod); ptr += 2;
+        store<f64>(ptr, this.sweepSamplesLeft); ptr += 8;
+        store<u8>(ptr, this.sweepEnabled ? 1 : 0); ptr += 1;
+        store<u8>(ptr, this.sweepPace); ptr += 1;
+        store<u8>(ptr, this.sweepStep); ptr += 1;
+        store<u8>(ptr, this.sweepNegate ? 1 : 0); ptr += 1;
+        store<u8>(ptr, this.sweepNegateUsed ? 1 : 0); ptr += 1;
+        return ptr;
+    }
+
+    deserialize(ptr: usize): usize {
+        ptr = super.deserialize(ptr);
+        this.waveHighRatio = load<f32>(ptr); ptr += 4;
+        this.frequencyBits = load<u16>(ptr); ptr += 2;
+        this.angularFrequency = load<f64>(ptr); ptr += 8;
+        this.phase = load<f64>(ptr); ptr += 8;
+        this.sweepShadowPeriod = load<u16>(ptr); ptr += 2;
+        this.sweepSamplesLeft = load<f64>(ptr); ptr += 8;
+        this.sweepEnabled = load<u8>(ptr) != 0; ptr += 1;
+        this.sweepPace = load<u8>(ptr); ptr += 1;
+        this.sweepStep = load<u8>(ptr); ptr += 1;
+        this.sweepNegate = load<u8>(ptr) != 0; ptr += 1;
+        this.sweepNegateUsed = load<u8>(ptr) != 0; ptr += 1;
+        return ptr;
     }
 
     Render(start: i32, end: i32): void {

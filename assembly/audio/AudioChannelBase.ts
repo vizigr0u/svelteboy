@@ -123,4 +123,34 @@ export class AudioChannelBase {
         const volumeChange: i8 = <i8>Math.floor((1.0 - envelopeLeft) * <f64>totalSteps);
         return <u8>(this.InitialVolume + volumeChange * this.EnvelopeDirection);
     }
+
+    serialize(ptr: usize): usize {
+        store<f32>(ptr, this.LengthTimer); ptr += 4;
+        store<u8>(ptr, <u8>this.channel); ptr += 1;
+        store<u8>(ptr, this.InitialVolume); ptr += 1;
+        store<u8>(ptr, this.SweepPace); ptr += 1;
+        store<i8>(ptr, this.EnvelopeDirection); ptr += 1;
+        store<f64>(ptr, this.SamplePerEnvelopeStep); ptr += 8;
+        store<f64>(ptr, this.EnvelopeLeft); ptr += 8;
+        store<u8>(ptr, this.enabled ? 1 : 0); ptr += 1;
+        store<i32>(ptr, this.samplesUntilStop); ptr += 4;
+        store<u8>(ptr, this.lengthEnabled ? 1 : 0); ptr += 1;
+        return ptr;
+    }
+
+    deserialize(ptr: usize): usize {
+        this.LengthTimer = load<f32>(ptr); ptr += 4;
+        this.channel = <AudioChannelId>load<u8>(ptr); ptr += 1;
+        this.InitialVolume = load<u8>(ptr); ptr += 1;
+        this.SweepPace = load<u8>(ptr); ptr += 1;
+        this.EnvelopeDirection = load<i8>(ptr); ptr += 1;
+        this.SamplePerEnvelopeStep = load<f64>(ptr); ptr += 8;
+        this.EnvelopeLeft = load<f64>(ptr); ptr += 8;
+        this.enabled = load<u8>(ptr) != 0; ptr += 1;
+        this.samplesUntilStop = load<i32>(ptr); ptr += 4;
+        this.lengthEnabled = load<u8>(ptr) != 0; ptr += 1;
+        return ptr;
+    }
 }
+
+export const AUDIO_CHANNEL_BASE_SIZE: u32 = 30;

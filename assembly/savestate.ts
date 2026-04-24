@@ -24,9 +24,11 @@ import {
     GB_IO_START, GB_IO_SIZE,
     GB_HIGH_RAM_START, GB_HIGH_RAM_SIZE
 } from "./memory/memoryConstants";
+import { AudioRender, APU_STATE_SIZE } from "./audio/render";
 
 export const SAVESTATE_MAGIC: u32 = 0x53564259; // "SVBY"
-export const SAVESTATE_VERSION: u16 = 2;
+export const SAVESTATE_VERSION: u16 = 3;
+export { APU_STATE_SIZE };
 
 export function isAtFrameBoundary(): bool {
     return Ppu.currentMode == PpuMode.VBlank || Lcd.data.lY >= <u8>LCD_HEIGHT;
@@ -91,7 +93,7 @@ export const SAVESTATE_FIXED_SIZE: u32 = OFF_EXT_RAM;
 export function createSaveState(): Uint8Array {
     if (!isAtFrameBoundary()) return new Uint8Array(0);
     const extRamSize: u32 = <u32>Cartridge.Data.RamBankCount * GB_EXT_RAM_BANK_SIZE;
-    const totalSize: u32 = SAVESTATE_FIXED_SIZE + extRamSize;
+    const totalSize: u32 = SAVESTATE_FIXED_SIZE + extRamSize + APU_STATE_SIZE;
     const buf = new Uint8Array(totalSize);
     const p: usize = buf.dataStart;
 
@@ -157,6 +159,9 @@ export function createSaveState(): Uint8Array {
         memory.copy(p + OFF_EXT_RAM, GB_EXT_RAM_START, extRamSize);
     }
 
+    // APU state appended after ext RAM.
+    AudioRender.SerializeState(p + OFF_EXT_RAM + extRamSize);
+
     return buf;
 }
 
@@ -167,10 +172,13 @@ export function loadSaveState(data: Uint8Array): bool {
     const p: usize = data.dataStart;
 
     if (load<u32>(p + OFF_MAGIC) != SAVESTATE_MAGIC) return false;
-    if (load<u16>(p + OFF_VERSION) != SAVESTATE_VERSION) return false;
+    const version: u16 = load<u16>(p + OFF_VERSION);
+    // v2: no APU block. v3: APU block appended after ext RAM.
+    if (version != 2 && version != 3) return false;
 
     const extRamSize: u32 = load<u32>(p + OFF_EXT_RAM_SIZE);
-    if (<u32>data.byteLength < SAVESTATE_FIXED_SIZE + extRamSize) return false;
+    const apuSize: u32 = version >= 3 ? APU_STATE_SIZE : 0;
+    if (<u32>data.byteLength < SAVESTATE_FIXED_SIZE + extRamSize + apuSize) return false;
 
     // CPU
     Cpu.AF = load<u16>(p + OFF_AF);
@@ -235,6 +243,10 @@ export function loadSaveState(data: Uint8Array): bool {
     memory.copy(GB_HIGH_RAM_START, p + OFF_HRAM, GB_HIGH_RAM_SIZE);
     if (extRamSize > 0) {
         memory.copy(GB_EXT_RAM_START, p + OFF_EXT_RAM, extRamSize);
+    }
+
+    if (version >= 3) {
+        AudioRender.DeserializeState(p + OFF_EXT_RAM + extRamSize);
     }
 
     return true;
