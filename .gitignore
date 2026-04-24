@@ -33,3 +33,6 @@ profile.cpuprofile
 # browser bench artifacts
 tools/bench-browser/lib/
 tools/bench-browser/libasound*.deb
+
+# auto-generated assembly files
+assembly/index.stripped.ts
