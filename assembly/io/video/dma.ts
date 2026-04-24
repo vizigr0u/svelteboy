@@ -106,10 +106,16 @@ export class Dma {
 
     static Load(gbAddress: u16): u8 {
         if (gbAddress == HDMA5_ADDRESS) {
-            if (!Dma.hdmaActive)
+            if (Dma.hdmaActive) {
+                // bit7=0 (active), bits6-0 = remaining-1
+                return <u8>(Dma.hdmaBlocksRemaining - 1) & 0x7F;
+            }
+            // Inactive: after cancel, blocksRemaining preserved.
+            // Spec: bit7=1 (done/inactive), bits6-0 = remaining-1.
+            // After full completion (blocksRemaining=0) or initial state, return 0xFF.
+            if (Dma.hdmaBlocksRemaining == 0)
                 return 0xFF;
-            // bit 7 = 0 (active), bits 6-0 = remaining blocks - 1
-            return <u8>(Dma.hdmaBlocksRemaining - 1) & 0x7F;
+            return 0x80 | (<u8>(Dma.hdmaBlocksRemaining - 1) & 0x7F);
         }
         return 0xFF; // HDMA1-4 are write-only
     }

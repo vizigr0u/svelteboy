@@ -154,7 +154,15 @@ export class Lcd {
         CgbState.setVramBank(0);
         Lcd._bcps = 0;
         Lcd._ocps = 0;
-        memory.fill(GB_CGB_PALETTE_RAM_START, 0, GB_CGB_PALETTE_RAM_SIZE);
+        if (CgbState.isCgbMode) {
+            // Post-boot contract: BG palettes = white (RGB555 0x7FFF), OBJ palettes uninitialized (safe: zero).
+            // If boot ROM runs, it overwrites BG palette via BCPD anyway — harmless.
+            for (let i: u32 = 0; i < 64; i += 2)
+                store<u16>(GB_CGB_PALETTE_RAM_START + i, 0x7FFF);
+            memory.fill(GB_CGB_PALETTE_RAM_START + 64, 0, 64);
+        } else {
+            memory.fill(GB_CGB_PALETTE_RAM_START, 0, GB_CGB_PALETTE_RAM_SIZE);
+        }
     }
 
     @inline static get IsPpuEnabled(): boolean { return Lcd._ppuEnabled };
