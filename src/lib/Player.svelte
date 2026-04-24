@@ -23,6 +23,8 @@
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
     let menuOpen: boolean = $state(false);
+    let screenEl: HTMLDivElement | undefined = $state();
+    let isFullscreen: boolean = $state(false);
 
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
 
@@ -32,22 +34,63 @@
         else Emulator.Pause();
     }
 
+    let clickTimer: number | undefined;
+    const DOUBLE_CLICK_MS = 250;
+    function handleScreenClick() {
+        if (clickTimer !== undefined) {
+            clearTimeout(clickTimer);
+            clickTimer = undefined;
+            toggleFullscreen();
+            return;
+        }
+        clickTimer = window.setTimeout(() => {
+            clickTimer = undefined;
+            togglePlayPause();
+        }, DOUBLE_CLICK_MS);
+    }
+
     function toggleWindow(store: Writable<boolean>) {
         store.update(v => !v);
         menuOpen = false;
     }
 
+    function toggleFullscreen() {
+        menuOpen = false;
+        if (!document.fullscreenElement) screenEl?.requestFullscreen();
+        else document.exitFullscreen();
+    }
+
     const menuItems = $derived([
-        { label: 'ROMs',    active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
-        { label: 'Saves',   active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow) },
-        { label: 'Options', active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
-        { label: 'Debug',   active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
+        { label: 'ROMs',       active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
+        { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow) },
+        { label: 'Options',    active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
+        { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
+        { label: 'Fullscreen', active: isFullscreen,       toggle: toggleFullscreen },
     ]);
 
     onMount(() => {
         const drawCallback = () => webglCanvas?.draw(Emulator.GetGameFrame());
         Emulator.AddPostRunCallback(drawCallback);
-        return () => Emulator.RemovePostRunCallback(drawCallback);
+
+        const onFullscreenChange = () => {
+            isFullscreen = !!document.fullscreenElement;
+        };
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+
+        return () => {
+            Emulator.RemovePostRunCallback(drawCallback);
+            document.removeEventListener('fullscreenchange', onFullscreenChange);
+        };
+    });
+
+    $effect(() => {
+        if (!isFullscreen) return;
+        window.addEventListener('keydown', gameInputKeydownHandler);
+        window.addEventListener('keyup', gameInputKeyupHandler);
+        return () => {
+            window.removeEventListener('keydown', gameInputKeydownHandler);
+            window.removeEventListener('keyup', gameInputKeyupHandler);
+        };
     });
 </script>
 
@@ -65,11 +108,12 @@
             class="screen"
             class:drop-allowed={dragState == DragState.Accept}
             class:drop-disallowed={dragState == DragState.Reject}
+            bind:this={screenEl}
         >
             <button
                 type="button"
                 class="screen-tap"
-                onclick={togglePlayPause}
+                onclick={handleScreenClick}
                 aria-disabled={!hasRom}
                 aria-label={$EmulatorPaused ? "Resume" : "Pause"}
             >
@@ -159,6 +203,29 @@
         background-color: #68717a;
         margin: 0.5em;
         border-radius: 1em 1em 4em 1em;
+    }
+
+    .screen:fullscreen {
+        padding: 0;
+        margin: 0;
+        background-color: #000;
+        border-radius: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .screen:fullscreen .screen-tap {
+        width: 100%;
+        height: 100%;
+    }
+
+    .screen:fullscreen :global(.canvas) {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
     }
 
     .screen.drop-allowed {
