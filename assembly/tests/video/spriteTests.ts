@@ -376,6 +376,144 @@ export function testSprites(): boolean {
         });
     });
 
+    // ── Window + sprite interaction (DMG) ────────────────────────────────────
+
+    describe("Window + sprite interaction (DMG)", () => {
+
+        it("sprite draws over window when BGandWindowOver flag not set", () => {
+            // LCDC 0xF3 = PPU+WINMAP_HI+WIN+TILE_LO+OBJ+BG (window map @ 9C00)
+            setupSprites(0xF3);
+            MemoryMap.GBstore<u8>(0xFF4A, 0); // WY=0 → window active at LY=0
+            MemoryMap.GBstore<u8>(0xFF4B, 7); // WX=7 → window at screen x=0
+            store<u8>(GB_VIDEO_START + 0x1C00, 2); // win map[0,0] = tile 2
+            setTileSolid(2, 0xFF, 0xFF); // window tile = color3
+            setTileSolid(0, 0xFF, 0x00); // sprite tile = color1
+            setOamEntry(0, 16, 8, 0, 0x00); // no BGandWindowOver
+            Lcd.ResetLine();                 // refresh _windowVisible
+            renderLine(0);
+            assertEquals<u8>(getPixel(0), expectedShade(1, 0xE4),
+                "sprite (color1) draws over window (color3)");
+        });
+
+        it("window covers sprite when BGandWindowOver set and window color != 0", () => {
+            setupSprites(0xF3);
+            MemoryMap.GBstore<u8>(0xFF4A, 0);
+            MemoryMap.GBstore<u8>(0xFF4B, 7);
+            store<u8>(GB_VIDEO_START + 0x1C00, 2);
+            setTileSolid(2, 0xFF, 0xFF); // window color3
+            setTileSolid(0, 0xFF, 0x00); // sprite color1
+            setOamEntry(0, 16, 8, 0, 0x80); // BGandWindowOver
+            Lcd.ResetLine();
+            renderLine(0);
+            assertEquals<u8>(getPixel(0), expectedShade(3, 0xE4),
+                "window color3 covers sprite when BGandWindowOver set");
+        });
+
+        it("sprite shows through window color 0 even with BGandWindowOver", () => {
+            setupSprites(0xF3);
+            MemoryMap.GBstore<u8>(0xFF4A, 0);
+            MemoryMap.GBstore<u8>(0xFF4B, 7);
+            store<u8>(GB_VIDEO_START + 0x1C00, 2);
+            setTileSolid(2, 0x00, 0x00); // window color0
+            setTileSolid(0, 0xFF, 0x00); // sprite color1
+            setOamEntry(0, 16, 8, 0, 0x80);
+            Lcd.ResetLine();
+            renderLine(0);
+            assertEquals<u8>(getPixel(0), expectedShade(1, 0xE4),
+                "sprite (color1) visible over transparent window pixel");
+        });
+
+        it("sprite in window region hidden when BGandWindowOver and window non-zero", () => {
+            // WX=79 → window starts at screen x=72. Sprite fully inside window region.
+            setupSprites(0xF3);
+            MemoryMap.GBstore<u8>(0xFF4A, 0);
+            MemoryMap.GBstore<u8>(0xFF4B, 79);
+            // BG = transparent color0, Window = color3
+            for (let i: i32 = 0; i < 32; i++) {
+                store<u8>(GB_VIDEO_START + 0x1800 + i, 5);
+                store<u8>(GB_VIDEO_START + 0x1C00 + i, 2);
+            }
+            setTileSolid(5, 0x00, 0x00); // BG color0
+            setTileSolid(2, 0xFF, 0xFF); // window color3
+            setTileSolid(0, 0xFF, 0x00); // sprite color1
+            setOamEntry(0, 16, 88, 0, 0x80); // sprite screen x=80 (inside window), BGandWindowOver
+            Lcd.ResetLine();
+            renderLine(0);
+            assertEquals<u8>(getPixel(80), expectedShade(3, 0xE4),
+                "sprite hidden by window when BGandWindowOver set");
+        });
+    });
+
+    // ── 8x16 sprite straddling window/BG boundary ───────────────────────────
+
+    describe("8x16 sprite straddles window/BG boundary", () => {
+
+        it("top half renders over BG (LY<WY); bottom half over window (LY>=WY)", () => {
+            // WY=8 → LY 0..7 is BG; LY 8..15 is window
+            // 8x16 sprite at yPos=16 covers screen y=0..15 → straddles boundary
+            // Sprite top tile (0) = color1; bottom tile (1) = color2
+            // BG tile = color3; Window tile = color0 (so sprite wins in both regions)
+            initPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0xF7); // PPU+WINMAP_HI+WIN+TILE_LO+OBJ8x16+OBJ+BG
+            MemoryMap.GBstore<u8>(0xFF47, 0xE4); // BGP identity
+            MemoryMap.GBstore<u8>(0xFF48, 0xE4); // OBP0
+            MemoryMap.GBstore<u8>(0xFF4A, 8);    // WY=8
+            MemoryMap.GBstore<u8>(0xFF4B, 7);    // WX=7
+            store<u8>(GB_VIDEO_START + 0x1800, 3);  // BG map → tile 3
+            store<u8>(GB_VIDEO_START + 0x1C00, 4);  // Win map → tile 4
+            setTileSolid(3, 0xFF, 0xFF); // BG color3
+            setTileSolid(4, 0x00, 0x00); // window color0
+            setTileSolid(0, 0xFF, 0x00); // sprite top half = color1
+            setTileSolid(1, 0x00, 0xFF); // sprite bottom half = color2
+            setOamEntry(0, 16, 8, 0, 0x00);
+            Lcd.ResetLine();             // LY=0, _windowVisible=false (WY=8)
+
+            // LY=0: BG region → sprite top half (color1)
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertEquals<u8>(getPixel(0, 0), expectedShade(1, 0xE4),
+                "LY=0 BG region: 8x16 top half = color1");
+
+            // Advance to LY=8 using NextLine (updates _windowVisible correctly)
+            for (let i: u8 = 0; i < 8; i++) Lcd.NextLine();
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertEquals<u8>(getPixel(0, 8), expectedShade(2, 0xE4),
+                "LY=8 window region: 8x16 bottom half = color2");
+        });
+
+        it("8x16 sprite partially clipped by window BGandWindowOver mask", () => {
+            // Same straddle setup; window has color3 + BGandWindowOver sprite.
+            // Top half (BG region) sprite wins over BG color0.
+            // Bottom half (window region) window color3 wins over sprite via BGandWindowOver.
+            initPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0xF7);
+            MemoryMap.GBstore<u8>(0xFF47, 0xE4);
+            MemoryMap.GBstore<u8>(0xFF48, 0xE4);
+            MemoryMap.GBstore<u8>(0xFF4A, 8);
+            MemoryMap.GBstore<u8>(0xFF4B, 7);
+            store<u8>(GB_VIDEO_START + 0x1800, 3);
+            store<u8>(GB_VIDEO_START + 0x1C00, 4);
+            setTileSolid(3, 0x00, 0x00); // BG color0
+            setTileSolid(4, 0xFF, 0xFF); // window color3
+            setTileSolid(0, 0xFF, 0x00); // sprite top color1
+            setTileSolid(1, 0x00, 0xFF); // sprite bottom color2
+            setOamEntry(0, 16, 8, 0, 0x80); // BGandWindowOver set
+            Lcd.ResetLine();
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertEquals<u8>(getPixel(0, 0), expectedShade(1, 0xE4),
+                "LY=0 BG color0: sprite top (color1) visible despite BGandWindowOver");
+
+            for (let i: u8 = 0; i < 8; i++) Lcd.NextLine();
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertEquals<u8>(getPixel(0, 8), expectedShade(3, 0xE4),
+                "LY=8 window color3: sprite bottom hidden by BGandWindowOver");
+        });
+    });
+
     // ── DMA interaction ───────────────────────────────────────────────────────
 
     describe("PPU OAM scan sees no sprites during active DMA", () => {
