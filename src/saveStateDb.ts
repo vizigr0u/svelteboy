@@ -1,3 +1,5 @@
+import { writable } from 'svelte/store';
+
 const DB_NAME = 'svelteboy-savestates';
 const STORE_NAME = 'states';
 
@@ -6,6 +8,8 @@ export type SaveStateEntry = {
     thumbnail: string;
     savedAt: number;
 };
+
+export const quickSaveVersion = writable(0);
 
 function openDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -27,7 +31,7 @@ export async function saveSlot(romSha1: string, slot: number, entry: SaveStateEn
     return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         tx.objectStore(STORE_NAME).put(entry, slotKey(romSha1, slot));
-        tx.oncomplete = () => resolve();
+        tx.oncomplete = () => { quickSaveVersion.update(v => v + 1); resolve(); };
         tx.onerror = () => reject(tx.error);
     });
 }

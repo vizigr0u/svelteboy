@@ -28,7 +28,8 @@ import {
     markAudioBuffersRead,
     setMuteChannel,
     createSaveState,
-    loadSaveState
+    loadSaveState,
+    isAtFrameBoundary
 } from "../build/backend";
 import { PALETTE_PRESETS, SelectedPaletteIndex, type GBPalette } from "stores/optionsStore";
 import { saveSlot, loadSlot } from "./saveStateDb";
@@ -106,18 +107,30 @@ export const Emulator = {
     QuickSave: async (slot: number): Promise<void> => {
         const cartridge = get(loadedCartridge);
         if (!cartridge) return;
+        if (get(DebuggerAttached)) return;
+        const wasRunning = !get(EmulatorPaused);
+        pauseEmulator();
+        if (!isAtFrameBoundary()) backendRunOneFrame();
         const state = createSaveState();
+        if (state.byteLength === 0) {
+            if (wasRunning) Emulator.RunUntilBreak();
+            return;
+        }
         const palette = PALETTE_PRESETS[get(SelectedPaletteIndex)];
         const thumbnail = captureFrameThumbnail(Emulator.GetGameFrame(), palette);
         await saveSlot(cartridge.sha1, slot, { state, thumbnail, savedAt: Date.now() });
+        if (wasRunning) Emulator.RunUntilBreak();
     },
     QuickLoad: async (slot: number): Promise<void> => {
         const cartridge = get(loadedCartridge);
         if (!cartridge) return;
         const entry = await loadSlot(cartridge.sha1, slot);
         if (!entry) return;
+        const wasRunning = !get(EmulatorPaused);
+        pauseEmulator();
         stopQueuedAudio();
         loadSaveState(entry.state);
+        if (wasRunning && !get(DebuggerAttached)) Emulator.RunUntilBreak();
     }
 }
 

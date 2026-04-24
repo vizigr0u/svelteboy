@@ -162,6 +162,11 @@ export class Lcd {
     @inline
     static get WindowLineY(): u8 { return Lcd.windowLy; }
 
+    @inline static get WindowLyInternal(): u8 { return Lcd.windowLy; }
+    static set WindowLyInternal(value: u8) { Lcd.windowLy = value; }
+    @inline static get WindowVisibleInternal(): boolean { return Lcd._windowVisible; }
+    static set WindowVisibleInternal(value: boolean) { Lcd._windowVisible = value; }
+
     @inline
     static getBGPalette(): u8 {
         return load<u8>(GB_IO_START + 0x47);

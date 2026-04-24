@@ -80,7 +80,7 @@ export { setJoypad } from "./io/joypad";
 
 export { loadSaveGame, getLastSave, getLastSaveFrame } from './memory/savegame'
 
-export { createSaveState, loadSaveState } from './savestate'
+export { createSaveState, loadSaveState, isAtFrameBoundary } from './savestate'
 
 export {
   getAudioSampleRate,

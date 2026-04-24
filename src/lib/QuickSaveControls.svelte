@@ -2,7 +2,8 @@
     import { onMount } from "svelte";
     import { Emulator } from "../emulator";
     import { loadedCartridge } from "stores/romStores";
-    import { getAllSlots, type SaveStateEntry } from "../saveStateDb";
+    import { DebuggerAttached } from "stores/debugStores";
+    import { getAllSlots, quickSaveVersion, type SaveStateEntry } from "../saveStateDb";
 
     const SLOT_COUNT = 4;
 
@@ -16,12 +17,12 @@
 
     $effect(() => {
         $loadedCartridge;
+        $quickSaveVersion;
         refreshSlots();
     });
 
     async function onSave(slot: number) {
         await Emulator.QuickSave(slot);
-        await refreshSlots();
     }
 
     async function onLoad(slot: number) {
@@ -38,9 +39,8 @@
         ⚠ Experimental: quick save/load is buggy and may crash or corrupt state.
     </div>
     <div class="save-slots">
-        {#each Array(SLOT_COUNT) as _, i}
+        {#each slots as entry, i (i)}
             {@const slot = i + 1}
-            {@const entry = slots[i]}
             <div class="slot">
                 <div class="slot-label">Slot {slot}</div>
                 <div class="slot-preview">
@@ -51,7 +51,7 @@
                     {/if}
                 </div>
                 <div class="slot-actions">
-                    <button onclick={() => onSave(slot)} disabled={!$loadedCartridge}>Save</button>
+                    <button onclick={() => onSave(slot)} disabled={!$loadedCartridge || $DebuggerAttached}>Save</button>
                     <button onclick={() => onLoad(slot)} disabled={!entry}>Load</button>
                 </div>
             </div>

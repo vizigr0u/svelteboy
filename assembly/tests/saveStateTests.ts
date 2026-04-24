@@ -1,8 +1,10 @@
 import { Cpu } from "../cpu/cpu";
 import { Interrupt } from "../cpu/interrupts";
 import { Dma } from "../io/video/dma";
-import { Ppu, PpuMode } from "../io/video/ppu";
+import { Ppu, PpuMode, PpuOamFifo } from "../io/video/ppu";
 import { Lcd } from "../io/video/lcd";
+import { PixelFifo } from "../io/video/pixelFifo";
+import { PpuTransfer } from "../io/video/ppuTransfer";
 import { TileCache } from "../io/video/tileCache";
 import { Timer } from "../io/timer";
 import { MemoryMap } from "../memory/memoryMap";
@@ -13,13 +15,16 @@ import {
     GB_HIGH_RAM_START,
     CARTRIDGE_ROM_START
 } from "../memory/memoryConstants";
-import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION } from "../savestate";
+import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION, SAVESTATE_FIXED_SIZE, isAtFrameBoundary } from "../savestate";
 import { describe, it, assertEquals } from "./framework";
 
 function setupClean(): void {
     memory.fill(CARTRIDGE_ROM_START, 0x00, 0x8000);
     MemoryMap.loadedCartridgeRomSize = 0x8000;
     Emulator.Init(false);
+    // Place PPU at frame boundary so createSaveState succeeds by default.
+    Ppu.currentMode = PpuMode.VBlank;
+    Lcd.data.lY = 144;
 }
 
 function testHeaderMagic(): void {
@@ -31,10 +36,11 @@ function testHeaderMagic(): void {
 }
 
 function testHeaderVersion(): void {
-    it("version is 1 at offset 4", () => {
+    it("version is 2 at offset 4", () => {
         setupClean();
         const state = createSaveState();
         assertEquals<u16>(load<u16>(state.dataStart + 4), SAVESTATE_VERSION, "version");
+        assertEquals<u16>(SAVESTATE_VERSION, 2, "SAVESTATE_VERSION");
     });
 }
 
@@ -51,6 +57,24 @@ function testBadMagic(): void {
         const state = createSaveState();
         store<u32>(state.dataStart, 0xDEADBEEF);
         assert(!loadSaveState(state), "should fail on bad magic");
+    });
+}
+
+function testRejectV1(): void {
+    it("loadSaveState rejects v1 blob (version=1)", () => {
+        setupClean();
+        const state = createSaveState();
+        store<u16>(state.dataStart + 4, 1); // force version=1
+        assert(!loadSaveState(state), "should fail on v1 blob");
+    });
+}
+
+function testAcceptV2(): void {
+    it("loadSaveState accepts freshly-created v2 blob", () => {
+        setupClean();
+        const state = createSaveState();
+        assertEquals<u16>(load<u16>(state.dataStart + 4), 2, "version=2");
+        assert(loadSaveState(state), "should succeed on v2 blob");
     });
 }
 
@@ -102,6 +126,32 @@ function testCpuFlags(): void {
     });
 }
 
+function testCpuExtraFlags(): void {
+    it("round-trips failedLastCondition=true, haltBug=true", () => {
+        setupClean();
+        Cpu.failedLastCondition = true;
+        Cpu.haltBug = true;
+        const state = createSaveState();
+        Emulator.Init(false);
+        assert(!Cpu.failedLastCondition, "pre-load failedLastCondition reset");
+        assert(!Cpu.haltBug, "pre-load haltBug reset");
+        assert(loadSaveState(state), "load failed");
+        assert(Cpu.failedLastCondition, "failedLastCondition=true");
+        assert(Cpu.haltBug, "haltBug=true");
+    });
+    it("round-trips failedLastCondition=false, haltBug=false", () => {
+        setupClean();
+        Cpu.failedLastCondition = false;
+        Cpu.haltBug = false;
+        const state = createSaveState();
+        Cpu.failedLastCondition = true;
+        Cpu.haltBug = true;
+        assert(loadSaveState(state), "load failed");
+        assert(!Cpu.failedLastCondition, "failedLastCondition=false");
+        assert(!Cpu.haltBug, "haltBug=false");
+    });
+}
+
 function testCycleCount(): void {
     it("round-trips CycleCount", () => {
         setupClean();
@@ -131,6 +181,26 @@ function testTimer(): void {
     });
 }
 
+function testTimerOverflowPending(): void {
+    it("round-trips Timer.overflowPending=true", () => {
+        setupClean();
+        Timer.overflowPending = true;
+        const state = createSaveState();
+        Emulator.Init(false);
+        assert(!Timer.overflowPending, "pre-load overflowPending reset");
+        assert(loadSaveState(state), "load failed");
+        assert(Timer.overflowPending, "overflowPending=true");
+    });
+    it("round-trips Timer.overflowPending=false", () => {
+        setupClean();
+        Timer.overflowPending = false;
+        const state = createSaveState();
+        Timer.overflowPending = true;
+        assert(loadSaveState(state), "load failed");
+        assert(!Timer.overflowPending, "overflowPending=false");
+    });
+}
+
 function testPpu(): void {
     it("round-trips PPU mode/dot/frame", () => {
         setupClean();
@@ -143,6 +213,50 @@ function testPpu(): void {
         assertEquals<i32>(Ppu.currentMode as i32, PpuMode.HBlank as i32, "mode");
         assertEquals<u16>(Ppu.currentDot, 0x01F0, "dot");
         assertEquals<u32>(Ppu.currentFrame, 42, "frame");
+    });
+}
+
+function testLcdWindowState(): void {
+    it("round-trips Lcd.windowLy=50", () => {
+        setupClean();
+        Lcd.WindowLyInternal = 50;
+        const state = createSaveState();
+        Emulator.Init(false);
+        assertEquals<u8>(Lcd.WindowLyInternal, 0, "pre-load windowLy reset");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(Lcd.WindowLyInternal, 50, "windowLy");
+    });
+    it("round-trips Lcd._windowVisible=true", () => {
+        setupClean();
+        Lcd.WindowVisibleInternal = true;
+        const state = createSaveState();
+        Lcd.WindowVisibleInternal = false;
+        assert(loadSaveState(state), "load failed");
+        assert(Lcd.WindowVisibleInternal, "windowVisible=true");
+    });
+    it("round-trips Lcd._windowVisible=false", () => {
+        setupClean();
+        Lcd.WindowVisibleInternal = false;
+        const state = createSaveState();
+        Lcd.WindowVisibleInternal = true;
+        assert(loadSaveState(state), "load failed");
+        assert(!Lcd.WindowVisibleInternal, "windowVisible=false");
+    });
+    it("windowLy increments after NextLine post-load when window visible", () => {
+        setupClean();
+        // Set up window visible state: LCDC bit5 (window) + bit0 (BG/Win), lY=80, WY=60, WX=20
+        Lcd.Store(0xFF40, 0x91 | (1 << 5));
+        Lcd.data.lY = 80;
+        Lcd.data.windowY = 60;
+        Lcd.data.windowX = 20;
+        Lcd.WindowVisibleInternal = true;
+        Lcd.WindowLyInternal = 7;
+        const state = createSaveState();
+        Emulator.Init(false);
+        assert(loadSaveState(state), "load failed");
+        const before: u8 = Lcd.WindowLyInternal;
+        Lcd.NextLine();
+        assertEquals<u8>(Lcd.WindowLyInternal, before + 1, "windowLy incremented");
     });
 }
 
@@ -160,6 +274,46 @@ function testDma(): void {
         assertEquals<u8>(Dma.offset, 0x42, "offset");
         assertEquals<u8>(Dma.value, 0xC0, "value");
         assertEquals<u8>(Dma.startDelay, 1, "startDelay");
+    });
+}
+
+function testTransientPpuOamFifo(): void {
+    it("PpuOamFifo reset on load", () => {
+        setupClean();
+        const state = createSaveState();
+        PpuOamFifo.size = 5;
+        PpuOamFifo.head = 2;
+        assert(loadSaveState(state), "load failed");
+        assertEquals<i32>(PpuOamFifo.size, 0, "size");
+        assertEquals<i32>(PpuOamFifo.head, 0, "head");
+    });
+}
+
+function testTransientPixelFifo(): void {
+    it("PixelFifo empty on load", () => {
+        setupClean();
+        const state = createSaveState();
+        PixelFifo.Enqueue(1);
+        PixelFifo.Enqueue(2);
+        PixelFifo.Enqueue(3);
+        PixelFifo.Enqueue(4);
+        assert(!PixelFifo.IsEmpty(), "pre-load fifo not empty");
+        assert(loadSaveState(state), "load failed");
+        assert(PixelFifo.IsEmpty(), "fifo empty after load");
+    });
+}
+
+function testTransientPpuTransfer(): void {
+    it("PpuTransfer reset on load", () => {
+        setupClean();
+        const state = createSaveState();
+        PpuTransfer.state = 4; // Push
+        PpuTransfer.lineX = 100;
+        PpuTransfer.pushedX = 80;
+        assert(loadSaveState(state), "load failed");
+        assertEquals<i32>(<i32>PpuTransfer.state, 0, "state=GetTile");
+        assertEquals<u8>(PpuTransfer.lineX, 0, "lineX");
+        assertEquals<u8>(PpuTransfer.pushedX, 0, "pushedX");
     });
 }
 
@@ -227,7 +381,15 @@ function testSizeMinimum(): void {
     it("createSaveState returns at least FIXED_SIZE bytes for ROM-only cart", () => {
         setupClean();
         const state = createSaveState();
-        assert(state.byteLength >= 49652, "size >= FIXED_SIZE");
+        assert(<u32>state.byteLength >= SAVESTATE_FIXED_SIZE, "size >= FIXED_SIZE");
+    });
+}
+
+function testSizeShrunk(): void {
+    it("v2 schema shrinks SAVESTATE_FIXED_SIZE below v1 baseline (49652)", () => {
+        // v1 SAVESTATE_FIXED_SIZE was 49652; after removing fifo/sprite fields
+        // and compacting layout, new size must be strictly smaller.
+        assert(SAVESTATE_FIXED_SIZE < 49652, "fixed size shrunk from v1");
     });
 }
 
@@ -284,6 +446,49 @@ function testLcdCacheTileBase(): void {
     });
 }
 
+function testFrameBoundaryVBlank(): void {
+    it("createSaveState succeeds in VBlank", () => {
+        setupClean();
+        Ppu.currentMode = PpuMode.VBlank;
+        Lcd.data.lY = 144;
+        assert(isAtFrameBoundary(), "isAtFrameBoundary true in VBlank");
+        const state = createSaveState();
+        assert(state.byteLength > 0, "non-empty save");
+    });
+}
+
+function testFrameBoundaryTransfer(): void {
+    it("createSaveState returns empty in Transfer mid-frame", () => {
+        setupClean();
+        Ppu.currentMode = PpuMode.Transfer;
+        Lcd.data.lY = 80;
+        assert(!isAtFrameBoundary(), "isAtFrameBoundary false mid-frame");
+        const state = createSaveState();
+        assertEquals<i32>(state.byteLength, 0, "empty save");
+    });
+}
+
+function testIsAtFrameBoundary(): void {
+    it("isAtFrameBoundary true iff VBlank or lY>=144", () => {
+        setupClean();
+        Ppu.currentMode = PpuMode.OAMScan;
+        Lcd.data.lY = 0;
+        assert(!isAtFrameBoundary(), "OAMScan lY=0");
+        Ppu.currentMode = PpuMode.HBlank;
+        Lcd.data.lY = 50;
+        assert(!isAtFrameBoundary(), "HBlank lY=50");
+        Ppu.currentMode = PpuMode.Transfer;
+        Lcd.data.lY = 143;
+        assert(!isAtFrameBoundary(), "Transfer lY=143");
+        Ppu.currentMode = PpuMode.VBlank;
+        Lcd.data.lY = 144;
+        assert(isAtFrameBoundary(), "VBlank lY=144");
+        Ppu.currentMode = PpuMode.OAMScan;
+        Lcd.data.lY = 150;
+        assert(isAtFrameBoundary(), "OAMScan lY=150");
+    });
+}
+
 export function testSaveState(): boolean {
     describe("SaveState - Header", () => {
         testHeaderMagic();
@@ -291,21 +496,34 @@ export function testSaveState(): boolean {
         testTooShort();
         testBadMagic();
         testBadVersion();
+        testRejectV1();
+        testAcceptV2();
         testSizeMinimum();
+        testSizeShrunk();
     });
     describe("SaveState - CPU", () => {
         testCpuRegisters();
         testCpuFlags();
+        testCpuExtraFlags();
         testCycleCount();
     });
     describe("SaveState - Timer", () => {
         testTimer();
+        testTimerOverflowPending();
     });
     describe("SaveState - PPU", () => {
         testPpu();
     });
+    describe("SaveState - Lcd window state", () => {
+        testLcdWindowState();
+    });
     describe("SaveState - DMA", () => {
         testDma();
+    });
+    describe("SaveState - Transient state", () => {
+        testTransientPpuOamFifo();
+        testTransientPixelFifo();
+        testTransientPpuTransfer();
     });
     describe("SaveState - Memory", () => {
         testVram();
@@ -319,6 +537,11 @@ export function testSaveState(): boolean {
     describe("SaveState - Lcd cache", () => {
         testLcdCacheBgTileMap();
         testLcdCacheTileBase();
+    });
+    describe("SaveState - Frame boundary", () => {
+        testIsAtFrameBoundary();
+        testFrameBoundaryVBlank();
+        testFrameBoundaryTransfer();
     });
     return true;
 }

@@ -17,7 +17,7 @@ const DEFAULT_FIFO_CAPACITY: i32 = <i32>LCD_WIDTH * 2;
     @inline static get SpaceLeft(): i32 { return PixelFifo.IsEmpty() ? DEFAULT_FIFO_CAPACITY : DEFAULT_FIFO_CAPACITY - PixelFifo.tailIndex - 1 }
 
     // @inline private static IsFull(): boolean { return PixelFifo.tailIndex == DEFAULT_FIFO_CAPACITY - 1 }
-    @inline private static IsEmpty(): boolean { return PixelFifo.tailIndex < PixelFifo.headIndex }
+    @inline static IsEmpty(): boolean { return PixelFifo.tailIndex < PixelFifo.headIndex }
 
     static Enqueue(value: u32): void {
         unchecked(PixelFifo.data[++PixelFifo.tailIndex] = value);
