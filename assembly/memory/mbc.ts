@@ -53,6 +53,8 @@ function getType(t: CartridgeType): i32 {
 @final
 export class MBC {
     private static type: i32 = MBCType.None;
+    static rom0Base: u32 = 0;
+    static rom1Base: u32 = 0;
 
     static Init(): void {
         assert(Cartridge.Data.romSizeByte <= 8, 'Unexpected Header ROM Size value: ' + Cartridge.Data.romSizeByte.toString());
@@ -66,6 +68,8 @@ export class MBC {
             case MBCType.MBC5: MBC5.Init(); break;
             default: MBC1.Init(); break;
         }
+        MBC.rom0Base = MBC.MapRom(0);
+        MBC.rom1Base = MBC.MapRom(0x4000);
     }
 
     @inline
@@ -78,6 +82,8 @@ export class MBC {
             case MBCType.MBC5: MBC5.HandleWrite(gbAddress, value); break;
             default: MBC1.HandleWrite(gbAddress, value); break;
         }
+        MBC.rom0Base = MBC.MapRom(0);
+        MBC.rom1Base = MBC.MapRom(0x4000);
     }
 
     @inline
