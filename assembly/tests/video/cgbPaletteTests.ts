@@ -143,5 +143,50 @@ export function testCgbPalettes(): boolean {
         });
     });
 
+    describe("Lcd.Init post-boot palette contract (CGB mode)", () => {
+
+        it("BG palette RAM initialized to white (RGB555 0x7FFF) in CGB mode", () => {
+            setTestRom([0x00]);
+            CgbState.setIsCGB(true);
+            Lcd.Init();
+            for (let i: u32 = 0; i < 64; i += 2) {
+                assertEquals<u16>(load<u16>(GB_CGB_PALETTE_RAM_START + i), 0x7FFF,
+                    "BG palette entry white at offset " + i.toString());
+            }
+        });
+
+        it("getCGBBgColor returns white for all BG palette entries after Init", () => {
+            setTestRom([0x00]);
+            CgbState.setIsCGB(true);
+            Lcd.Init();
+            for (let p: u8 = 0; p < 8; p++) {
+                for (let c: u8 = 0; c < 4; c++) {
+                    assertEquals<u16>(Lcd.getCGBBgColor(p, c), 0x7FFF,
+                        "BG palette " + p.toString() + " color " + c.toString());
+                }
+            }
+        });
+
+        it("OBJ palette RAM zeroed in CGB mode (uninit per spec, safe default)", () => {
+            setTestRom([0x00]);
+            CgbState.setIsCGB(true);
+            Lcd.Init();
+            for (let i: u32 = 64; i < 128; i += 2) {
+                assertEquals<u16>(load<u16>(GB_CGB_PALETTE_RAM_START + i), 0,
+                    "OBJ palette entry zeroed at offset " + i.toString());
+            }
+        });
+
+        it("DMG mode: full palette RAM zeroed (unused region)", () => {
+            setTestRom([0x00]);
+            CgbState.setIsCGB(false);
+            Lcd.Init();
+            for (let i: u32 = 0; i < 128; i += 2) {
+                assertEquals<u16>(load<u16>(GB_CGB_PALETTE_RAM_START + i), 0,
+                    "palette entry zeroed at offset " + i.toString());
+            }
+        });
+    });
+
     return true;
 }

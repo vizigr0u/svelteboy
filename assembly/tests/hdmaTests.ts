@@ -183,11 +183,29 @@ function testHBlankHDMA(): void {
             Dma.Store(0xFF54, 0x00);
             Dma.Store(0xFF55, 0x83); // 4 blocks HBlank
             assertEquals<boolean>(Dma.hdmaActive, true, "active");
-            Dma.HDMATick(); // one block done
+            Dma.HDMATick(); // one block done, 3 remaining
             // cancel
             Dma.Store(0xFF55, 0x00);
             assertEquals<boolean>(Dma.hdmaActive, false, "cancelled");
-            assertEquals<u8>(Dma.Load(0xFF55), 0xFF, "FF55=0xFF after cancel");
+            // Pandocs: after cancel, FF55 read = bit7=1 (inactive) | bits6-0=remaining-1
+            // remaining=3, so bits6-0=2, result = 0x82
+            assertEquals<u8>(Dma.Load(0xFF55), 0x82, "FF55 post-cancel = 0x80|remaining-1");
+        });
+
+        it("FF55 read after full completion returns 0xFF", () => {
+            setupCGB();
+            for (let i: u32 = 0; i < 32; i++) {
+                store<u8>(CARTRIDGE_ROM_START + 0x6000 + i, <u8>(i));
+            }
+            Dma.Store(0xFF51, 0x60);
+            Dma.Store(0xFF52, 0x00);
+            Dma.Store(0xFF53, 0x80);
+            Dma.Store(0xFF54, 0x00);
+            Dma.Store(0xFF55, 0x81); // 2 blocks HBlank
+            Dma.HDMATick();
+            Dma.HDMATick();
+            assertEquals<boolean>(Dma.hdmaActive, false, "inactive after final");
+            assertEquals<u8>(Dma.Load(0xFF55), 0xFF, "FF55=0xFF after completion");
         });
     });
 }
