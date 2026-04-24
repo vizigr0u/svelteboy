@@ -131,7 +131,7 @@
                     <FpsCounter />
                 </div>
             {/if}
-            {#if $AudioSuspended}
+            {#if $AudioSuspended && !$EmulatorPaused}
                 <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
                     🔇 Click to enable sound
                 </button>
