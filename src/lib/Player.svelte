@@ -70,7 +70,7 @@
                 type="button"
                 class="screen-tap"
                 onclick={togglePlayPause}
-                disabled={!hasRom}
+                aria-disabled={!hasRom}
                 aria-label={$EmulatorPaused ? "Resume" : "Pause"}
             >
                 <WebGLCanvas
@@ -228,7 +228,7 @@
         line-height: 0;
     }
 
-    .screen-tap:disabled {
+    .screen-tap[aria-disabled="true"] {
         cursor: default;
     }
 
