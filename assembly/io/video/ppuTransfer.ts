@@ -46,6 +46,14 @@ export class PpuTransfer {
         PpuTransfer.lineX = 0;
         PpuTransfer.fetcherX = 0;
         PpuTransfer.pushedX = 0;
+        PpuTransfer.tileY = 0;
+        PpuTransfer.bgTileOffset = 0;
+        PpuTransfer.spriteCount = 0;
+        PpuTransfer.fetchedBgBytes = 0;
+        PpuTransfer.numSpritesThisFetch = 0;
+        unchecked(PpuTransfer.fetchedSpriteBytes[0] = 0);
+        unchecked(PpuTransfer.fetchedSpriteBytes[1] = 0);
+        unchecked(PpuTransfer.fetchedSpriteBytes[2] = 0);
         if (Logger.verbose >= 3) {
             log(`Mode 2 line ${Lcd.data.lY}, ${PpuOamFifo.size} sprites. First: ` + ((PpuOamFifo.size > 0) ? PpuOamFifo.Peek().tileIndex.toString() : 'none'))
         }
