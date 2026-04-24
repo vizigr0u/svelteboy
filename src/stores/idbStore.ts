@@ -107,6 +107,13 @@ function romGetAll(db: IDBDatabase, storeName: string): Promise<StoredRom[]> {
     });
 }
 
+export async function findStoredRomByName(name: string): Promise<StoredRom | undefined> {
+    const db = await openDB();
+    const roms = await romGetAll(db, CART_STORE);
+    const lower = name.toLowerCase();
+    return roms.find(r => r.name.toLowerCase() === lower);
+}
+
 export function MakeIDBStore<T>(key: string, defaultValue: T): Writable<T> {
     const store = writable<T>(defaultValue);
     let hydrated = false;

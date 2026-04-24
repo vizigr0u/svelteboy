@@ -26,3 +26,20 @@ export function uToHex(n: number): string {
 export function uToHex16(n: number): string {
     return '0x' + n.toString(16).padStart(4, '0');
 }
+
+type RomParam =
+    | { type: 'local'; name: string }
+    | { type: 'remote'; uri: string; name: string };
+
+export function parseRomParam(): RomParam | undefined {
+    const raw = new URLSearchParams(window.location.search).get('rom');
+    if (!raw) return undefined;
+    try {
+        const url = new URL(raw);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+            const name = url.pathname.split('/').pop() ?? raw;
+            return { type: 'remote', uri: raw, name };
+        }
+    } catch { /* not a URL */ }
+    return { type: 'local', name: raw };
+}
