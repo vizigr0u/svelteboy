@@ -5,11 +5,24 @@ const STORE_NAME = 'states';
 
 export type SaveStateEntry = {
     state: Uint8Array;
-    thumbnail: string;
+    thumbnail?: string;
     savedAt: number;
 };
 
 export const quickSaveVersion = writable(0);
+
+// Header: [0..3]="SVBY" magic, [4..5]=u16 version (little-endian)
+const SVBY_MAGIC = [0x53, 0x56, 0x42, 0x59]; // 'S','V','B','Y'
+
+export function isValidSaveStateBlob(data: Uint8Array): boolean {
+    if (data.byteLength < 6) return false;
+    for (let i = 0; i < 4; i++) if (data[i] !== SVBY_MAGIC[i]) return false;
+    return true;
+}
+
+export function getSaveStateVersion(data: Uint8Array): number {
+    return data[4] | (data[5] << 8);
+}
 
 function openDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
