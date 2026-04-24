@@ -71,9 +71,6 @@
 </script>
 
 <div class="quicksave-section">
-    <div class="disclaimer">
-        ⚠ Experimental: quick save/load is buggy and may crash or corrupt state.
-    </div>
     <div class="save-slots">
         {#each slots as entry, i (i)}
             {@const slot = i + 1}
@@ -119,13 +116,6 @@
 </div>
 
 <style>
-    .disclaimer {
-        font-size: 0.85em;
-        color: #e0a000;
-        text-align: center;
-        padding: 0.3em 0.5em 0;
-    }
-
     .save-slots {
         display: flex;
         gap: 0.5em;
