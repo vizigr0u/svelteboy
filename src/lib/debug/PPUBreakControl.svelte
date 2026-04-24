@@ -18,7 +18,7 @@
                 {PPUMode[mode]}
                 <input
                     type="checkbox"
-                    on:change={(ev) =>
+                    onchange={(ev) =>
                         Debug.SetPPUBreak(mode, ev.currentTarget.checked)}
                 />
             </label>

@@ -39,7 +39,7 @@
     <h4 class="title">Breakpoints:</h4>
     <div class="breakpoint-info">
         <div class="add-breakpoint-form">
-            <form on:submit|preventDefault={onAddClick}>
+            <form onsubmit={(e) => { e.preventDefault(); onAddClick(); }}>
                 <input
                     class="address-input"
                     type="text"
@@ -48,11 +48,11 @@
                 />
             </form>
             <button
-                on:click={onAddClick}
+                onclick={onAddClick}
                 disabled={!strToAddress(breakpointToAdd)}
             >
-                {strToAddress(breakpointToAdd)
-                    ? "Add " + uToHex16(strToAddress(breakpointToAdd))
+                {strToAddress(breakpointToAdd) !== undefined
+                    ? "Add " + uToHex16(strToAddress(breakpointToAdd)!)
                     : "invalid"}
             </button>
         </div>
@@ -63,7 +63,7 @@
                 </span>
                 <button
                     class="remove-button"
-                    on:click={() => onRemoveClick(breakpoint[0])}>X</button
+                    onclick={() => onRemoveClick(breakpoint[0])}>X</button
                 >
             </div>
         {/each}

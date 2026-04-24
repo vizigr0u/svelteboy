@@ -51,7 +51,7 @@
 </script>
 
 <div style="display: flex; flex-direction: column;">
-    <button on:click={fillAndPlay}>Play New</button>
+    <button onclick={fillAndPlay}>Play New</button>
     <label
         >Time: <input type="range" min="0.1" max="10" />{soundTimeSeconds} seconds</label
     >

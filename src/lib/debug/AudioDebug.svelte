@@ -9,49 +9,48 @@
         MuteSoundChannel4,
     } from "@/stores/debugStores";
     import { EmulatorPaused } from "@/stores/playStores";
-    import { onMount } from "svelte";
+    import { untrack } from "svelte";
 
-    let pixelScale: number = 1;
+    const pixelScale: number = 1;
     let leftCanvas: HTMLCanvasElement;
     let rightCanvas: HTMLCanvasElement;
     let analyserCanvas: HTMLCanvasElement;
 
-    let pointerIndex: number = -1;
+    let pointerIndex = $state(-1);
 
     const WIDTH = 512;
     const HEIGHT = 128;
     let bufferLength;
-    let analyserArray: Float32Array;
+    let analyserArray: Float32Array<ArrayBuffer>;
     let AnalyzsercanvasCtx: CanvasRenderingContext2D;
     let leftCanvasCtx: CanvasRenderingContext2D;
     let rightCanvasCtx: CanvasRenderingContext2D;
     let rafRef = 0;
 
-    onMount(() => {
-        const unsubAnalyser = AudioAnalyzerNode.subscribe((analyser) => {
-            if (analyser == undefined) {
-                window.cancelAnimationFrame(rafRef);
-                return;
-            }
-            leftCanvasCtx = leftCanvas.getContext("2d");
-            rightCanvasCtx = rightCanvas.getContext("2d");
-            AnalyzsercanvasCtx = analyserCanvas.getContext("2d");
-            analyser.fftSize = 2048;
-            bufferLength = analyser.frequencyBinCount;
-            analyserArray = new Float32Array(bufferLength);
-            rafRef = window.requestAnimationFrame(draw);
-        });
-        const unsubPointers = AudioBufferPointers.subscribe((ptrs) => {
+    $effect(() => {
+        const analyser = $AudioAnalyzerNode;
+        if (analyser == undefined) {
+            window.cancelAnimationFrame(rafRef);
+            return;
+        }
+        leftCanvasCtx = leftCanvas.getContext("2d")!;
+        rightCanvasCtx = rightCanvas.getContext("2d")!;
+        AnalyzsercanvasCtx = analyserCanvas.getContext("2d")!;
+        analyser.fftSize = 2048;
+        bufferLength = analyser.frequencyBinCount;
+        analyserArray = new Float32Array(bufferLength);
+        rafRef = window.requestAnimationFrame(draw);
+        return () => window.cancelAnimationFrame(rafRef);
+    });
+
+    $effect(() => {
+        const ptrs = $AudioBufferPointers;
+        untrack(() => {
             pointerIndex =
                 ptrs.length > 0
                     ? Math.max(0, Math.min(ptrs.length - 1, pointerIndex))
                     : -1;
         });
-        return () => {
-            unsubAnalyser();
-            unsubPointers();
-            window.cancelAnimationFrame(rafRef);
-        };
     });
 
     function draw() {

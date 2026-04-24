@@ -23,7 +23,7 @@
                 <input
                     type="checkbox"
                     checked={$KeyPressMap.has(control)}
-                    on:change={(ev) => {
+                    onchange={(ev) => {
                         if (ev.currentTarget.checked) $KeyPressMap.add(control);
                         else $KeyPressMap.delete(control);
                         $KeyPressMap = $KeyPressMap;
