@@ -6,6 +6,8 @@
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
     import { AudioSuspended, Emulator } from "../emulator";
+    import { EmulatorPaused } from "stores/playStores";
+    import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
     import Window from "./Window.svelte";
@@ -21,6 +23,14 @@
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array) => void } | null = $state(null);
     let menuOpen: boolean = $state(false);
+
+    const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
+
+    async function togglePlayPause() {
+        if (!hasRom) return;
+        if ($EmulatorPaused) await Emulator.RunUntilBreak();
+        else Emulator.Pause();
+    }
 
     function toggleWindow(store: Writable<boolean>) {
         store.update(v => !v);
@@ -56,11 +66,22 @@
             class:drop-allowed={dragState == DragState.Accept}
             class:drop-disallowed={dragState == DragState.Reject}
         >
-            <WebGLCanvas
-                bind:this={webglCanvas}
-                pixelSize={$playerPixelSize}
-                palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
-            />
+            <button
+                type="button"
+                class="screen-tap"
+                onclick={togglePlayPause}
+                disabled={!hasRom}
+                aria-label={$EmulatorPaused ? "Resume" : "Pause"}
+            >
+                <WebGLCanvas
+                    bind:this={webglCanvas}
+                    pixelSize={$playerPixelSize}
+                    palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
+                />
+                {#if $EmulatorPaused && hasRom}
+                    <div class="pause-overlay">PAUSE</div>
+                {/if}
+            </button>
             {#if $showFPS}
                 <div class="fps-wrapper">
                     <FpsCounter />
@@ -194,5 +215,41 @@
         position: fixed;
         inset: 0;
         z-index: 199;
+    }
+
+    .screen-tap {
+        position: relative;
+        display: block;
+        padding: 0;
+        margin: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        line-height: 0;
+    }
+
+    .screen-tap:disabled {
+        cursor: default;
+    }
+
+    .screen-tap:focus {
+        outline: none;
+    }
+
+    .pause-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.35);
+        color: rgba(255, 255, 255, 0.6);
+        font-family: "Courier New", Courier, monospace;
+        font-weight: bold;
+        font-size: 3em;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        pointer-events: none;
+        user-select: none;
     }
 </style>
