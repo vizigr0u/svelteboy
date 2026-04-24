@@ -168,9 +168,9 @@ export const Audio = {
         destinationNode = analyzerNode;
         Emulator.AddPostRunCallback(postRunAudio);
 
-        // for (let i = 0; i < AudioTestBuffers.length; i++) {
-        //     queueBuffer(getTestAudioBuffer(i));
-        // }
+        const resumeOnGesture = () => { audioCtx?.resume(); };
+        document.addEventListener('click', resumeOnGesture);
+        document.addEventListener('keydown', resumeOnGesture);
 
         wasInit = true;
     },
@@ -180,19 +180,34 @@ export const Audio = {
     }
 }
 
-let logDelay = 0;
-const MinBufferToRender = 2;
+const TARGET_LOOKAHEAD_S = 0.30; // 80ms: survives occasional long frames without audible latency
 
 function postRunAudio() {
     const bufferSize = getAudioBuffersSize();
     AudioBufferSize.set(bufferSize);
     const sampleRate = getAudioSampleRate();
-    const numAvailableBuffers = getAudioBuffersToReadCount();
-    if (getAudioBuffersToReadCount() >= MinBufferToRender) {
-        // console.log("Grabbing " + numAvailableBuffers + " audio buffers of size " + bufferSize);
+    let numAvailableBuffers = getAudioBuffersToReadCount();
+
+    // Context suspended: drain all WASM buffers to keep backend live, skip scheduling.
+    if (audioCtx.state !== 'running') {
+        if (numAvailableBuffers > 0)
+            markAudioBuffersRead(numAvailableBuffers);
+        return;
+    }
+
+    const bufferDuration = bufferSize / sampleRate;
+    const lookahead = currentPlayTime - audioCtx.currentTime;
+    const buffersToFillTarget = Math.ceil((TARGET_LOOKAHEAD_S - lookahead) / bufferDuration);
+    const buffersToSchedule = Math.max(0, Math.min(numAvailableBuffers, buffersToFillTarget));
+
+    const toDrain = numAvailableBuffers - buffersToSchedule;
+    if (toDrain > 0)
+        markAudioBuffersRead(toDrain);
+
+    if (buffersToSchedule > 0) {
         const ptrs = [];
-        for (let i = 0; i < numAvailableBuffers; i++) {
-            ptrs.push([getAudioBufferToReadPointer(0), getAudioBufferToReadPointer(1)])
+        for (let i = 0; i < buffersToSchedule; i++) {
+            ptrs.push([getAudioBufferToReadPointer(0), getAudioBufferToReadPointer(1)]);
             const buffer = createAudioBufferFromData(bufferSize, sampleRate);
             queueBuffer(buffer);
             markAudioBuffersRead(1);
@@ -278,7 +293,7 @@ async function playRom(rom: RomReference): Promise<void> {
 let lastRenderTime: number = -1;
 
 function run(time: number) {
-    const dt = lastRenderTime <= 0 ? 15 : time - lastRenderTime;
+    const dt = lastRenderTime <= 0 ? 16.67 : Math.min(time - lastRenderTime, 50);
     {
         preRun();
         const stopReason = runEmulator(dt * get(EmulatorSpeed));
@@ -367,7 +382,6 @@ function pauseEmulator(): void {
 function unPauseEmulator(): void {
     EmulatorPaused.set(false);
     audioCtx.resume();
-    lastRenderTime = -1;
 }
 
 if (import.meta.hot) {
