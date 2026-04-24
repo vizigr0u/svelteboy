@@ -10,6 +10,7 @@ allowed-tools: Bash Grep Read Edit
 ```bash
 pnpm profile:build   # build profilerelease + run frames → profile.cpuprofile
 pnpm bench:build     # build release + run frames, prints avg/low/high FPS
+pnpm bench:browser   # build release + run frames in browser, prints avg/low/high FPS - runs firefox.
 ./node_modules/.bin/asc assembly/index.ts --target release --textFile build/backend.wat  # WAT for analysis
 pnpm asbuild:release # standard release build
 ```

@@ -29,3 +29,7 @@ profile.cpuprofile
 *.sln
 *.sw?
 *.7z
+
+# browser bench artifacts
+tools/bench-browser/lib/
+tools/bench-browser/libasound*.deb
