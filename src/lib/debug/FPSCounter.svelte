@@ -2,19 +2,25 @@
     import { onMount } from "svelte";
     import { GameFrames } from "stores/playStores";
 
-    let lastDrawTime: number = 0;
-    let updateFreq: number = 20;
+    const WINDOW = 30;
+    let windowStartTime: number = 0;
+    let windowStartFrame: number = -1;
     let fps: number = -1;
 
     onMount(() => {
         const unsub = GameFrames.subscribe((frame) => {
-            if (frame != -1) {
-                const frameEndTime = performance.now();
-                if (lastDrawTime > 0 && frame % 10 == 0 && frame > 0) {
-                    const lastFrameDuration = frameEndTime - lastDrawTime;
-                    if (frame % updateFreq == 0) fps = 1000 / lastFrameDuration;
-                }
-                lastDrawTime = frameEndTime;
+            const now = performance.now();
+            if (windowStartFrame < 0) {
+                windowStartFrame = frame;
+                windowStartTime = now;
+                return;
+            }
+            const elapsed = now - windowStartTime;
+            const count = frame - windowStartFrame;
+            if (count >= WINDOW && elapsed > 0) {
+                fps = (count * 1000) / elapsed;
+                windowStartFrame = frame;
+                windowStartTime = now;
             }
         });
         return unsub;

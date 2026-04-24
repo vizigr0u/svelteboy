@@ -22,8 +22,6 @@ export class AudioRender {
 
     static AudioOn: boolean = false;
     static outBuffer: AudioOutBuffer = new AudioOutBuffer();
-    static renderingPaused: boolean = false;
-
     static channel1: PulseChannel = new PulseChannel(AudioChannelId.Channel1);
     static channel2: PulseChannel = new PulseChannel(AudioChannelId.Channel2);
     static channel3: WaveChannel = WaveChannel.Create();
@@ -47,7 +45,6 @@ export class AudioRender {
         AudioRender.sampleIndex = 0;
         AudioRender.initialCycles = 0;
         AudioRender.AudioOn = MemoryMap.useBootRom ? false : true;
-        AudioRender.renderingPaused = false;
         if (Logger.verbose >= 3) {
             const leftP = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Left).dataStart;
             const rightP = AudioRender.outBuffer.getWorkingBuffer(AudioChannel.Right).dataStart;
@@ -310,21 +307,12 @@ export class AudioRender {
             }
             if (spaceLeft <= samplesThisBuffer) {
                 if (!AudioRender.outBuffer.hasSpaceForNextBuffer()) {
-                    if (!AudioRender.renderingPaused) {
-                        AudioRender.renderingPaused = true;
-                        if (Logger.verbose >= 1) {
-                            log('Audio Render paused: Queue Full');
-                        }
+                    AudioRender.outBuffer.markBuffersRead(1);
+                    if (Logger.verbose >= 1) {
+                        log('Audio Render: queue full, dropped oldest buffer');
                     }
-                    break;
                 }
                 AudioRender.outBuffer.nextWorkingBuffers();
-                if (AudioRender.renderingPaused) {
-                    AudioRender.renderingPaused = false;
-                    if (Logger.verbose >= 1) {
-                        log('Audio Render resumed: new buffer available');
-                    }
-                }
             }
         }
         if (Logger.verbose >= 2)

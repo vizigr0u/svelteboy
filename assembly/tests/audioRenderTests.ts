@@ -350,28 +350,25 @@ function testBufferRingAdvances(): void {
 
 function testBackpressureRingFull(): void {
     // Ring holds QueueSize-1=127 buffers (one slot reserved for read pointer).
-    // Rendering past capacity sets renderingPaused=true and stops advancing.
-    // No data overwrite: toPlayIndex buffer (slot 0) is never overwritten by stalled writer.
-    describe("backpressure: render stalls when ring full", () => {
-        it("renderingPaused=true and count=127 after filling all ring slots", () => {
+    // On overflow, oldest buffer is dropped so writer stays live and count stays ≤127.
+    describe("backpressure: drop-oldest when ring full", () => {
+        it("count stays at 127 after overflowing ring capacity", () => {
             initAudio();
             drainRingBuffer();
             MemoryMap.GBstore<u8>(0xFF25, 0x11);
             MemoryMap.GBstore<u8>(0xFF24, 0x77);
             triggerCH1(0xF0, 2040);
 
-            // 130 × 256 samples > 127 × 256 ring capacity → overflow
+            // 130 × 256 samples > 127 × 256 ring capacity → overflow triggers drop
             const cycles: u64 = <u64>Math.ceil(130.0 * 256.0 * CYCLES_PER_SAMPLE);
             AudioRender.Render(cycles);
 
-            assert(AudioRender.renderingPaused,
-                "renderingPaused should be true when ring is full");
             const count = AudioRender.outBuffer.getBuffersToReadCount();
-            assertEquals<u32>(count, 127, `full ring should hold exactly 127 readable buffers`);
+            assertEquals<u32>(count, 127, `ring should hold exactly 127 readable buffers after drop`);
         });
 
-        it("no overwrite: count does not exceed 127 even with more cycles", () => {
-            // Re-render a second time without consuming — count must stay at 127
+        it("count does not exceed 127 even with more cycles", () => {
+            // Re-render without consuming — count must stay at 127
             const moreCycles: u64 = <u64>Math.ceil(10.0 * 256.0 * CYCLES_PER_SAMPLE);
             AudioRender.Render(AudioRender.sampleIndex + moreCycles);
             const count = AudioRender.outBuffer.getBuffersToReadCount();
