@@ -9,11 +9,16 @@ import { TileCache } from "../io/video/tileCache";
 import { Timer } from "../io/timer";
 import { MemoryMap } from "../memory/memoryMap";
 import { Emulator } from "../emulator";
+import { Cartridge } from "../cartridge";
+import { CartridgeType } from "../metadata";
+import { MBC } from "../memory/mbc";
+import { MBC1 } from "../memory/mbc1";
 import {
     GB_VIDEO_START,
     GB_IO_START,
     GB_HIGH_RAM_START,
-    CARTRIDGE_ROM_START
+    CARTRIDGE_ROM_START,
+    ROM_BANK_SIZE
 } from "../memory/memoryConstants";
 import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION, SAVESTATE_FIXED_SIZE, isAtFrameBoundary } from "../savestate";
 import { describe, it, assertEquals } from "./framework";
@@ -446,6 +451,54 @@ function testLcdCacheTileBase(): void {
     });
 }
 
+// Reproduces the bug where loadSaveState restored MBC1.rom1Bank but left
+// MBC.rom1Base (the cached fast-path base used by every CPU opcode fetch)
+// pointing at the previously-mapped bank. Symptom: first frame post-load
+// rendered correctly, then the CPU started fetching opcodes from the wrong
+// ROM bank → wrong tiles in subsequent frames.
+function setupMbc1(): void {
+    // 32 banks × 16KiB = 512KiB. romSizeByte=4 → RomBankCount=32.
+    memory.fill(CARTRIDGE_ROM_START, 0x00, 32 * <i32>ROM_BANK_SIZE);
+    MemoryMap.loadedCartridgeRomSize = 32 * ROM_BANK_SIZE;
+    Cartridge.Data.cartridgeType = CartridgeType.MBC1;
+    Cartridge.Data.romSizeByte = 4;
+    Cartridge.Data.ramSizeByte = 0;
+    Emulator.Init(false);
+    Ppu.currentMode = PpuMode.VBlank;
+    Lcd.data.lY = 144;
+}
+
+function testMbcRomBaseCacheRestored(): void {
+    it("MBC.rom1Base refreshed after load (regression: cached base stale)", () => {
+        setupMbc1();
+        // Switch to bank 5 (writes to $2000-$3FFF set MBC1.LowRegister).
+        MBC.HandleWrite(0x2000, 5);
+        assertEquals<u8>(MBC1.rom1Bank, 5, "pre-save rom1Bank");
+        const expectedBase: u32 = CARTRIDGE_ROM_START + 5 * ROM_BANK_SIZE;
+        assertEquals<u32>(MBC.rom1Base, expectedBase, "pre-save rom1Base");
+        const state = createSaveState();
+        // Now switch to bank 10 — drifts cached base.
+        MBC.HandleWrite(0x2000, 10);
+        assertEquals<u32>(MBC.rom1Base, CARTRIDGE_ROM_START + 10 * ROM_BANK_SIZE, "drifted rom1Base");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(MBC1.rom1Bank, 5, "rom1Bank restored");
+        assertEquals<u32>(MBC.rom1Base, expectedBase, "rom1Base re-cached after load");
+    });
+    it("CPU fetch from $4000-$7FFF reads saved bank, not last-mapped bank", () => {
+        setupMbc1();
+        // Plant marker bytes at $4000 in banks 5 and 10.
+        store<u8>(CARTRIDGE_ROM_START + 5 * ROM_BANK_SIZE, 0x55);
+        store<u8>(CARTRIDGE_ROM_START + 10 * ROM_BANK_SIZE, 0xAA);
+        MBC.HandleWrite(0x2000, 5);
+        assertEquals<u8>(MemoryMap.GBload<u8>(0x4000), 0x55, "pre-save fetch bank 5");
+        const state = createSaveState();
+        MBC.HandleWrite(0x2000, 10);
+        assertEquals<u8>(MemoryMap.GBload<u8>(0x4000), 0xAA, "fetch bank 10 before load");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(MemoryMap.GBload<u8>(0x4000), 0x55, "fetch bank 5 after load");
+    });
+}
+
 function testFrameBoundaryVBlank(): void {
     it("createSaveState succeeds in VBlank", () => {
         setupClean();
@@ -537,6 +590,9 @@ export function testSaveState(): boolean {
     describe("SaveState - Lcd cache", () => {
         testLcdCacheBgTileMap();
         testLcdCacheTileBase();
+    });
+    describe("SaveState - MBC cache", () => {
+        testMbcRomBaseCacheRestored();
     });
     describe("SaveState - Frame boundary", () => {
         testIsAtFrameBoundary();

@@ -6,6 +6,7 @@ import { LCD_HEIGHT } from "./io/video/constants";
 import { Timer } from "./io/timer";
 import { Cartridge } from "./cartridge";
 import { CartridgeType } from "./metadata";
+import { MBC } from "./memory/mbc";
 import { MBC1 } from "./memory/mbc1";
 import { MBC2 } from "./memory/mbc2";
 import { MBC3 } from "./memory/mbc3";
@@ -211,6 +212,9 @@ export function loadSaveState(data: Uint8Array): bool {
     // MBC
     setRamEnabledRaw(load<u8>(p + OFF_RAM_ENABLED) != 0);
     loadMbcBanks(p);
+    // Refresh fast-path ROM base cache (used by MemoryMap.GBload for opcode fetches)
+    MBC.rom0Base = MBC.MapRom(0);
+    MBC.rom1Base = MBC.MapRom(0x4000);
 
     // LCD window state
     Lcd.WindowLyInternal = load<u8>(p + OFF_LCD_WINDOW_LY);
