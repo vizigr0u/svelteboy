@@ -12,6 +12,7 @@ import { Joypad } from "./joypad";
 import { APU } from "../audio/apu";
 import { WramBank } from "./wramBank";
 import { CgbState } from "../cgbState";
+import { CgbIoRegs } from "./cgbIoRegs";
 
 const UNHANDLED_CGB_START: u32 = 0xFF4D;
 
@@ -43,6 +44,7 @@ export class IO {
         Serial.Init();
         Dma.Init();
         WramBank.Init();
+        CgbIoRegs.Init();
     }
 
     static Store(gbAddress: u16, value: u8): void {
@@ -78,6 +80,8 @@ export class IO {
             Dma.Store(gbAddress, value);
         } else if (CgbState.isCgbMode && gbAddress == 0xFF4D) {
             CgbState.setKey1((CgbState.key1 & 0xFE) | (value & 0x01));
+        } else if (CgbIoRegs.Handles(gbAddress)) {
+            CgbIoRegs.Store(gbAddress, value);
         } else if (gbAddress >= UNHANDLED_CGB_START) {
             if (Logger.verbose >= 3) {
                 log('Unhandled write to CGB Flag ' + uToHex<u16>(gbAddress));
@@ -123,6 +127,9 @@ export class IO {
         }
         if (CgbState.isCgbMode && gbAddress == 0xFF4D) {
             return (CgbState.key1 & 0x81) | 0x7E;
+        }
+        if (CgbIoRegs.Handles(gbAddress)) {
+            return CgbIoRegs.Load(gbAddress);
         }
         if (gbAddress >= UNHANDLED_CGB_START) {
             if (Logger.verbose >= 3) {
