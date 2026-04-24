@@ -33,28 +33,40 @@
     }
 </script>
 
-<div class="save-slots">
-    {#each Array(SLOT_COUNT) as _, i}
-        {@const slot = i + 1}
-        {@const entry = slots[i]}
-        <div class="slot">
-            <div class="slot-preview">
-                {#if entry}
-                    <img src={entry.thumbnail} alt="Slot {slot}" title={formatDate(entry.savedAt)} />
-                {:else}
-                    <span class="empty">Empty</span>
-                {/if}
+<div class="quicksave-section">
+    <div class="disclaimer">
+        ⚠ Experimental: quick save/load is buggy and may crash or corrupt state.
+    </div>
+    <div class="save-slots">
+        {#each Array(SLOT_COUNT) as _, i}
+            {@const slot = i + 1}
+            {@const entry = slots[i]}
+            <div class="slot">
+                <div class="slot-label">Slot {slot}</div>
+                <div class="slot-preview">
+                    {#if entry}
+                        <img src={entry.thumbnail} alt="Slot {slot}" title={formatDate(entry.savedAt)} />
+                    {:else}
+                        <span class="empty">Empty</span>
+                    {/if}
+                </div>
+                <div class="slot-actions">
+                    <button onclick={() => onSave(slot)} disabled={!$loadedCartridge}>Save</button>
+                    <button onclick={() => onLoad(slot)} disabled={!entry}>Load</button>
+                </div>
             </div>
-            <div class="slot-label">Slot {slot}</div>
-            <div class="slot-actions">
-                <button onclick={() => onSave(slot)} disabled={!$loadedCartridge}>Save</button>
-                <button onclick={() => onLoad(slot)} disabled={!entry}>Load</button>
-            </div>
-        </div>
-    {/each}
+        {/each}
+    </div>
 </div>
 
 <style>
+    .disclaimer {
+        font-size: 0.85em;
+        color: #e0a000;
+        text-align: center;
+        padding: 0.3em 0.5em 0;
+    }
+
     .save-slots {
         display: flex;
         gap: 0.5em;
@@ -71,12 +83,13 @@
         background: #222;
         border-radius: 4px;
         padding: 0.4em;
-        min-width: 80px;
+        min-width: 130px;
+        font-size: 0.85em;
     }
 
     .slot-preview {
-        width: 80px;
-        height: 72px;
+        width: 130px;
+        height: 117px;
         background: #111;
         border-radius: 2px;
         display: flex;
@@ -93,24 +106,23 @@
     }
 
     .empty {
-        font-size: 0.6em;
         color: #555;
     }
 
     .slot-label {
-        font-size: 0.65em;
         color: #aaa;
     }
 
     .slot-actions {
         display: flex;
-        gap: 0.25em;
+        justify-content: space-around;
+        width: 100%;
     }
 
     .slot-actions button {
-        font-size: 0.65em;
         padding: 0.2em 0.4em;
         cursor: pointer;
+        width: 40%;
     }
 
     .slot-actions button:disabled {
