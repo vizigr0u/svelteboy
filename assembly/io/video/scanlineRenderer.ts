@@ -314,22 +314,17 @@ export class ScanlineRenderer {
         const masterBgPriority = Lcd.BGandWindowVisible;
         const cgbBufferPtr = Ppu.cgbWorkingBufferPtr;
         const bufferOffset = <u32>y * LCD_WIDTH;
-        let spriteHead: i32 = 0;
 
         for (let x: u8 = 0; x < LCD_WIDTH; x++) {
             const bgColorId = unchecked(pixels[x]);
             let finalColor: u16 = Lcd.getCGBBgColor(unchecked(bgPaletteNum[x]), bgColorId);
 
             if (numSprites > 0) {
-                while (spriteHead < numSprites &&
-                       unchecked(ScanlineRenderer.spriteXPos[spriteHead]) < x)
-                    spriteHead++;
-
-                for (let si = spriteHead; si < numSprites; si++) {
+                for (let si = 0; si < numSprites; si++) {
                     const spriteXPos = unchecked(ScanlineRenderer.spriteXPos[si]);
                     const spriteX: i16 = <i16>spriteXPos - 8;
 
-                    if (spriteX >= <i16>x + 8) break;
+                    if (spriteX >= <i16>x + 8) continue; // CGB: OAM-index order, not X-sorted
 
                     const overlaps = (spriteX >= <i16>x && spriteX < <i16>x + 8)
                         || (spriteX < <i16>x && spriteX + 8 >= <i16>x);

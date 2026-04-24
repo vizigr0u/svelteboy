@@ -369,6 +369,44 @@ export function testCgbRendering(): boolean {
 
     describe("CGB priority — OAM index order", () => {
 
+        it("lower OAM index wins even when it has higher X than a later OAM entry", () => {
+            // Edge case: OAM[0] at xPos=30 (starts at screen x=22), OAM[1] at xPos=10 (screen x=2..9)
+            // At x=5: OAM[0] is far right (spriteX=22 >= x+8=13 → early-exit risk).
+            // OAM[1] covers x=5. Must NOT be skipped by broken X-sort break.
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+
+            writeCgbSolidTile(0, 0, 0);    // BG transparent
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(1, 0, 1);    // tile 1 = solid colorId 1
+            writeCgbSolidTile(2, 0, 1);    // tile 2 = solid colorId 1
+
+            setCgbObjColor(0, 1, RED);     // OBJ palette 0 color 1 = RED  (OAM[0])
+            setCgbObjColor(1, 1, GREEN);   // OBJ palette 1 color 1 = GREEN (OAM[1])
+
+            // OAM[0]: xPos=30 → covers screen x=22..29
+            Oam.view[0].xPos = 30;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00; // palette 0
+
+            // OAM[1]: xPos=10 → covers screen x=2..9
+            Oam.view[1].xPos = 10;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01; // palette 1
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            // x=5: OAM[0] doesn't cover (starts at x=22), OAM[1] covers → GREEN
+            assertCgbPixel(5, GREEN, "x=5: OAM[1] (GREEN) not skipped despite OAM[0] being far right");
+            // x=22: only OAM[0] covers → RED
+            assertCgbPixel(22, RED, "x=22: OAM[0] (RED) visible");
+        });
+
         it("lower OAM index wins over higher OAM index at same pixel (regardless of X)", () => {
             // Spec: CGB OBJ priority = earlier in OAM = higher priority (not X coord like DMG)
             // OAM[0] at xPos=10 (spriteX=2), OAM[1] at xPos=8 (spriteX=0)
