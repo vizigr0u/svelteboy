@@ -119,13 +119,24 @@ export class MemoryMap {
     }
 
     static GBload<T>(gbAddress: u16): T {
-        if (gbAddress < 0xFE00 || gbAddress >= 0xFF80) { // ROM and RAM
-            if (Dma.active && gbAddress < 0xFF80)
-                return <T>0xFF;
-            if (gbAddress >= 0x8000 && gbAddress < 0xA000) { // VRAM
+        // Fast path: ROM bank 0 (most common - opcode fetches, bank 0 data)
+        if (gbAddress < 0x4000) {
+            if (Dma.active) return <T>0xFF;
+            if (MemoryMap.useBootRom && gbAddress < MemoryMap.loadedBootRomSize)
+                return load<T>(BOOT_ROM_START + gbAddress);
+            return load<T>(MBC.rom0Base + gbAddress);
+        }
+        // Fast path: ROM bank 1 (switched ROM)
+        if (gbAddress < 0x8000) {
+            if (Dma.active) return <T>0xFF;
+            return load<T>(MBC.rom1Base + (<u32>gbAddress - 0x4000));
+        }
+        if (gbAddress < 0xFE00) {
+            if (Dma.active) return <T>0xFF;
+            if (gbAddress < 0xA000) { // VRAM
                 if (Lcd.IsPpuEnabled && Ppu.currentMode == PpuMode.Transfer)
                     return <T>0xff;
-            } else if (gbAddress >= 0xA000 && gbAddress < 0xC000) {
+            } else if (gbAddress < 0xC000) { // EXT RAM
                 if (!isRamEnabled()) {
                     if (Logger.verbose >= 2)
                         logRamDisabled(gbAddress);
@@ -143,7 +154,9 @@ export class MemoryMap {
                 log('Unexpected read in restricted area');
             return <T>-1;
         }
-        // IO
+        if (gbAddress >= 0xFF80) // HRAM - accessible even during DMA
+            return load<T>(MemoryMap.GBToMemory(gbAddress));
+        // IO (0xFF00-0xFF7F)
         if (Dma.active) {
             if (Logger.verbose >= 1) {
                 logDmaBlock(gbAddress);
