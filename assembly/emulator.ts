@@ -69,12 +69,20 @@ enum EmulatorStopReason {
         const masterCycles: u8 = CgbState.doubleSpeed ? <u8>(t_cycles >> 1) : t_cycles;
         CgbState.masterCycleCount += masterCycles;
 
-        Timer.Tick(masterCycles);
+        // Timer/DIV and OAM DMA are clocked by CPU T-cycles (doubled in CGB double-speed).
+        // PPU and APU track wall-clock time via master cycles (unchanged by speed switch).
+        Timer.Tick(t_cycles);
 
         Ppu.TickMultiple(masterCycles);
         if (Dma.active) {
-            for (let m: u8 = 0, n: u8 = masterCycles >> 2; m < n; m++)
+            for (let m: u8 = 0, n: u8 = t_cycles >> 2; m < n; m++)
                 Dma.Tick();
+        }
+
+        if (Cpu.stopDivResetPending) {
+            // STOP resets DIV after subsystem ticks (spec: reset applies at the instant of STOP).
+            Timer.internalDiv = 0;
+            Cpu.stopDivResetPending = false;
         }
     }
 
