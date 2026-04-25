@@ -368,6 +368,30 @@ export class Lcd {
         }
     }
 
+    static SerializeCgbPaletteIndex(p: usize): usize {
+        store<u8>(p, Lcd._bcps); p += 1;
+        store<u8>(p, Lcd._ocps); p += 1;
+        return p;
+    }
+
+    static DeserializeCgbPaletteIndex(p: usize): usize {
+        Lcd._bcps = load<u8>(p); p += 1;
+        Lcd._ocps = load<u8>(p); p += 1;
+        return p;
+    }
+
+    static ResetCgbPaletteState(): void {
+        Lcd._bcps = 0;
+        Lcd._ocps = 0;
+        if (CgbState.isCgbMode) {
+            for (let i: u32 = 0; i < 64; i += 2)
+                store<u16>(GB_CGB_PALETTE_RAM_START + i, 0x7FFF);
+            memory.fill(GB_CGB_PALETTE_RAM_START + 64, 0, 64);
+        } else {
+            memory.fill(GB_CGB_PALETTE_RAM_START, 0, GB_CGB_PALETTE_RAM_SIZE);
+        }
+    }
+
     @inline
     static getCGBBgColor(paletteNum: u8, colorIdx: u8): u16 {
         const offset = <u32>(paletteNum) * 8 + <u32>(colorIdx) * 2;

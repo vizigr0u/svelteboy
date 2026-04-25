@@ -155,6 +155,44 @@ export class Dma {
         }
     }
 
+    static SerializeHdma(p: usize): usize {
+        store<u8>(p, Dma.hdma1); p += 1;
+        store<u8>(p, Dma.hdma2); p += 1;
+        store<u8>(p, Dma.hdma3); p += 1;
+        store<u8>(p, Dma.hdma4); p += 1;
+        store<u16>(p, Dma.hdmaSrc); p += 2;
+        store<u16>(p, Dma.hdmaDst); p += 2;
+        store<u8>(p, Dma.hdmaBlocksRemaining); p += 1;
+        store<u8>(p, Dma.hdmaHBlankMode ? 1 : 0); p += 1;
+        store<u8>(p, Dma.hdmaActive ? 1 : 0); p += 1;
+        return p;
+    }
+
+    static DeserializeHdma(p: usize): usize {
+        Dma.hdma1 = load<u8>(p); p += 1;
+        Dma.hdma2 = load<u8>(p); p += 1;
+        Dma.hdma3 = load<u8>(p); p += 1;
+        Dma.hdma4 = load<u8>(p); p += 1;
+        Dma.hdmaSrc = load<u16>(p); p += 2;
+        Dma.hdmaDst = load<u16>(p); p += 2;
+        Dma.hdmaBlocksRemaining = load<u8>(p); p += 1;
+        Dma.hdmaHBlankMode = load<u8>(p) != 0; p += 1;
+        Dma.hdmaActive = load<u8>(p) != 0; p += 1;
+        return p;
+    }
+
+    static ResetHdma(): void {
+        Dma.hdma1 = 0xFF;
+        Dma.hdma2 = 0xFF;
+        Dma.hdma3 = 0xFF;
+        Dma.hdma4 = 0xFF;
+        Dma.hdmaSrc = 0;
+        Dma.hdmaDst = 0x8000;
+        Dma.hdmaBlocksRemaining = 0;
+        Dma.hdmaHBlankMode = false;
+        Dma.hdmaActive = false;
+    }
+
     private static transferBlock(): void {
         for (let i: u16 = 0; i < 16; i++) {
             const val = load<u8>(MemoryMap.GBToMemory(Dma.hdmaSrc + i));
@@ -174,3 +212,5 @@ export class Dma {
         }
     }
 }
+
+export const HDMA_SERIALIZED_SIZE: u32 = 13;

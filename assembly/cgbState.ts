@@ -35,7 +35,33 @@ export class CgbState {
         CgbState._doubleSpeedShift = value ? 1 : 0;
     }
     static setKey1(value: u8): void { CgbState._key1 = value; }
+
+    static Reset(): void {
+        CgbState.setVramBank(0);
+        CgbState.setWramBank(1);
+        CgbState.setDoubleSpeed(false);
+        CgbState.setKey1(0);
+    }
+
+    static Serialize(p: usize): usize {
+        store<u8>(p, <u8>CgbState._vramBank); p += 1;
+        store<u8>(p, <u8>CgbState._wramBank); p += 1;
+        store<u8>(p, CgbState._doubleSpeed ? 1 : 0); p += 1;
+        store<u8>(p, CgbState._key1); p += 1;
+        return p;
+    }
+
+    static Deserialize(p: usize): usize {
+        CgbState.setVramBank(<u32>load<u8>(p)); p += 1;
+        const wb = <u32>load<u8>(p); p += 1;
+        CgbState.setWramBank(wb == 0 ? 1 : wb);
+        CgbState.setDoubleSpeed(load<u8>(p) != 0); p += 1;
+        CgbState.setKey1(load<u8>(p)); p += 1;
+        return p;
+    }
 }
+
+export const CGB_STATE_SERIALIZED_SIZE: u32 = 4;
 
 export function isCgbMode(): boolean {
     return CgbState.isCgbMode;
