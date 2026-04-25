@@ -114,6 +114,21 @@ export async function findStoredRomByName(name: string): Promise<StoredRom | und
     return roms.find(r => r.name.toLowerCase() === lower);
 }
 
+export async function clearAllStorage(): Promise<void> {
+    if (dbPromise) {
+        const db = await dbPromise;
+        db.close();
+        dbPromise = null;
+    }
+    await new Promise<void>((resolve, reject) => {
+        const req = indexedDB.deleteDatabase(DB_NAME);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+        req.onblocked = () => resolve();
+    });
+    localStorage.clear();
+}
+
 export function MakeIDBStore<T>(key: string, defaultValue: T): Writable<T> {
     const store = writable<T>(defaultValue);
     let hydrated = false;
