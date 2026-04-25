@@ -66,7 +66,7 @@ enum EmulatorStopReason {
         if (Logger.verbose >= 4)
             logCpuTick(t_cycles);
 
-        const masterCycles: u8 = CgbState.doubleSpeed ? <u8>(t_cycles >> 1) : t_cycles;
+        const masterCycles: u8 = t_cycles >> CgbState.doubleSpeedShift;
         CgbState.masterCycleCount += masterCycles;
 
         // Timer/DIV and OAM DMA are clocked by CPU T-cycles (doubled in CGB double-speed).
