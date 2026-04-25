@@ -1,5 +1,3 @@
-import { CYCLES_PER_SECOND } from "../constants";
-import { Cpu } from "../cpu/cpu";
 import { Logger } from "../debug/logger";
 import { MemoryMap } from "../memory/memoryMap";
 import { uToHex } from "../utils/stringUtils";
@@ -313,6 +311,10 @@ export class AudioRender {
         AudioRender.initialCycles = load<u64>(ptr); ptr += 8;
         AudioRender.LeftVolume = load<f32>(ptr); ptr += 4;
         AudioRender.RightVolume = load<f32>(ptr); ptr += 4;
+        // Re-sync the render-side register snapshot from restored IO RAM so wave samples
+        // (NR3x wave RAM) and NR51 panning match the saved state. Otherwise CH3 plays
+        // pre-save wave bytes and panning is stale until the next register write.
+        memory.copy(AudioData.registers.dataStart, SoundDataPtr, SoundDataSize);
         // Clear any pending events left over from the pre-load session.
         AudioEventQueue.Reset();
         return ptr;

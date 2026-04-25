@@ -26,6 +26,9 @@ import { PulseChannel, PULSE_CHANNEL_SERIALIZED_SIZE } from "../audio/PulseChann
 import { WaveChannel, WAVE_CHANNEL_SERIALIZED_SIZE } from "../audio/WaveChannel";
 import { NoiseChannel, NOISE_CHANNEL_SERIALIZED_SIZE } from "../audio/NoiseChannel";
 import { AudioChannelBase, AudioChannelId } from "../audio/AudioChannelBase";
+import { AudioData } from "../audio/AudioData";
+import { SoundDataPtr, WavePtr } from "../audio/audioRegisters";
+import { AudioRegisterType, getRegisterIndex } from "../audio/audioTypes";
 import { describe, it, assertEquals } from "./framework";
 
 function setupClean(): void {
@@ -686,6 +689,45 @@ function testApuWaveLevelRoundTrip(): void {
     });
 }
 
+function testApuWaveRamRoundTrip(): void {
+    it("Wave RAM ($FF30-$FF3F) re-syncs to AudioData.registers after load", () => {
+        setupClean();
+        // Plant distinctive bytes into wave RAM (IO memory) and the render-side mirror.
+        for (let i: i32 = 0; i < 16; i++) {
+            const b: u8 = <u8>(0xA0 ^ i);
+            store<u8>(WavePtr + i, b);
+        }
+        // Sync mirror so it matches IO before save (mimics steady-state runtime).
+        memory.copy(AudioData.registers.dataStart, SoundDataPtr, 0x30);
+        const state = createSaveState();
+        // Wipe both sides to detect missing re-sync.
+        memory.fill(WavePtr, 0, 16);
+        AudioData.registers.fill(0, getRegisterIndex(AudioRegisterType.WaveStart), getRegisterIndex(AudioRegisterType.WaveStart) + 16);
+        assert(loadSaveState(state), "load failed");
+        const waveBase: i32 = getRegisterIndex(AudioRegisterType.WaveStart);
+        for (let i: i32 = 0; i < 16; i++) {
+            const expected: u8 = <u8>(0xA0 ^ i);
+            assertEquals<u8>(load<u8>(WavePtr + i), expected, "IO wave byte " + i.toString());
+            assertEquals<u8>(AudioData.registers[waveBase + i], expected, "register mirror wave byte " + i.toString());
+        }
+    });
+}
+
+function testApuPanningRoundTrip(): void {
+    it("NR51 panning re-syncs to AudioData.registers after load", () => {
+        setupClean();
+        // NR51 IO byte = $FF25; matching mirror index = NR51 - Offset = 0x15.
+        const nr51Index: i32 = getRegisterIndex(AudioRegisterType.NR51_Panning);
+        store<u8>(SoundDataPtr + nr51Index, 0xA5);
+        AudioData.registers[nr51Index] = 0xA5;
+        const state = createSaveState();
+        store<u8>(SoundDataPtr + nr51Index, 0);
+        AudioData.registers[nr51Index] = 0;
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(AudioData.registers[nr51Index], 0xA5, "NR51 mirror");
+    });
+}
+
 function testApuV2BlobSkipsDeserialize(): void {
     it("v2 blob does NOT restore APU state (backward compat)", () => {
         setupClean();
@@ -788,6 +830,8 @@ export function testSaveState(): boolean {
         testApuRenderStateRoundTrip();
         testApuNoiseLsfrRoundTrip();
         testApuWaveLevelRoundTrip();
+        testApuWaveRamRoundTrip();
+        testApuPanningRoundTrip();
         testApuV2BlobSkipsDeserialize();
     });
     return true;
