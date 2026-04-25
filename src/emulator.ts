@@ -85,12 +85,16 @@ export const Emulator = {
         EmulatorInitialized.set(false);
         initEmulator(get(useBoot));
         EmulatorInitialized.set(true);
+        lastTime = -1;
+        accumulator = 0;
         postRun();
         if (get(DebuggerAttached))
             pauseEmulator();
     },
     RunUntilBreak: () => {
-        lastRenderTime = -1;
+        lastTime = -1;
+        accumulator = 0;
+        unPauseEmulator();
         window.cancelAnimationFrame(runningAnimationFrameHandle);
         runningAnimationFrameHandle = window.requestAnimationFrame(run)
     },
@@ -378,21 +382,35 @@ async function playRom(rom: RomReference): Promise<void> {
         Emulator.RunUntilBreak();
 }
 
-let lastRenderTime: number = -1;
+const GB_FRAME_MS = 70224 / 4194.304;
+const MAX_CATCHUP = 4;
+
+let lastTime: number = -1;
+let accumulator: number = 0;
 
 function run(time: number) {
-    const dt = lastRenderTime <= 0 ? 16.67 : Math.min(time - lastRenderTime, 50);
-    {
+    if (lastTime < 0) lastTime = time;
+    const wallDt = Math.min(time - lastTime, 100);
+    lastTime = time;
+
+    accumulator += wallDt * get(EmulatorSpeed);
+
+    let framesThisTick = 0;
+    while (accumulator >= GB_FRAME_MS && framesThisTick < MAX_CATCHUP) {
         preRun();
-        const stopReason = runEmulator(dt * get(EmulatorSpeed));
+        const stopReason = runEmulator(GB_FRAME_MS);
         LastStopReason.set(stopReason);
         postRun();
-        if (stopReason != DebugStopReason.TargetCyclesReached) {
+        if (stopReason !== DebugStopReason.EndOfFrame && stopReason !== DebugStopReason.TargetCyclesReached) {
             console.log('Stopped because ' + DebugStopReason[stopReason]);
             return;
         }
-        lastRenderTime = time;
+        accumulator -= GB_FRAME_MS;
+        framesThisTick++;
     }
+
+    if (accumulator > GB_FRAME_MS * MAX_CATCHUP) accumulator = 0;
+
     if (!get(EmulatorPaused))
         runningAnimationFrameHandle = window.requestAnimationFrame(run);
 }
@@ -465,6 +483,8 @@ function pauseEmulator(): void {
     EmulatorPaused.set(true);
     audioCtx?.suspend();
     window.cancelAnimationFrame(runningAnimationFrameHandle);
+    lastTime = -1;
+    accumulator = 0;
 }
 
 function unPauseEmulator(): void {
