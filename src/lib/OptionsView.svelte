@@ -11,6 +11,7 @@
     } from "stores/optionsStore";
     import { showDebugWindow } from "../stores/windowStores";
     import { EmulatorInitialized } from "stores/playStores";
+    import { clearAllStorage } from "../stores/idbStore";
     import ControlsView from "./ControlsView.svelte";
     import PalettePicker from "./PalettePicker.svelte";
 
@@ -18,8 +19,12 @@
 
     let advancedOpen = $state(false);
 
-    function clearLocalStorage() {
-        localStorage.clear();
+    async function clearAll() {
+        const ok = confirm(
+            "This will permanently delete ALL stored ROMs, save games, and preferences. Continue?",
+        );
+        if (!ok) return;
+        await clearAllStorage();
         location.reload();
     }
 
@@ -101,7 +106,7 @@
         <summary><h3>Advanced</h3></summary>
         <div class="advanced">
             <button onclick={resetKeybindingDisclaimer}>Reset keybinding disclaimer</button>
-            <button class="danger" onclick={clearLocalStorage}>Clear all local storage</button>
+            <button class="danger" onclick={clearAll}>Wipe all ROMs &amp; preferences</button>
         </div>
     </details>
 </div>
