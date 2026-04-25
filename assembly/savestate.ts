@@ -39,7 +39,7 @@ export const CGB_STATE_SIZE: u32 = CGB_STATE_SERIALIZED_SIZE
     + HDMA_SERIALIZED_SIZE
     + GB_CGB_PALETTE_RAM_SIZE;
 
-export const SAVESTATE_MAGIC: u32 = 0x53564259; // "SVBY"
+export const SAVESTATE_MAGIC: u32 = 0x59425653; // "SVBY" (little-endian: bytes 'S','V','B','Y')
 export const SAVESTATE_VERSION: u16 = 4;
 export { APU_STATE_SIZE };
 
