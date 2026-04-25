@@ -2,7 +2,8 @@ import { describe, it, assertEquals } from "../framework";
 import { Ppu } from "../../io/video/ppu";
 import { ScanlineRenderer } from "../../io/video/scanlineRenderer";
 import { MemoryMap } from "../../memory/memoryMap";
-import { GB_VIDEO_START } from "../../memory/memoryConstants";
+import { CARTRIDGE_ROM_START, GB_OAM_START, GB_VIDEO_START } from "../../memory/memoryConstants";
+import { Emulator } from "../../emulator";
 import { initPpu } from "./ppuTestHelpers";
 
 const TILE_BLOCK0: u32 = GB_VIDEO_START;
@@ -73,5 +74,62 @@ export function testFrameBuffer(): boolean {
             assertEquals<i32>(buf.byteLength, 160 * 144, "frame buffer is 23040 bytes");
         });
     });
+
+    describe("Full-frame RunFrames(1) produces correct framebuffer", () => {
+
+        it("single-frame run renders BG + sprite into DrawnBuffer", () => {
+            // NOP sled so CPU doesn't touch VRAM/OAM during the frame
+            memory.fill(CARTRIDGE_ROM_START, 0x00, 0x8000);
+            MemoryMap.loadedCartridgeRomSize = 0x8000;
+            Emulator.Init(false);
+
+            // LCDC: PPU + TILE_LO + OBJ + BG
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            MemoryMap.GBstore<u8>(0xFF47, BGP_IDENTITY);   // BGP
+            MemoryMap.GBstore<u8>(0xFF48, BGP_IDENTITY);   // OBP0
+
+            // BG tile 0 = color 2 (all rows)
+            for (let r: u16 = 0; r < 8; r++) {
+                MemoryMap.GBstore<u8>(0x8000 + r * 2,     0x00);
+                MemoryMap.GBstore<u8>(0x8000 + r * 2 + 1, 0xFF);
+            }
+            // Fill entire BG tilemap 9800 with tile 0 so every scanline has BG color2
+            for (let i: u32 = 0; i < 32 * 32; i++) {
+                store<u8>(GB_VIDEO_START + 0x1800 + i, 0);
+            }
+
+            // Sprite tile 1 = color 1 (all rows)
+            for (let r: u16 = 0; r < 8; r++) {
+                MemoryMap.GBstore<u8>(0x8010 + r * 2,     0xFF);
+                MemoryMap.GBstore<u8>(0x8010 + r * 2 + 1, 0x00);
+            }
+            // OAM[0]: yPos=66 (screen y=50), xPos=58 (screen x=50), tile 1
+            store<u8>(GB_OAM_START + 0, 66);
+            store<u8>(GB_OAM_START + 1, 58);
+            store<u8>(GB_OAM_START + 2, 1);
+            store<u8>(GB_OAM_START + 3, 0);
+
+            Emulator.RunFrames(1);
+
+            const buf = Ppu.DrawnBuffer();
+            assertEquals<i32>(buf.byteLength, 160 * 144, "buffer size");
+            // BG outside sprite rectangle
+            assertEquals<u8>(buf[0],                      2, "frame[0,0] = BG color2");
+            assertEquals<u8>(buf[159],                    2, "frame[159,0] = BG color2");
+            assertEquals<u8>(buf[143 * 160 + 0],          2, "frame[0,143] = BG color2");
+            assertEquals<u8>(buf[143 * 160 + 159],        2, "frame[159,143] = BG color2");
+            // Sprite rectangle x=50..57, y=50..57
+            assertEquals<u8>(buf[50 * 160 + 50],          1, "frame[50,50] sprite color1");
+            assertEquals<u8>(buf[50 * 160 + 57],          1, "frame[57,50] sprite color1");
+            assertEquals<u8>(buf[57 * 160 + 50],          1, "frame[50,57] sprite color1");
+            assertEquals<u8>(buf[57 * 160 + 57],          1, "frame[57,57] sprite color1");
+            // Just outside sprite → BG
+            assertEquals<u8>(buf[50 * 160 + 49],          2, "frame[49,50] BG color2");
+            assertEquals<u8>(buf[50 * 160 + 58],          2, "frame[58,50] BG color2");
+            assertEquals<u8>(buf[49 * 160 + 50],          2, "frame[50,49] BG color2");
+            assertEquals<u8>(buf[58 * 160 + 50],          2, "frame[50,58] BG color2");
+        });
+    });
+
     return true;
 }

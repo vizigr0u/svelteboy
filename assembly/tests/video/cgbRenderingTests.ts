@@ -497,6 +497,376 @@ export function testCgbRendering(): boolean {
 
     });
 
+    describe("CGB sprite flip (X-flip, Y-flip)", () => {
+
+        it("X-flip mirrors sprite pixels horizontally", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93); // sprites enabled
+            writeCgbSolidTile(0, 0, 0);          // BG transparent
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, BLUE);
+
+            // Sprite tile 1: pixel 0 (leftmost) = colorId 1, pixels 1-7 = colorId 0
+            // lo=0x80 (bit7), hi=0x00 → bit (7-i) → i=0 → colorId 1, i>0 → colorId 0
+            CgbState.setVramBank(0);
+            const gbBase: u16 = 0x8010; // tile 1
+            for (let row: u32 = 0; row < 8; row++) {
+                MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2),     0x80);
+                MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2 + 1), 0x00);
+            }
+            setCgbObjColor(0, 0, BLUE);   // colorId 0 = BLUE (transparent to OBJ)
+            setCgbObjColor(0, 1, RED);    // colorId 1 = RED
+
+            // Sprite A: no flip at xPos=8 (screen 0..7) → pixel 0 = RED
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+            // Sprite B: X-flip at xPos=16 (screen 8..15) → pixel 7 = RED (was pixel 0)
+            Oam.view[1].xPos = 16;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 1;
+            Oam.view[1].flags = 0x20; // X-flip
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            assertCgbPixel(0,  RED,  "no-flip: pixel 0 = RED (colorId 1)");
+            assertCgbPixel(1,  BLUE, "no-flip: pixel 1 = BG (colorId 0 transparent)");
+            assertCgbPixel(8,  BLUE, "X-flip: pixel 8 = BG (was pixel 7 → colorId 0)");
+            assertCgbPixel(15, RED,  "X-flip: pixel 15 = RED (was pixel 0 → colorId 1)");
+        });
+
+        it("Y-flip mirrors sprite rows vertically (8x8)", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, BLUE);
+
+            // Sprite tile 1: row 0 = all colorId 1, rows 1-7 = colorId 0
+            CgbState.setVramBank(0);
+            const gbBase: u16 = 0x8010;
+            MemoryMap.GBstore<u8>(gbBase + 0, 0xFF); // row 0 lo
+            MemoryMap.GBstore<u8>(gbBase + 1, 0x00); // row 0 hi → colorId 1
+            for (let row: u32 = 1; row < 8; row++) {
+                MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2),     0x00);
+                MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2 + 1), 0x00);
+            }
+            setCgbObjColor(0, 0, BLUE);
+            setCgbObjColor(0, 1, RED);
+
+            // Sprite A: no flip at xPos=8, y=16 → LY=0 reads row 0 = RED
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+            // Sprite B: Y-flip at xPos=16, y=16 → LY=0 reads row 7 = colorId 0 → BG
+            Oam.view[1].xPos = 16;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 1;
+            Oam.view[1].flags = 0x40; // Y-flip
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            assertCgbPixel(0, RED,  "no-flip LY=0: row 0 = RED");
+            assertCgbPixel(8, BLUE, "Y-flip LY=0: reads row 7 (colorId 0) → BG");
+        });
+
+        it("X-flip + Y-flip combined", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, BLUE);
+
+            // Sprite tile 1: row 0 pixel 0 = colorId 1, all other pixels = colorId 0
+            CgbState.setVramBank(0);
+            const gbBase: u16 = 0x8010;
+            MemoryMap.GBstore<u8>(gbBase + 0, 0x80); // row 0 lo bit7
+            MemoryMap.GBstore<u8>(gbBase + 1, 0x00);
+            for (let row: u32 = 1; row < 8; row++) {
+                MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2),     0x00);
+                MemoryMap.GBstore<u8>(gbBase + <u16>(row * 2 + 1), 0x00);
+            }
+            setCgbObjColor(0, 0, BLUE);
+            setCgbObjColor(0, 1, RED);
+
+            // Sprite with X+Y flip at xPos=8, y=16
+            // Y-flip: LY=0 → tile row 7; row 7 is all colorId 0 → no visible pixel on LY=0
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x60; // X-flip + Y-flip
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render();
+            // LY=0: row 7 entirely colorId 0 → background shows everywhere under sprite
+            assertCgbPixel(0, BLUE, "X+Y flip: LY=0 tile row 7 = all transparent → BG");
+            assertCgbPixel(7, BLUE, "X+Y flip: LY=0 tile row 7 = all transparent → BG");
+        });
+    });
+
+    describe("CGB 8x16 sprite", () => {
+
+        it("top half of 8x16 sprite uses tile (idx & ~1)", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x97); // PPU+TILE_LO+OBJ8x16+OBJ+BG
+            writeCgbSolidTile(0, 0, 0); // BG transparent
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(2, 0, 1); // top half tile (idx 3 & ~1 = 2) → colorId 1
+            writeCgbSolidTile(3, 0, 2); // bottom half (idx 3 | 1 = 3) → colorId 2
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(0, 2, GREEN);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;   // screen y=0..15
+            Oam.view[0].tileIndex = 3; // & ~1 = 2 top, | 1 = 3 bottom
+            Oam.view[0].flags = 0x00;
+            PpuOamFifo.FetchCurrentLine();
+
+            ScanlineRenderer.Render(); // LY=0 → top half → tile 2 → RED
+            assertCgbPixel(0, RED, "8x16 LY=0 top half: tile (idx & ~1) = RED");
+        });
+
+        it("bottom half of 8x16 sprite uses tile (idx | 1)", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x97);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(2, 0, 1);
+            writeCgbSolidTile(3, 0, 2);
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(0, 2, GREEN);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 3;
+            Oam.view[0].flags = 0x00;
+
+            // Render LY=8 → bottom half
+            Lcd.data.lY = 8;
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertCgbPixelAt(0, 8, GREEN, "8x16 LY=8 bottom half: tile (idx | 1) = GREEN");
+        });
+
+        it("8x16 sprite with Y-flip swaps top/bottom tiles", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x97);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(2, 0, 1); // tile 2 = colorId 1 (RED)
+            writeCgbSolidTile(3, 0, 2); // tile 3 = colorId 2 (GREEN)
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(0, 2, GREEN);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 3;
+            Oam.view[0].flags = 0x40; // Y-flip
+
+            // LY=0: Y-flip → spriteY=15 → bottom tile (idx | 1 = 3) → GREEN
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertCgbPixel(0, GREEN, "8x16 Y-flip LY=0: reads bottom tile 3 = GREEN");
+
+            // LY=8: spriteY=7 (flipped) → top tile (idx & ~1 = 2) → RED
+            Lcd.data.lY = 8;
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+            assertCgbPixelAt(0, 8, RED, "8x16 Y-flip LY=8: reads top tile 2 = RED");
+        });
+
+        it("8x16 sprite OAM scan includes rows 0..15", () => {
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x97);
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 0;
+            Oam.view[0].flags = 0;
+
+            Lcd.data.lY = 15;
+            PpuOamFifo.FetchCurrentLine();
+            assertEquals<i32>(PpuOamFifo.size, 1, "8x16 sprite selected at LY=15");
+
+            Lcd.data.lY = 16;
+            PpuOamFifo.FetchCurrentLine();
+            assertEquals<i32>(PpuOamFifo.size, 0, "8x16 sprite not selected at LY=16");
+        });
+    });
+
+    describe("CGB OBJ-over-OBJ draw order at different X positions", () => {
+
+        it("partial overlap: lower OAM index wins only where both cover same pixel", () => {
+            // OAM[0] xPos=8  (screen 0..7)  — color RED
+            // OAM[1] xPos=12 (screen 4..11) — color GREEN
+            // x=0..3:  only OAM[0] → RED
+            // x=4..7:  overlap, lower OAM index wins → RED
+            // x=8..11: only OAM[1] → GREEN
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0); // BG transparent
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, BLUE);
+
+            writeCgbSolidTile(1, 0, 1);
+            writeCgbSolidTile(2, 0, 1);
+            setCgbObjColor(0, 1, RED);   // OAM[0] palette 0 → RED
+            setCgbObjColor(1, 1, GREEN); // OAM[1] palette 1 → GREEN
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+
+            Oam.view[1].xPos = 12;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01;
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            assertCgbPixel(0,  RED,   "x=0: only OAM[0] → RED");
+            assertCgbPixel(3,  RED,   "x=3: only OAM[0] → RED");
+            assertCgbPixel(4,  RED,   "x=4: overlap, lower OAM index → RED");
+            assertCgbPixel(7,  RED,   "x=7: overlap, lower OAM index → RED");
+            assertCgbPixel(8,  GREEN, "x=8: only OAM[1] → GREEN");
+            assertCgbPixel(11, GREEN, "x=11: only OAM[1] → GREEN");
+        });
+
+        it("hidden sprite at X=0 does not mask later visible sprite", () => {
+            // OAM[0] xPos=0 (off-screen left) — would "win" by OAM index, but covers no visible pixel
+            // OAM[1] xPos=8 (screen 0..7) — should render since OAM[0] covers no visible pixel there
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, BLUE);
+
+            writeCgbSolidTile(1, 0, 1);
+            writeCgbSolidTile(2, 0, 1);
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(1, 1, GREEN);
+
+            Oam.view[0].xPos = 0; // off-screen: screen x = -8..-1
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+
+            Oam.view[1].xPos = 8;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01;
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            assertCgbPixel(0, GREEN, "x=0: OAM[0] off-screen left; OAM[1] → GREEN");
+            assertCgbPixel(7, GREEN, "x=7: OAM[1] → GREEN");
+        });
+
+        it("three sprites with staggered X: each wins in its exclusive region", () => {
+            // OAM[0] x=8  (screen 0..7)  RED
+            // OAM[1] x=16 (screen 8..15) GREEN
+            // OAM[2] x=24 (screen 16..23) BLUE
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            writeCgbSolidTile(1, 0, 1);
+            writeCgbSolidTile(2, 0, 1);
+            writeCgbSolidTile(3, 0, 1);
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(1, 1, GREEN);
+            setCgbObjColor(2, 1, BLUE);
+
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+
+            Oam.view[1].xPos = 16;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01;
+
+            Oam.view[2].xPos = 24;
+            Oam.view[2].yPos = 16;
+            Oam.view[2].tileIndex = 3;
+            Oam.view[2].flags = 0x02;
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            assertCgbPixel(0,  RED,   "x=0 only OAM[0] → RED");
+            assertCgbPixel(7,  RED,   "x=7 only OAM[0] → RED");
+            assertCgbPixel(8,  GREEN, "x=8 only OAM[1] → GREEN");
+            assertCgbPixel(15, GREEN, "x=15 only OAM[1] → GREEN");
+            assertCgbPixel(16, BLUE,  "x=16 only OAM[2] → BLUE");
+            assertCgbPixel(23, BLUE,  "x=23 only OAM[2] → BLUE");
+        });
+
+        it("transparent pixel in winning OBJ does NOT fall through to later OBJ at overlap", () => {
+            // CGB semantics: OAM index order; winning sprite is first one covering the pixel.
+            // If its pixel is transparent (colorId 0), pixel is drawn as BG — lower-priority
+            // sprites at same pixel do NOT show (they lose OAM-index priority outright).
+            // Verify by having OAM[0] transparent at overlap; OAM[1] non-transparent.
+            initCgbPpu();
+            MemoryMap.GBstore<u8>(0xFF40, 0x93);
+            writeCgbSolidTile(0, 0, 0);
+            setMapEntry(0, 0, 0, 0x00);
+            setCgbBgColor(0, 0, WHITE);
+
+            // OAM[0] tile: pixel 0 opaque, pixels 1-7 transparent
+            CgbState.setVramBank(0);
+            const gbBase1: u16 = 0x8010; // tile 1
+            for (let row: u32 = 0; row < 8; row++) {
+                MemoryMap.GBstore<u8>(gbBase1 + <u16>(row * 2),     0x80); // only bit7
+                MemoryMap.GBstore<u8>(gbBase1 + <u16>(row * 2 + 1), 0x00);
+            }
+            // OAM[1] tile: all colorId 1 (opaque)
+            writeCgbSolidTile(2, 0, 1);
+
+            setCgbObjColor(0, 1, RED);
+            setCgbObjColor(1, 1, GREEN);
+
+            // OAM[0] xPos=8  (screen 0..7)  — only pixel 0 opaque (RED)
+            Oam.view[0].xPos = 8;
+            Oam.view[0].yPos = 16;
+            Oam.view[0].tileIndex = 1;
+            Oam.view[0].flags = 0x00;
+
+            // OAM[1] xPos=12 (screen 4..11) — all opaque (GREEN)
+            Oam.view[1].xPos = 12;
+            Oam.view[1].yPos = 16;
+            Oam.view[1].tileIndex = 2;
+            Oam.view[1].flags = 0x01;
+
+            PpuOamFifo.FetchCurrentLine();
+            ScanlineRenderer.Render();
+
+            assertCgbPixel(0,  RED,   "x=0: OAM[0] opaque pixel → RED");
+            // x=1..3: OAM[0] transparent there, OAM[1] not covering yet → BG
+            assertCgbPixel(1,  WHITE, "x=1: OAM[0] transparent, no OAM[1] → BG");
+            assertCgbPixel(3,  WHITE, "x=3: OAM[0] transparent, no OAM[1] → BG");
+            // x=4..7: OAM[0] transparent at those pixels; OAM[1] covers → GREEN
+            assertCgbPixel(4,  GREEN, "x=4: OAM[0] transparent, OAM[1] covers → GREEN");
+            assertCgbPixel(7,  GREEN, "x=7: OAM[0] transparent, OAM[1] covers → GREEN");
+            // x=8..11: only OAM[1] → GREEN
+            assertCgbPixel(8,  GREEN, "x=8: only OAM[1] → GREEN");
+            assertCgbPixel(11, GREEN, "x=11: only OAM[1] → GREEN");
+        });
+    });
+
     describe("CGB priority — BGoverOBJ masking of lower-priority sprites", () => {
 
         it("higher-priority OBJ with BGoverOBJ blocks lower-priority OBJ from showing", () => {
