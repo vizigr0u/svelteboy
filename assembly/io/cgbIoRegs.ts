@@ -106,4 +106,28 @@ export class CgbIoRegs {
         }
         return 0xFF;
     }
+
+    static Serialize(p: usize): usize {
+        store<u8>(p, CgbIoRegs._key0); p += 1;
+        store<u8>(p, CgbIoRegs._rp);   p += 1;
+        store<u8>(p, CgbIoRegs._opri); p += 1;
+        store<u8>(p, CgbIoRegs._ff72); p += 1;
+        store<u8>(p, CgbIoRegs._ff73); p += 1;
+        store<u8>(p, CgbIoRegs._ff74); p += 1;
+        store<u8>(p, CgbIoRegs._ff75); p += 1;
+        return p;
+    }
+
+    static Deserialize(p: usize): usize {
+        CgbIoRegs._key0 = load<u8>(p); p += 1;
+        CgbIoRegs._rp   = load<u8>(p); p += 1;
+        CgbIoRegs._opri = load<u8>(p); p += 1;
+        CgbIoRegs._ff72 = load<u8>(p); p += 1;
+        CgbIoRegs._ff73 = load<u8>(p); p += 1;
+        CgbIoRegs._ff74 = load<u8>(p); p += 1;
+        CgbIoRegs._ff75 = load<u8>(p); p += 1;
+        return p;
+    }
 }
+
+export const CGB_IO_REGS_SERIALIZED_SIZE: u32 = 7;

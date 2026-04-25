@@ -25,9 +25,22 @@ import {
     GB_HIGH_RAM_START, GB_HIGH_RAM_SIZE
 } from "./memory/memoryConstants";
 import { AudioRender, APU_STATE_SIZE } from "./audio/render";
+import { CgbState, CGB_STATE_SERIALIZED_SIZE } from "./cgbState";
+import { CgbIoRegs, CGB_IO_REGS_SERIALIZED_SIZE } from "./io/cgbIoRegs";
+import { HDMA_SERIALIZED_SIZE } from "./io/video/dma";
+import { GB_CGB_PALETTE_RAM_START, GB_CGB_PALETTE_RAM_SIZE } from "./memory/memoryConstants";
+
+// CGB state block layout (v4+):
+//   CgbState (4) + Lcd palette index (2) + CgbIoRegs (7) + HDMA state (13) + palette RAM (128)
+const CGB_LCD_PALETTE_INDEX_SIZE: u32 = 2;
+export const CGB_STATE_SIZE: u32 = CGB_STATE_SERIALIZED_SIZE
+    + CGB_LCD_PALETTE_INDEX_SIZE
+    + CGB_IO_REGS_SERIALIZED_SIZE
+    + HDMA_SERIALIZED_SIZE
+    + GB_CGB_PALETTE_RAM_SIZE;
 
 export const SAVESTATE_MAGIC: u32 = 0x53564259; // "SVBY"
-export const SAVESTATE_VERSION: u16 = 3;
+export const SAVESTATE_VERSION: u16 = 4;
 export { APU_STATE_SIZE };
 
 export function isAtFrameBoundary(): bool {
@@ -93,7 +106,7 @@ export const SAVESTATE_FIXED_SIZE: u32 = OFF_EXT_RAM;
 export function createSaveState(): Uint8Array {
     if (!isAtFrameBoundary()) return new Uint8Array(0);
     const extRamSize: u32 = <u32>Cartridge.Data.RamBankCount * GB_EXT_RAM_BANK_SIZE;
-    const totalSize: u32 = SAVESTATE_FIXED_SIZE + extRamSize + APU_STATE_SIZE;
+    const totalSize: u32 = SAVESTATE_FIXED_SIZE + extRamSize + APU_STATE_SIZE + CGB_STATE_SIZE;
     const buf = new Uint8Array(totalSize);
     const p: usize = buf.dataStart;
 
@@ -160,7 +173,13 @@ export function createSaveState(): Uint8Array {
     }
 
     // APU state appended after ext RAM.
-    AudioRender.SerializeState(p + OFF_EXT_RAM + extRamSize);
+    let cgbPtr = AudioRender.SerializeState(p + OFF_EXT_RAM + extRamSize);
+    // CGB state block appended after APU.
+    cgbPtr = CgbState.Serialize(cgbPtr);
+    cgbPtr = Lcd.SerializeCgbPaletteIndex(cgbPtr);
+    cgbPtr = CgbIoRegs.Serialize(cgbPtr);
+    cgbPtr = Dma.SerializeHdma(cgbPtr);
+    memory.copy(cgbPtr, GB_CGB_PALETTE_RAM_START, GB_CGB_PALETTE_RAM_SIZE);
 
     return buf;
 }
@@ -173,12 +192,13 @@ export function loadSaveState(data: Uint8Array): bool {
 
     if (load<u32>(p + OFF_MAGIC) != SAVESTATE_MAGIC) return false;
     const version: u16 = load<u16>(p + OFF_VERSION);
-    // v2: no APU block. v3: APU block appended after ext RAM.
-    if (version != 2 && version != 3) return false;
+    // v2: no APU block. v3: APU block. v4: APU + CGB state block.
+    if (version < 2 || version > 4) return false;
 
     const extRamSize: u32 = load<u32>(p + OFF_EXT_RAM_SIZE);
     const apuSize: u32 = version >= 3 ? APU_STATE_SIZE : 0;
-    if (<u32>data.byteLength < SAVESTATE_FIXED_SIZE + extRamSize + apuSize) return false;
+    const cgbSize: u32 = version >= 4 ? CGB_STATE_SIZE : 0;
+    if (<u32>data.byteLength < SAVESTATE_FIXED_SIZE + extRamSize + apuSize + cgbSize) return false;
 
     // CPU
     Cpu.AF = load<u16>(p + OFF_AF);
@@ -245,8 +265,26 @@ export function loadSaveState(data: Uint8Array): bool {
         memory.copy(GB_EXT_RAM_START, p + OFF_EXT_RAM, extRamSize);
     }
 
+    let cgbPtr: usize = p + OFF_EXT_RAM + extRamSize;
     if (version >= 3) {
-        AudioRender.DeserializeState(p + OFF_EXT_RAM + extRamSize);
+        cgbPtr = AudioRender.DeserializeState(cgbPtr);
+    }
+
+    if (version >= 4) {
+        if (CgbState.isCgbMode) {
+            cgbPtr = CgbState.Deserialize(cgbPtr);
+            cgbPtr = Lcd.DeserializeCgbPaletteIndex(cgbPtr);
+            cgbPtr = CgbIoRegs.Deserialize(cgbPtr);
+            cgbPtr = Dma.DeserializeHdma(cgbPtr);
+            memory.copy(GB_CGB_PALETTE_RAM_START, cgbPtr, GB_CGB_PALETTE_RAM_SIZE);
+        }
+        // v4 on DMG cart: ignore CGB block (per plan).
+    } else if (CgbState.isCgbMode) {
+        // v2/v3 blob loaded on CGB cart: reset CGB state to power-on defaults.
+        CgbState.Reset();
+        Lcd.ResetCgbPaletteState();
+        CgbIoRegs.Init();
+        Dma.ResetHdma();
     }
 
     return true;

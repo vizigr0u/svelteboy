@@ -20,7 +20,7 @@ import {
     CARTRIDGE_ROM_START,
     ROM_BANK_SIZE
 } from "../memory/memoryConstants";
-import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION, SAVESTATE_FIXED_SIZE, isAtFrameBoundary, APU_STATE_SIZE } from "../savestate";
+import { createSaveState, loadSaveState, SAVESTATE_MAGIC, SAVESTATE_VERSION, SAVESTATE_FIXED_SIZE, isAtFrameBoundary, APU_STATE_SIZE, CGB_STATE_SIZE } from "../savestate";
 import { AudioRender } from "../audio/render";
 import { PulseChannel, PULSE_CHANNEL_SERIALIZED_SIZE } from "../audio/PulseChannel";
 import { WaveChannel, WAVE_CHANNEL_SERIALIZED_SIZE } from "../audio/WaveChannel";
@@ -46,11 +46,11 @@ function testHeaderMagic(): void {
 }
 
 function testHeaderVersion(): void {
-    it("version is 3 at offset 4", () => {
+    it("version is 4 at offset 4", () => {
         setupClean();
         const state = createSaveState();
         assertEquals<u16>(load<u16>(state.dataStart + 4), SAVESTATE_VERSION, "version");
-        assertEquals<u16>(SAVESTATE_VERSION, 3, "SAVESTATE_VERSION");
+        assertEquals<u16>(SAVESTATE_VERSION, 4, "SAVESTATE_VERSION");
     });
 }
 
@@ -89,11 +89,20 @@ function testAcceptV2(): void {
 }
 
 function testAcceptV3(): void {
-    it("loadSaveState accepts freshly-created v3 blob", () => {
+    it("loadSaveState accepts v3 blob (no CGB block)", () => {
         setupClean();
         const state = createSaveState();
-        assertEquals<u16>(load<u16>(state.dataStart + 4), 3, "version=3");
+        store<u16>(state.dataStart + 4, 3); // force v3, CGB block ignored
         assert(loadSaveState(state), "should succeed on v3 blob");
+    });
+}
+
+function testAcceptV4(): void {
+    it("loadSaveState accepts freshly-created v4 blob", () => {
+        setupClean();
+        const state = createSaveState();
+        assertEquals<u16>(load<u16>(state.dataStart + 4), 4, "version=4");
+        assert(loadSaveState(state), "should succeed on v4 blob");
     });
 }
 
@@ -617,11 +626,11 @@ function testApuStateSize(): void {
 }
 
 function testSaveStateIncludesApuBlock(): void {
-    it("v3 blob size includes APU block appended after ext RAM", () => {
+    it("v4 blob size includes APU + CGB block appended after ext RAM", () => {
         setupClean();
         const state = createSaveState();
-        // ROM-only cart: RamBankCount=0 → extRamSize=0. Size = FIXED + APU.
-        assertEquals<i32>(state.byteLength, <i32>(SAVESTATE_FIXED_SIZE + APU_STATE_SIZE), "total size");
+        // ROM-only cart: RamBankCount=0 → extRamSize=0. Size = FIXED + APU + CGB.
+        assertEquals<i32>(state.byteLength, <i32>(SAVESTATE_FIXED_SIZE + APU_STATE_SIZE + CGB_STATE_SIZE), "total size");
     });
 }
 
@@ -721,6 +730,7 @@ export function testSaveState(): boolean {
         testRejectV1();
         testAcceptV2();
         testAcceptV3();
+        testAcceptV4();
         testSizeMinimum();
         testSizeShrunk();
     });
