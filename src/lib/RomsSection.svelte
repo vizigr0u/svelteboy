@@ -1,29 +1,24 @@
 <script lang="ts">
-    import {
-        FetchingRemoteRoms,
-        RemoteRomsListUri,
-        CachedRemoteRoms,
-    } from "@/stores/optionsStore";
-    import { cartRomStore } from "@/stores/romStores";
-    import { DragState, type RemoteRom } from "../types";
+    import { libraryStore } from "@/stores/libraryStore";
+    import { LibrarySort, type LibrarySortOrder } from "@/stores/optionsStore";
+    import { DragState } from "../types";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
-    import HomeBrewList from "../assets/homebrews";
 
     let dragState: DragState = $state(DragState.Idle);
     let dragStatus: string = $state("");
 
-    enum Tab {
-        Homebrews,
-        Local,
-        Hosted,
-    }
-    const homebrews: RemoteRom[] = HomeBrewList;
-    console.log("Homebrews: " + JSON.stringify(homebrews));
+    const sortOptions: { value: LibrarySortOrder; label: string }[] = [
+        { value: "added", label: "Added (newest)" },
+        { value: "name", label: "Name" },
+    ];
 
-    let tab: Tab = $state(Tab.Local);
-
-    let tabOptions = [Tab.Local, Tab.Hosted];
+    let sortedRoms = $derived(
+        [...$libraryStore].sort((a, b) => {
+            if ($LibrarySort === "name") return a.name.localeCompare(b.name);
+            return (b.addedAt ?? 0) - (a.addedAt ?? 0);
+        }),
+    );
 </script>
 
 <RomDropZone bind:dragState bind:dragStatus>
@@ -36,25 +31,17 @@
             Drop your rom files here
             <span>{dragStatus}</span>
         </p>
-        <div>
-            {#each tabOptions as tabOption}
-                <button
-                    onclick={() => (tab = tabOption)}
-                    disabled={tab == tabOption}>{Tab[tabOption]}</button
-                >
-            {/each}
+        <div class="library-controls">
+            <label>
+                Sort:
+                <select bind:value={$LibrarySort}>
+                    {#each sortOptions as opt}
+                        <option value={opt.value}>{opt.label}</option>
+                    {/each}
+                </select>
+            </label>
         </div>
-        {#if tab == Tab.Local}
-            <RomList title="Local roms" roms={$cartRomStore} />
-        {:else if tab == Tab.Homebrews}
-            <RomList title="Local roms" roms={homebrews} />
-        {:else if $FetchingRemoteRoms}
-            <span class="loading-roms-text"
-                ><i class="fas fa-spinner fa-spin"></i> Fetching {$RemoteRomsListUri}...</span
-            >
-        {:else}
-            <RomList title="Hosted roms" roms={$CachedRemoteRoms} />
-        {/if}
+        <RomList title="Library" roms={sortedRoms} />
     </div>
 </RomDropZone>
 
@@ -74,5 +61,12 @@
 
     .dropzone-hint.drop-disallowed {
         border-color: red;
+    }
+
+    .library-controls {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5em;
+        padding: 0.3em 0.5em;
     }
 </style>

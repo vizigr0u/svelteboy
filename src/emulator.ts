@@ -53,9 +53,10 @@ import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames
 import { writable } from "svelte/store";
 
 export const AudioSuspended = writable<boolean>(false);
-import { DebugStopReason, isLocalRom, isRemoteRom, isStoredRom, type GbDebugInfo, type LocalRom, type RemoteRom, type RomReference, type SaveGameData } from "./types";
-import { AudioMasterVolume, EmulatorSpeed, useBoot } from "stores/optionsStore";
+import { DebugStopReason, type GbDebugInfo, type LibraryRom, type SaveGameData } from "./types";
+import { AudioMasterVolume, AutoSaveUriRoms, EmulatorSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
+import { getBytesBySha1, promoteUriToIdb, reconcileSha1OnFirstPlay } from "stores/libraryStore";
 import { humanReadableSize } from "./utils";
 
 let lastSaveFrame = 0;
@@ -390,22 +391,23 @@ function getAudioBuffer(ptr: number, sampleCount: number): Float32Array<ArrayBuf
     return new Float32Array(backendMemory.buffer as ArrayBuffer, ptr, sampleCount);
 }
 
-async function getRomBuffer(rom: RomReference): Promise<ArrayBuffer | undefined> {
-    if (isStoredRom(rom)) {
-        return rom.content;
+async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
+    const src = rom.source;
+    if (src.kind === 'idb') {
+        return getBytesBySha1(rom.sha1);
     }
-    if (isLocalRom(rom)) {
-        const localRom: LocalRom = rom;
-        return localRom.buffer;
-    }
-    if (isRemoteRom(rom)) {
-        const remoteRom: RemoteRom = rom;
-        const response = await fetch(remoteRom.uri);
+    if (src.kind === 'uri') {
+        const response = await fetch(src.uri);
+        if (!response.ok) return undefined;
         return await response.arrayBuffer();
     }
+    if (src.kind === 'cloud') {
+        throw new Error('Cloud ROM source not implemented');
+    }
+    return undefined;
 }
 
-async function playRom(rom: RomReference): Promise<void> {
+async function playRom(rom: LibraryRom): Promise<void> {
     const buffer = await getRomBuffer(rom);
     if (!buffer) return;
     const loaded = await new Promise<boolean>((r) =>
@@ -415,9 +417,16 @@ async function playRom(rom: RomReference): Promise<void> {
         console.log(`Error loading rom`);
         return;
     }
+    let activeRom: LibraryRom = rom;
+    if (rom.sha1.startsWith('uri:')) {
+        const reconciled = await reconcileSha1OnFirstPlay(rom.sha1, buffer, get(AutoSaveUriRoms));
+        if (reconciled) activeRom = reconciled;
+    } else if (rom.source.kind === 'uri' && get(AutoSaveUriRoms)) {
+        promoteUriToIdb(rom.sha1, buffer).catch(err => console.error('promoteUriToIdb failed:', err));
+    }
     Emulator.Pause();
     Emulator.Reset();
-    loadedCartridge.set(rom);
+    loadedCartridge.set(activeRom);
     if (!get(DebuggerAttached))
         Emulator.RunUntilBreak();
 }
@@ -503,7 +512,7 @@ function postRun(): void {
     EmulatorBusy.set(false);
     const latestSaveFrame = getLastSaveFrame();
     if (latestSaveFrame > lastSaveFrame) {
-        const currentGame: RomReference = get(loadedCartridge);
+        const currentGame = get(loadedCartridge) as { sha1: string };
         const timeStamp = new Date().toISOString();
         AutoSave.set({
             buffer: getLastSave(),

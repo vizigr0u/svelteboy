@@ -19,46 +19,24 @@ export interface RomReference {
     sha1: string
 };
 
-export interface StoredRom extends RomReference {
+export type RomSource =
+    | { kind: 'idb' }
+    | { kind: 'uri'; uri: string }
+    | { kind: 'cloud'; provider: string; ref: string };
+
+export interface LibraryRom extends RomReference {
+    source: RomSource;
+    fileSize?: number;
+    addedAt: number;
+    originUri?: string;
+    favorite?: boolean;
+    lastPlayedAt?: number;
+}
+
+export interface BootRomEntry extends RomReference {
     content: ArrayBuffer,
     fileSize: number
 };
-
-export interface LocalRom extends RomReference {
-    buffer: ArrayBuffer
-};
-
-export interface RemoteRom extends RomReference {
-    uri: string
-};
-
-export function isRemoteRom(rom: RomReference): rom is RemoteRom {
-    return (rom as RemoteRom).uri !== undefined;
-}
-
-export function isLocalRom(rom: RomReference): rom is LocalRom {
-    return (rom as LocalRom).buffer !== undefined;
-}
-
-export function isStoredRom(rom: RomReference): rom is StoredRom {
-    return (rom as StoredRom).content !== undefined;
-}
-
-export enum RomReferenceType {
-    Stored,
-    Remote,
-    Local,
-}
-
-export function getRomReferenceType(rom: RomReference): RomReferenceType {
-    if (isRemoteRom(rom))
-        return RomReferenceType.Remote;
-    if (isLocalRom(rom))
-        return RomReferenceType.Local;
-    if (isStoredRom(rom))
-        return RomReferenceType.Stored;
-    throw new Error('Unexpected rom type');
-}
 
 export enum MemoryRegion {
     Rom,

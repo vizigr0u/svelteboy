@@ -1,9 +1,8 @@
 import { writable } from "svelte/store";
-import type { RomReference } from "../types";
-import { makeRomStore } from "./idbStore";
+import type { BootRomEntry, LibraryRom, RomReference } from "../types";
+import { makeBootRomStore } from "./idbStore";
 
-export const bootRomStore = makeRomStore("boot_roms");
-export const cartRomStore = makeRomStore("cart_roms");
+export const bootRomStore = makeBootRomStore<BootRomEntry>();
 
-export const loadedBootRom = writable<RomReference>(undefined);
-export const loadedCartridge = writable<RomReference>(undefined);
+export const loadedBootRom = writable<RomReference | undefined>(undefined);
+export const loadedCartridge = writable<LibraryRom | undefined>(undefined);

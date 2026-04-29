@@ -27,19 +27,23 @@ export function uToHex16(n: number): string {
     return '0x' + n.toString(16).padStart(4, '0');
 }
 
-type RomParam =
-    | { type: 'local'; name: string }
-    | { type: 'remote'; uri: string; name: string };
+export type DeeplinkKind =
+    | { kind: 'sha1'; sha1: string }
+    | { kind: 'uri'; uri: string; name: string }
+    | { kind: 'name'; name: string };
 
-export function parseRomParam(): RomParam | undefined {
+const SHA1_RE = /^[0-9a-f]{40}$/i;
+
+export function parseRomParam(): DeeplinkKind | undefined {
     const raw = new URLSearchParams(window.location.search).get('rom');
     if (!raw) return undefined;
+    if (SHA1_RE.test(raw)) return { kind: 'sha1', sha1: raw.toLowerCase() };
     try {
         const url = new URL(raw);
         if (url.protocol === 'http:' || url.protocol === 'https:') {
-            const name = url.pathname.split('/').pop() ?? raw;
-            return { type: 'remote', uri: raw, name };
+            const name = url.pathname.split('/').pop() || raw;
+            return { kind: 'uri', uri: raw, name };
         }
     } catch { /* not a URL */ }
-    return { type: 'local', name: raw };
+    return { kind: 'name', name: raw };
 }

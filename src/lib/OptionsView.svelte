@@ -4,7 +4,8 @@
         playerPixelSize,
         showFPS,
         showFrametimeHistogram,
-        RemoteRomsListUri,
+        LibraryImportSourceUri,
+        AutoSaveUriRoms,
         EmulatorSpeed,
         // AudioBufferSize,
         AudioMasterVolume,
@@ -13,12 +14,13 @@
     import { showDebugWindow } from "../stores/windowStores";
     import { EmulatorInitialized } from "stores/playStores";
     import { clearAllStorage } from "../stores/idbStore";
+    import { bulkImportFromManifest } from "stores/libraryStore";
     import ControlsView from "./ControlsView.svelte";
     import PalettePicker from "./PalettePicker.svelte";
 
-    const validAudioBufferSizes = [64, 128, 256, 512, 1024, 2048];
-
     let advancedOpen = $state(false);
+    let importing = $state(false);
+    let importStatus = $state("");
 
     async function clearAll() {
         const ok = confirm(
@@ -31,6 +33,24 @@
 
     function resetKeybindingDisclaimer() {
         HideKeyboardWarning.set(false);
+    }
+
+    async function runImport() {
+        const uri = $LibraryImportSourceUri;
+        if (!uri || !uri.startsWith("http")) {
+            importStatus = "Provide an http(s) URL";
+            return;
+        }
+        importing = true;
+        importStatus = "Importing...";
+        try {
+            const { added, skipped } = await bulkImportFromManifest(uri);
+            importStatus = `Imported ${added}, skipped ${skipped}`;
+        } catch (e) {
+            importStatus = `Error: ${(e as Error).message}`;
+        } finally {
+            importing = false;
+        }
     }
 </script>
 
@@ -99,9 +119,31 @@
     <div class="options">
         <label for="showdebugger">Show Debugger:</label>
         <input id="showdebugger" type="checkbox" bind:checked={$showDebugWindow} />
+    </div>
 
-        <label for="remoteRomsUri">Remote Roms List:</label>
-        <input id="remoteRomsUri" type="text" bind:value={$RemoteRomsListUri} />
+    <h4>Library</h4>
+    <div class="options">
+        <label for="libImportUri">Import source URL:</label>
+        <input
+            id="libImportUri"
+            type="text"
+            bind:value={$LibraryImportSourceUri}
+        />
+
+        <span class="option-label"></span>
+        <div class="lib-import-row">
+            <button onclick={runImport} disabled={importing}>
+                {importing ? "Importing..." : "Import"}
+            </button>
+            <span class="lib-import-status">{importStatus}</span>
+        </div>
+
+        <label for="autoSaveUri">Auto-save URI ROMs after first play:</label>
+        <input
+            id="autoSaveUri"
+            type="checkbox"
+            bind:checked={$AutoSaveUriRoms}
+        />
     </div>
 
     <ControlsView />
@@ -133,6 +175,15 @@
     .option-label {
         display: flex;
         align-items: center;
+    }
+    .lib-import-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+    }
+    .lib-import-status {
+        font-size: 0.9em;
+        color: #aaa;
     }
 
     details summary h3 {

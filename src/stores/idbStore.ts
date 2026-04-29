@@ -1,16 +1,26 @@
 import { writable, type Writable } from 'svelte/store';
-import type { StoredRom } from '../types';
+import type { LibraryRom, RomSource } from '../types';
 
 const DB_NAME = 'svelteboy';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const PREF_STORE = 'preferences';
 const CART_STORE = 'cart_roms';
 const BOOT_STORE = 'boot_roms';
+const LIBRARY_STORE = 'library';
+
+const SEEDED_FLAG = 'library-seeded-v2';
+
+export const STORE_NAMES = {
+    PREF: PREF_STORE,
+    CART: CART_STORE,
+    BOOT: BOOT_STORE,
+    LIBRARY: LIBRARY_STORE,
+} as const;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
-function openDB(): Promise<IDBDatabase> {
+export function openDB(): Promise<IDBDatabase> {
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -22,10 +32,13 @@ function openDB(): Promise<IDBDatabase> {
                 db.createObjectStore(CART_STORE);
             if (!db.objectStoreNames.contains(BOOT_STORE))
                 db.createObjectStore(BOOT_STORE);
+            if (!db.objectStoreNames.contains(LIBRARY_STORE))
+                db.createObjectStore(LIBRARY_STORE);
         };
         req.onsuccess = async (e) => {
             const db = (e.target as IDBOpenDBRequest).result;
-            await migrateLocalStorage(db);
+            try { await seedLibraryIfNeeded(db); }
+            catch (err) { console.error('Library seed failed:', err); }
             resolve(db);
         };
         req.onerror = () => reject(req.error);
@@ -33,53 +46,66 @@ function openDB(): Promise<IDBDatabase> {
     return dbPromise;
 }
 
-async function migrateLocalStorage(db: IDBDatabase): Promise<void> {
-    if (localStorage.getItem('svelteboy-idb-migrated')) return;
+const SHA1_RE = /^[0-9a-f]{40}$/i;
 
-    const romMigrations = [
-        { lsKey: 'cartroms', idbStoreName: CART_STORE },
-        { lsKey: 'bootroms', idbStoreName: BOOT_STORE },
-    ] as const;
+async function sha1Hex(buffer: ArrayBuffer): Promise<string> {
+    const digest = await crypto.subtle.digest('SHA-1', buffer);
+    return Array.from(new Uint8Array(digest))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
 
-    for (const { lsKey, idbStoreName } of romMigrations) {
-        const raw = localStorage.getItem(lsKey);
-        if (!raw) continue;
-        try {
-            const roms = JSON.parse(raw) as Array<{ name: string; sha1: string; contentBase64: string; fileSize: number }>;
-            const tx = db.transaction(idbStoreName, 'readwrite');
-            const objStore = tx.objectStore(idbStoreName);
-            for (const rom of roms) {
-                const bin = atob(rom.contentBase64);
-                const content = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) content[i] = bin.charCodeAt(i);
-                objStore.put({ name: rom.name, sha1: rom.sha1, fileSize: rom.fileSize, content: content.buffer }, rom.sha1);
-            }
-            await new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
-        } catch (e) {
-            console.error(`IDB migration failed for ${lsKey}:`, e);
+async function sha1OfString(s: string): Promise<string> {
+    return sha1Hex(new TextEncoder().encode(s).buffer as ArrayBuffer);
+}
+
+export async function normalizeSha1ForUri(rawSha1: string, uri: string): Promise<string> {
+    if (rawSha1 && SHA1_RE.test(rawSha1)) return rawSha1.toLowerCase();
+    return 'uri:' + (await sha1OfString(uri));
+}
+
+async function seedLibraryIfNeeded(db: IDBDatabase): Promise<void> {
+    const flag = await new Promise<unknown>((res, rej) => {
+        const req = db.transaction(PREF_STORE, 'readonly').objectStore(PREF_STORE).get(SEEDED_FLAG);
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+    });
+    if (flag) return;
+
+    const cartEntries = await new Promise<Array<{ name: string; sha1: string; fileSize: number; content: ArrayBuffer }>>((res, rej) => {
+        const req = db.transaction(CART_STORE, 'readonly').objectStore(CART_STORE).getAll();
+        req.onsuccess = () => res(req.result ?? []);
+        req.onerror = () => rej(req.error);
+    });
+
+    const now = Date.now();
+    const seenSha1 = new Set<string>();
+
+    await new Promise<void>((res, rej) => {
+        const tx = db.transaction([LIBRARY_STORE, PREF_STORE], 'readwrite');
+        const lib = tx.objectStore(LIBRARY_STORE);
+        const prefs = tx.objectStore(PREF_STORE);
+
+        let i = 0;
+        for (const r of cartEntries) {
+            if (seenSha1.has(r.sha1)) continue;
+            seenSha1.add(r.sha1);
+            const row: LibraryRom = {
+                name: r.name,
+                sha1: r.sha1,
+                source: { kind: 'idb' },
+                fileSize: r.fileSize,
+                addedAt: now - i,
+            };
+            lib.put(row, r.sha1);
+            i++;
         }
-        localStorage.removeItem(lsKey);
-    }
+        prefs.put(1, SEEDED_FLAG);
 
-    const prefKeys = [
-        'option-pixel-size', 'option-show-fps', 'option-hide-keyboard-warning',
-        'option-hide-saves-warning', 'option-remote-roms-list-uri',
-        'option-cached-remote-roms', 'option-show-debugger', 'option-master-volume',
-        'DebugLogMutedCategories',
-        'option-keybindings',
-    ];
-    const tx = db.transaction(PREF_STORE, 'readwrite');
-    const prefStore = tx.objectStore(PREF_STORE);
-    for (const key of prefKeys) {
-        const raw = localStorage.getItem(key);
-        if (raw === null) continue;
-        try { prefStore.put(JSON.parse(raw), key); }
-        catch { prefStore.put(raw, key); }
-        localStorage.removeItem(key);
-    }
-    await new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
-
-    localStorage.setItem('svelteboy-idb-migrated', '1');
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+    });
 }
 
 function prefGet<T>(db: IDBDatabase, key: string): Promise<T | undefined> {
@@ -99,21 +125,6 @@ function prefSet(db: IDBDatabase, key: string, value: unknown): Promise<void> {
     });
 }
 
-function romGetAll(db: IDBDatabase, storeName: string): Promise<StoredRom[]> {
-    return new Promise((resolve, reject) => {
-        const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
-        req.onsuccess = () => resolve(req.result ?? []);
-        req.onerror = () => reject(req.error);
-    });
-}
-
-export async function findStoredRomByName(name: string): Promise<StoredRom | undefined> {
-    const db = await openDB();
-    const roms = await romGetAll(db, CART_STORE);
-    const lower = name.toLowerCase();
-    return roms.find(r => r.name.toLowerCase() === lower);
-}
-
 export async function clearAllStorage(): Promise<void> {
     if (dbPromise) {
         const db = await dbPromise;
@@ -128,6 +139,7 @@ export async function clearAllStorage(): Promise<void> {
     });
     localStorage.clear();
 }
+
 
 export function MakeIDBStore<T>(key: string, defaultValue: T): Writable<T> {
     const store = writable<T>(defaultValue);
@@ -148,13 +160,17 @@ export function MakeIDBStore<T>(key: string, defaultValue: T): Writable<T> {
     return store;
 }
 
-export function makeRomStore(idbStoreName: typeof CART_STORE | typeof BOOT_STORE): Writable<StoredRom[]> {
-    const store = writable<StoredRom[]>([]);
+export function makeBootRomStore<T extends { sha1: string }>(): Writable<T[]> {
+    const store = writable<T[]>([]);
     let currentSha1s = new Set<string>();
     let hydrated = false;
 
     openDB()
-        .then(db => romGetAll(db, idbStoreName))
+        .then(db => new Promise<T[]>((res, rej) => {
+            const req = db.transaction(BOOT_STORE, 'readonly').objectStore(BOOT_STORE).getAll();
+            req.onsuccess = () => res(req.result ?? []);
+            req.onerror = () => rej(req.error);
+        }))
         .then(roms => {
             currentSha1s = new Set(roms.map(r => r.sha1));
             hydrated = true;
@@ -166,8 +182,8 @@ export function makeRomStore(idbStoreName: typeof CART_STORE | typeof BOOT_STORE
         const newSha1s = new Set(roms.map(r => r.sha1));
 
         openDB().then(db => {
-            const tx = db.transaction(idbStoreName, 'readwrite');
-            const objStore = tx.objectStore(idbStoreName);
+            const tx = db.transaction(BOOT_STORE, 'readwrite');
+            const objStore = tx.objectStore(BOOT_STORE);
             for (const sha1 of currentSha1s) {
                 if (!newSha1s.has(sha1)) objStore.delete(sha1);
             }
@@ -179,4 +195,112 @@ export function makeRomStore(idbStoreName: typeof CART_STORE | typeof BOOT_STORE
     });
 
     return store;
+}
+
+export function libraryGetAll(db: IDBDatabase): Promise<LibraryRom[]> {
+    return new Promise((res, rej) => {
+        const req = db.transaction(LIBRARY_STORE, 'readonly').objectStore(LIBRARY_STORE).getAll();
+        req.onsuccess = () => res(req.result ?? []);
+        req.onerror = () => rej(req.error);
+    });
+}
+
+export function libraryGet(db: IDBDatabase, sha1: string): Promise<LibraryRom | undefined> {
+    return new Promise((res, rej) => {
+        const req = db.transaction(LIBRARY_STORE, 'readonly').objectStore(LIBRARY_STORE).get(sha1);
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+    });
+}
+
+export function cartRomGet(db: IDBDatabase, sha1: string): Promise<ArrayBuffer | undefined> {
+    return new Promise((res, rej) => {
+        const req = db.transaction(CART_STORE, 'readonly').objectStore(CART_STORE).get(sha1);
+        req.onsuccess = () => {
+            const row = req.result;
+            if (!row) return res(undefined);
+            res(row.content ?? row);
+        };
+        req.onerror = () => rej(req.error);
+    });
+}
+
+export function txAddIdbRom(
+    db: IDBDatabase,
+    row: LibraryRom,
+    bytes: ArrayBuffer,
+): Promise<void> {
+    return new Promise((res, rej) => {
+        const tx = db.transaction([LIBRARY_STORE, CART_STORE], 'readwrite');
+        tx.objectStore(LIBRARY_STORE).put(row, row.sha1);
+        tx.objectStore(CART_STORE).put(
+            { name: row.name, sha1: row.sha1, fileSize: row.fileSize, content: bytes },
+            row.sha1,
+        );
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+    });
+}
+
+export function txAddUriRom(db: IDBDatabase, row: LibraryRom): Promise<void> {
+    return new Promise((res, rej) => {
+        const tx = db.transaction(LIBRARY_STORE, 'readwrite');
+        tx.objectStore(LIBRARY_STORE).put(row, row.sha1);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+    });
+}
+
+export function txDeleteRom(db: IDBDatabase, sha1: string, alsoIdb: boolean): Promise<void> {
+    return new Promise((res, rej) => {
+        const stores = alsoIdb ? [LIBRARY_STORE, CART_STORE] : [LIBRARY_STORE];
+        const tx = db.transaction(stores, 'readwrite');
+        tx.objectStore(LIBRARY_STORE).delete(sha1);
+        if (alsoIdb) tx.objectStore(CART_STORE).delete(sha1);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+    });
+}
+
+export function txPromoteUriToIdb(
+    db: IDBDatabase,
+    row: LibraryRom,
+    bytes: ArrayBuffer,
+): Promise<void> {
+    return new Promise((res, rej) => {
+        const tx = db.transaction([LIBRARY_STORE, CART_STORE], 'readwrite');
+        tx.objectStore(LIBRARY_STORE).put(row, row.sha1);
+        tx.objectStore(CART_STORE).put(
+            { name: row.name, sha1: row.sha1, fileSize: row.fileSize, content: bytes },
+            row.sha1,
+        );
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+    });
+}
+
+export function txReconcileSha1(
+    db: IDBDatabase,
+    stubSha1: string,
+    realRow: LibraryRom,
+    bytes: ArrayBuffer | undefined,
+): Promise<void> {
+    return new Promise((res, rej) => {
+        const stores = bytes ? [LIBRARY_STORE, CART_STORE] : [LIBRARY_STORE];
+        const tx = db.transaction(stores, 'readwrite');
+        const lib = tx.objectStore(LIBRARY_STORE);
+        if (stubSha1 !== realRow.sha1) lib.delete(stubSha1);
+        lib.put(realRow, realRow.sha1);
+        if (bytes) tx.objectStore(CART_STORE).put(
+            { name: realRow.name, sha1: realRow.sha1, fileSize: realRow.fileSize, content: bytes },
+            realRow.sha1,
+        );
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+    });
 }
