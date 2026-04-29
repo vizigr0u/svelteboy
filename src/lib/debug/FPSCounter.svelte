@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { GameFrames } from "stores/playStores";
+    import { RenderFrames } from "../../emulator";
 
     const WINDOW = 30;
     let windowStartTime: number = 0;
@@ -8,7 +8,7 @@
     let fps: number = -1;
 
     onMount(() => {
-        const unsub = GameFrames.subscribe((frame) => {
+        const unsub = RenderFrames.subscribe((frame) => {
             const now = performance.now();
             if (windowStartFrame < 0) {
                 windowStartFrame = frame;

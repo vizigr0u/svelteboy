@@ -61,7 +61,17 @@ import { humanReadableSize } from "./utils";
 let lastSaveFrame = 0;
 
 let postRunCallbacks: (() => void)[] = [];
+let renderCallbacks: (() => void)[] = [];
 let runningAnimationFrameHandle = 0;
+
+export const FRAME_TIMES_LEN = 240;
+export const FrameStats = {
+    frameTimesMs: new Float32Array(FRAME_TIMES_LEN),
+    writeIndex: 0,
+    totalWrites: 0,
+    droppedCount: 0,
+};
+export const RenderFrames = writable<number>(0);
 
 function encodeThumbnail(data: Uint8ClampedArray): string {
     const canvas = document.createElement('canvas');
@@ -128,6 +138,11 @@ export const Emulator = {
     RemovePostRunCallback: (callback: () => void) => {
         const i = postRunCallbacks.indexOf(callback);
         if (i !== -1) postRunCallbacks.splice(i, 1);
+    },
+    AddRenderCallback: (callback: () => void) => { renderCallbacks.push(callback); },
+    RemoveRenderCallback: (callback: () => void) => {
+        const i = renderCallbacks.indexOf(callback);
+        if (i !== -1) renderCallbacks.splice(i, 1);
     },
     QuickSave: async (slot: number): Promise<void> => {
         const cartridge = get(loadedCartridge);
@@ -319,9 +334,12 @@ let currentPlayTime = -1;
 const activeSourceNodes: AudioBufferSourceNode[] = [];
 
 const FADE_OUT_S = 0.02;
+let audioFadedOut = false;
+let pendingSuspendTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function stopQueuedAudio() {
     if (!audioCtx) return;
+    audioFadedOut = true;
     const now = audioCtx.currentTime;
     masterVolumeNode.gain.cancelScheduledValues(now);
     masterVolumeNode.gain.setValueAtTime(masterVolumeNode.gain.value, now);
@@ -410,10 +428,17 @@ const MAX_CATCHUP = 4;
 let lastTime: number = -1;
 let accumulator: number = 0;
 
+const DROPPED_FRAME_MS = 20;
+
 function run(time: number) {
     if (lastTime < 0) lastTime = time;
     const wallDt = Math.min(time - lastTime, 100);
     lastTime = time;
+
+    FrameStats.frameTimesMs[FrameStats.writeIndex] = wallDt;
+    FrameStats.writeIndex = (FrameStats.writeIndex + 1) % FRAME_TIMES_LEN;
+    FrameStats.totalWrites++;
+    if (wallDt > DROPPED_FRAME_MS) FrameStats.droppedCount++;
 
     accumulator += wallDt * get(EmulatorSpeed);
 
@@ -432,6 +457,11 @@ function run(time: number) {
     }
 
     if (accumulator > GB_FRAME_MS * MAX_CATCHUP) accumulator = 0;
+
+    if (framesThisTick > 0) {
+        for (let i = 0; i < renderCallbacks.length; i++) renderCallbacks[i]();
+    }
+    RenderFrames.update(n => n + 1);
 
     if (!get(EmulatorPaused))
         runningAnimationFrameHandle = window.requestAnimationFrame(run);
@@ -506,7 +536,11 @@ const RESUME_FADE_S = 0.02;
 function pauseEmulator(): void {
     EmulatorPaused.set(true);
     stopQueuedAudio();
-    setTimeout(() => audioCtx?.suspend(), (FADE_OUT_S * 1000) + 10);
+    if (pendingSuspendTimeout != null) clearTimeout(pendingSuspendTimeout);
+    pendingSuspendTimeout = setTimeout(() => {
+        pendingSuspendTimeout = null;
+        audioCtx?.suspend();
+    }, (FADE_OUT_S * 1000) + 10);
     window.cancelAnimationFrame(runningAnimationFrameHandle);
     lastTime = -1;
     accumulator = 0;
@@ -515,15 +549,20 @@ function pauseEmulator(): void {
 function unPauseEmulator(): void {
     EmulatorPaused.set(false);
     if (!audioCtx) return;
-    const wasSuspended = audioCtx.state !== 'running';
+    if (pendingSuspendTimeout != null) {
+        clearTimeout(pendingSuspendTimeout);
+        pendingSuspendTimeout = null;
+    }
+    if (!audioFadedOut && audioCtx.state === 'running') return;
+    audioFadedOut = false;
     audioCtx.resume().then(() => {
-        if (!wasSuspended) return;
-        const v = get(AudioMasterVolume);
+        if (!audioCtx) return;
+        const target = get(AudioMasterVolume) ** 2;
         const now = audioCtx.currentTime;
         const cur = masterVolumeNode.gain.value;
         masterVolumeNode.gain.cancelScheduledValues(now);
         masterVolumeNode.gain.setValueAtTime(cur, now);
-        masterVolumeNode.gain.linearRampToValueAtTime(v * v, now + RESUME_FADE_S);
+        masterVolumeNode.gain.linearRampToValueAtTime(target, now + RESUME_FADE_S);
     });
 }
 
