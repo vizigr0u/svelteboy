@@ -1,12 +1,7 @@
 <script lang="ts">
-    import {
-        type RomReference,
-        isStoredRom,
-        RomReferenceType,
-        getRomReferenceType,
-        isRemoteRom,
-    } from "../types";
-    import { cartRomStore, loadedCartridge } from "stores/romStores";
+    import type { LibraryRom } from "../types";
+    import { loadedCartridge } from "stores/romStores";
+    import { deleteLibraryRom, promoteUriToIdb } from "stores/libraryStore";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
@@ -16,9 +11,10 @@
     const defaultAltText = "Unknown game art";
     const artDir = "https://thumbnails.libretro.com/";
     const gbArtDir = artDir + "Nintendo%20-%20Game%20Boy/Named_Boxarts/";
-    const gbcArtDir = artDir + "Nintendo%20-%20Game%20Boy%20Color/Named_Boxarts/";
+    const gbcArtDir =
+        artDir + "Nintendo%20-%20Game%20Boy%20Color/Named_Boxarts/";
 
-    let { rom } = $props<{ rom: RomReference }>();
+    let { rom } = $props<{ rom: LibraryRom }>();
 
     let src: string = $state(defaultThumbnailUri);
     let alt: string = $state(defaultAltText);
@@ -27,13 +23,6 @@
         src: string;
         alt: string;
     };
-
-    // let imagePromise: Promise<RomImgData> = new Promise<RomImgData>((r) =>
-    //     r({
-    //         src: defaultThumbnailUri,
-    //         alt: defaultAltText,
-    //     })
-    // );
 
     onMount(() => {
         fetchImageAndAlt(rom)
@@ -48,45 +37,61 @@
     });
 
     let playRomPromise: Promise<void> | undefined = $state(undefined);
+    let savePromise: Promise<void> | undefined = $state(undefined);
     let isLoading: boolean = $state(false);
-
-    // $: imagePromise = fetchImageAndAlt(rom);
 
     let romDescription = $derived(getRomDescription(rom));
     let isLoaded = $derived(
-        $loadedCartridge != undefined && $loadedCartridge.sha1 == rom.sha1
+        $loadedCartridge != undefined && $loadedCartridge.sha1 == rom.sha1,
+    );
+    let kindIcon = $derived(
+        rom.source.kind === "idb"
+            ? "fa-solid fa-hard-drive"
+            : rom.source.kind === "uri"
+              ? "fa-solid fa-cloud"
+              : "fa-solid fa-question",
+    );
+    let kindTitle = $derived(
+        rom.source.kind === "idb"
+            ? "Stored locally"
+            : rom.source.kind === "uri"
+              ? "Remote"
+              : "Cloud",
     );
 
-    async function fetchImageAndAlt(rom: RomReference): Promise<RomImgData> {
+    async function fetchImageAndAlt(rom: LibraryRom): Promise<RomImgData> {
         const isGbc = rom.name.endsWith(".gbc");
         const names = isGbc ? await getGbcNames() : await getGbNames();
         let src = defaultThumbnailUri;
         let alt = defaultAltText;
-        if (rom.sha1.toUpperCase() in names) {
-            alt = names[rom.sha1.toUpperCase()];
+        const sha1Upper = rom.sha1.toUpperCase();
+        if (sha1Upper in names) {
+            alt = names[sha1Upper];
             src = (isGbc ? gbcArtDir : gbArtDir) + alt + ".png";
         }
         return { src, alt };
     }
 
-    function deleteRom() {
-        cartRomStore.update((store) => {
-            return store.filter((r) => r.sha1 !== rom.sha1);
-        });
+    async function deleteRom() {
+        await deleteLibraryRom(rom.sha1);
         if (isLoaded) $loadedCartridge = undefined;
     }
 
-    function getRomDescription(rom: RomReference): string {
-        if (isRemoteRom(rom)) {
-            return rom.uri;
-        }
-        if (isStoredRom(rom)) {
-            return humanReadableSize(rom.fileSize);
-        }
-        return RomReferenceType[getRomReferenceType(rom)];
+    function getRomDescription(rom: LibraryRom): string {
+        if (rom.source.kind === "uri") return rom.source.uri;
+        if (rom.fileSize !== undefined) return humanReadableSize(rom.fileSize);
+        return "";
     }
 
-    function onThumbnailError(ev) {
+    async function saveLocally() {
+        if (rom.source.kind !== "uri") return;
+        const res = await fetch(rom.source.uri);
+        if (!res.ok) return;
+        const bytes = await res.arrayBuffer();
+        await promoteUriToIdb(rom.sha1, bytes);
+    }
+
+    function onThumbnailError(ev: any) {
         ev.target.src = defaultThumbnailUri;
         ev.target.alt = defaultAltText;
         ev.onerror = null;
@@ -103,6 +108,9 @@
             {alt}
             loading="lazy"
         />
+        <span class="kind-badge" title={kindTitle} aria-label={kindTitle}>
+            <i class={kindIcon}></i>
+        </span>
         <div class="over-image-box">
             {#await playRomPromise}
                 <div class="loading-rom-placeholder">
@@ -113,7 +121,6 @@
                     class="rom-play-button"
                     onclick={() => {
                         playRomPromise = Emulator.PlayRom(rom);
-                        // playRomPromise = new Promise((r) => {}); // Debug loading spinner
                     }}
                     disabled={isLoading || isLoaded}
                     aria-label="Play"
@@ -124,15 +131,28 @@
     </div>
     <div class="rom-info-container">
         <div class="rom-name">{rom.name}</div>
-        {romDescription}
+        <div class="rom-description">{romDescription}</div>
         <div class="rom-action-buttons">
-            {#if isStoredRom(rom)}
+            {#if rom.source.kind === "uri"}
                 <button
                     class="rom-action-button"
-                    onclick={deleteRom}
-                    disabled={isLoading}>Delete</button
+                    onclick={() => {
+                        savePromise = saveLocally();
+                    }}
+                    disabled={isLoading || savePromise !== undefined}
                 >
+                    {#await savePromise}
+                        Saving...
+                    {:then}
+                        Save locally
+                    {/await}
+                </button>
             {/if}
+            <button
+                class="rom-action-button"
+                onclick={deleteRom}
+                disabled={isLoading}>Delete</button
+            >
         </div>
     </div>
 </div>
@@ -143,8 +163,6 @@
         padding: 0.3em 0.5em;
         border: 1px solid #424242;
         background-color: var(--subsection-bg-color);
-        /* width: 15em; */
-        /* min-height: 7em; */
         display: flex;
         flex-direction: row;
         justify-content: space-between;
@@ -156,12 +174,23 @@
         display: flex;
         background-color: white;
     }
+    .kind-badge {
+        position: absolute;
+        top: 0.2em;
+        left: 0.2em;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        padding: 0.1em 0.35em;
+        border-radius: 0.2em;
+        font-size: 0.85em;
+        line-height: 1;
+        pointer-events: none;
+    }
     .over-image-box {
         position: absolute;
         left: 0;
         right: 0;
         top: 0;
-        /* bottom: 1.5em; */
         bottom: 0;
         margin: auto;
         display: flex;
@@ -209,6 +238,13 @@
         text-overflow: ellipsis;
         text-align: center;
     }
+    .rom-description {
+        font-size: 0.9em;
+        color: #aaa;
+        word-break: break-all;
+        text-align: center;
+        max-width: 100%;
+    }
 
     .rom-thumbnail {
         width: auto;
@@ -220,6 +256,7 @@
         display: flex;
         width: 100%;
         justify-content: space-around;
+        gap: 0.4em;
     }
 
     .rom-action-button {

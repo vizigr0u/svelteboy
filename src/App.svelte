@@ -1,21 +1,57 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import Player from "./lib/Player.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
-  import { findStoredRomByName } from "./stores/idbStore";
-  import type { RemoteRom } from "./types";
+  import {
+    libraryHydrated,
+    findLibraryRomBySha1,
+    findLibraryRomByName,
+    findLibraryRomByUri,
+  } from "./stores/libraryStore";
+  import type { LibraryRom } from "./types";
+
+  function waitForLibrary(): Promise<void> {
+    return new Promise((resolve) => {
+      if (get(libraryHydrated)) return resolve();
+      const unsub = libraryHydrated.subscribe((h) => {
+        if (h) {
+          unsub();
+          resolve();
+        }
+      });
+    });
+  }
 
   onMount(async () => {
     const param = parseRomParam();
     if (!param) return;
-    if (param.type === 'local') {
-      const rom = await findStoredRomByName(param.name);
+    await waitForLibrary();
+
+    if (param.kind === "sha1") {
+      const rom = await findLibraryRomBySha1(param.sha1);
       if (rom) Emulator.PlayRom(rom);
-    } else {
-      const remoteRom: RemoteRom = { name: param.name, sha1: '', uri: param.uri };
-      Emulator.PlayRom(remoteRom);
+      return;
     }
+    if (param.kind === "uri") {
+      const matched = await findLibraryRomByUri(param.uri);
+      if (matched) {
+        Emulator.PlayRom(matched);
+        return;
+      }
+      const ephemeral: LibraryRom = {
+        name: param.name,
+        sha1: "uri:ephemeral",
+        source: { kind: "uri", uri: param.uri },
+        addedAt: Date.now(),
+        originUri: param.uri,
+      };
+      Emulator.PlayRom(ephemeral);
+      return;
+    }
+    const byName = await findLibraryRomByName(param.name);
+    if (byName) Emulator.PlayRom(byName);
   });
 </script>
 

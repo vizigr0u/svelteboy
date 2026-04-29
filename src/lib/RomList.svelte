@@ -1,18 +1,18 @@
 <script lang="ts">
-  import type { RomReference } from "../types";
+  import type { LibraryRom } from "../types";
   import MyVirtualList from "./MyVirtualList.svelte";
   import RomView from "./RomView.svelte";
 
-  let { title, roms = [] } = $props<{ title: string; roms?: RomReference[] }>();
+  let { title, roms = [] } = $props<{ title: string; roms?: LibraryRom[] }>();
 
   let init = $state(false);
-  const romWordsMap: Map<string, RomReference[]> = new Map<
+  const romWordsMap: Map<string, LibraryRom[]> = new Map<
     string,
-    RomReference[]
+    LibraryRom[]
   >();
 
   let filter: string = $state("");
-  let filteredRoms: RomReference[] = $state([]);
+  let filteredRoms: LibraryRom[] = $state([]);
 
   const maxChars = 5;
 
@@ -45,8 +45,9 @@
         const beginning = word.slice(0, numChars);
         for (let i = 1; i <= numChars; i++) {
           const s = beginning.slice(0, i);
-          if (romWordsMap.has(s)) {
-            romWordsMap.get(s).push(rom);
+          const existing = romWordsMap.get(s);
+          if (existing) {
+            existing.push(rom);
           } else {
             romWordsMap.set(s, [rom]);
           }
@@ -63,9 +64,7 @@
       return;
     }
     const lowercaseFilter = filter.slice(0, maxChars).toLowerCase();
-    filteredRoms = romWordsMap.has(lowercaseFilter)
-      ? romWordsMap.get(lowercaseFilter)
-      : [];
+    filteredRoms = romWordsMap.get(lowercaseFilter) ?? [];
   }
 </script>
 

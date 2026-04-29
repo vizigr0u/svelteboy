@@ -1,21 +1,19 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { cartRomStore } from "stores/romStores";
-  import { DragState, type LocalRom, type StoredRom } from "../types";
+  import { DragState, type LibraryRom } from "../types";
+  import { addLibraryRomFromDrop } from "stores/libraryStore";
   import { humanReadableSize } from "../utils";
 
   let {
     dragState = $bindable(DragState.Idle),
     dragStatus = $bindable(""),
-    onRomReceived = (_: LocalRom) => {},
-    saveRom = true,
+    onRomReceived = (_: LibraryRom) => {},
     validExtensions = ["gb", "gbc"],
     children,
   } = $props<{
     dragState?: DragState;
     dragStatus?: string;
-    onRomReceived?: (rom: LocalRom) => void;
-    saveRom?: boolean;
+    onRomReceived?: (rom: LibraryRom) => void;
     validExtensions?: string[];
     children: Snippet;
   }>();
@@ -35,27 +33,10 @@
       dragStatus += ": Unknown file type";
       return;
     }
-    const buffer = await file.arrayBuffer();
-    const sha1Buffer = await crypto.subtle.digest("SHA-1", buffer);
-    const hashArray = Array.from(new Uint8Array(sha1Buffer));
-    const sha1 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-    const newRom: LocalRom = {
-      name: file.name,
-      buffer,
-      sha1: sha1,
-    };
-    if (saveRom && !$cartRomStore.find((r) => r.sha1 == newRom.sha1)) {
-      const newStoredRom: StoredRom = {
-        name: newRom.name,
-        sha1: newRom.sha1,
-        content: buffer,
-        fileSize: file.size,
-      };
-      cartRomStore.update((store) => [newStoredRom, ...store]);
-    }
+    const rom = await addLibraryRomFromDrop(file);
     dragState = DragState.Idle;
     dragStatus = "";
-    onRomReceived(newRom);
+    if (rom) onRomReceived(rom);
   }
 
   function onDrop(e: DragEvent) {
