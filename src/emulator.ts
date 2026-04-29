@@ -321,6 +321,7 @@ const activeSourceNodes: AudioBufferSourceNode[] = [];
 const FADE_OUT_S = 0.02;
 
 function stopQueuedAudio() {
+    if (!audioCtx) return;
     const now = audioCtx.currentTime;
     masterVolumeNode.gain.cancelScheduledValues(now);
     masterVolumeNode.gain.setValueAtTime(masterVolumeNode.gain.value, now);
@@ -336,15 +337,14 @@ function stopQueuedAudio() {
         for (const node of nodesToStop) {
             try { node.stop(); } catch (_) {}
         }
-        const v = get(AudioMasterVolume);
-        masterVolumeNode.gain.cancelScheduledValues(audioCtx.currentTime);
-        masterVolumeNode.gain.setValueAtTime(v * v, audioCtx.currentTime);
     }, FADE_OUT_S * 1000 + 5);
 }
 
+const PREROLL_S = 0.05;
+
 function queueBuffer(buffer: AudioBuffer) {
     if (currentPlayTime < audioCtx.currentTime) {
-        currentPlayTime = audioCtx.currentTime;
+        currentPlayTime = audioCtx.currentTime + PREROLL_S;
     }
 
     const source = playBuffer(buffer, currentPlayTime);
@@ -501,9 +501,12 @@ function getInputForEmu(): number {
     return res;
 }
 
+const RESUME_FADE_S = 0.02;
+
 function pauseEmulator(): void {
     EmulatorPaused.set(true);
-    audioCtx?.suspend();
+    stopQueuedAudio();
+    setTimeout(() => audioCtx?.suspend(), (FADE_OUT_S * 1000) + 10);
     window.cancelAnimationFrame(runningAnimationFrameHandle);
     lastTime = -1;
     accumulator = 0;
@@ -511,7 +514,17 @@ function pauseEmulator(): void {
 
 function unPauseEmulator(): void {
     EmulatorPaused.set(false);
-    audioCtx.resume();
+    if (!audioCtx) return;
+    const wasSuspended = audioCtx.state !== 'running';
+    audioCtx.resume().then(() => {
+        if (!wasSuspended) return;
+        const v = get(AudioMasterVolume);
+        const now = audioCtx.currentTime;
+        const cur = masterVolumeNode.gain.value;
+        masterVolumeNode.gain.cancelScheduledValues(now);
+        masterVolumeNode.gain.setValueAtTime(cur, now);
+        masterVolumeNode.gain.linearRampToValueAtTime(v * v, now + RESUME_FADE_S);
+    });
 }
 
 if (import.meta.hot) {
