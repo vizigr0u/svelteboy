@@ -12,7 +12,7 @@
     "asbuild:instrumented": "asc assembly/index.ts --target release --use INSTRUMENTED=1",
     "asbuild:profilerelease": "asc assembly/index.ts --target profilerelease",
     "dev": "vite",
-    "build": "pnpm run asbuild:release && vite build",
+    "build": "pnpm run asbuild:release:stripped && vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "start": "pnpm dlx serve dist",
