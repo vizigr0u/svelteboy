@@ -3,6 +3,7 @@
         useBoot,
         playerPixelSize,
         showFPS,
+        showFrametimeHistogram,
         RemoteRomsListUri,
         EmulatorSpeed,
         // AudioBufferSize,
@@ -51,6 +52,9 @@
 
         <label for="showfps">Display FPS:</label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />
+
+        <label for="showframetime">Frametime histogram:</label>
+        <input id="showframetime" type="checkbox" bind:checked={$showFrametimeHistogram} />
     </div>
 
     <h4>Emulation</h4>

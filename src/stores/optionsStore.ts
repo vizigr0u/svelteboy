@@ -19,6 +19,7 @@ export const SelectedPaletteIndex = MakeLocalStore<number>('option-palette-index
 export const useBoot = writable<boolean>(false);
 export const playerPixelSize = MakeLocalStore<number>('option-pixel-size', 3);
 export const showFPS = MakeLocalStore<boolean>('option-show-fps', false);
+export const showFrametimeHistogram = MakeLocalStore<boolean>('option-show-frametime-histogram', false);
 export const HideKeyboardWarning = MakeLocalStore<boolean>('option-hide-keyboard-warning', false);
 export const DismissSavesWarning = MakeLocalStore<boolean>('option-hide-saves-warning', false);
 export const RemoteRomsListUri = MakeLocalStore<string>('option-remote-roms-list-uri', "");

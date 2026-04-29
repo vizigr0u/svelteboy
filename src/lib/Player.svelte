@@ -1,7 +1,8 @@
 <script lang="ts">
     import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
-    import { playerPixelSize, showFPS, SelectedPaletteIndex, PALETTE_PRESETS } from "stores/optionsStore";
+    import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
+    import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -76,7 +77,7 @@
                 webglCanvas?.draw(Emulator.GetGameFrame());
             }
         };
-        Emulator.AddPostRunCallback(drawCallback);
+        Emulator.AddRenderCallback(drawCallback);
 
         const onFullscreenChange = () => {
             isFullscreen = !!document.fullscreenElement;
@@ -84,7 +85,7 @@
         document.addEventListener('fullscreenchange', onFullscreenChange);
 
         return () => {
-            Emulator.RemovePostRunCallback(drawCallback);
+            Emulator.RemoveRenderCallback(drawCallback);
             document.removeEventListener('fullscreenchange', onFullscreenChange);
         };
     });
@@ -135,6 +136,11 @@
             {#if $showFPS}
                 <div class="fps-wrapper">
                     <FpsCounter />
+                </div>
+            {/if}
+            {#if $showFrametimeHistogram}
+                <div class="frametime-wrapper">
+                    <FrametimeHistogram />
                 </div>
             {/if}
             {#if $AudioSuspended && !$EmulatorPaused}
@@ -244,6 +250,13 @@
 
     .fps-wrapper {
         position: absolute;
+    }
+
+    .frametime-wrapper {
+        position: absolute;
+        top: 0.4em;
+        left: 0.4em;
+        z-index: 5;
     }
 
     .audio-hint {
