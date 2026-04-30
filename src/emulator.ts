@@ -51,8 +51,6 @@ import {
 } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap, SaveGames } from "stores/playStores";
 import { writable } from "svelte/store";
-
-export const AudioSuspended = writable<boolean>(false);
 import { DebugStopReason, type GbDebugInfo, type LibraryRom, type SaveGameData } from "./types";
 import { AudioMasterVolume, AutoSaveUriRoms, EmulatorSpeed, PauseOnVisibilityLost, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
@@ -64,6 +62,8 @@ let lastSaveFrame = 0;
 let postRunCallbacks: (() => void)[] = [];
 let renderCallbacks: (() => void)[] = [];
 let runningAnimationFrameHandle = 0;
+
+export const AudioSuspended = writable<boolean>(false);
 
 export const FRAME_TIMES_LEN = 240;
 export const FrameStats = {
@@ -263,8 +263,10 @@ function postRunAudio() {
     if (buffersToSchedule > 0) {
         const ptrs = [];
         for (let i = 0; i < buffersToSchedule; i++) {
-            ptrs.push([getAudioBufferToReadPointer(0), getAudioBufferToReadPointer(1)]);
-            const buffer = createAudioBufferFromData(bufferSize, sampleRate);
+            const leftPtr = getAudioBufferToReadPointer(0);
+            const rightPtr = getAudioBufferToReadPointer(1);
+            ptrs.push([leftPtr, rightPtr]);
+            const buffer = createAudioBufferFromData(leftPtr, rightPtr, bufferSize, sampleRate);
             queueBuffer(buffer);
             markAudioBuffersRead(1);
         }
@@ -272,16 +274,10 @@ function postRunAudio() {
     }
 }
 
-function createAudioBufferFromData(bufferSize: number, sampleRate: number) {
-    // console.log("Left Pointer: " + getAudioBufferToReadPointer(0) + ", Right: " + getAudioBufferToReadPointer(1));
+function createAudioBufferFromData(leftPtr: number, rightPtr: number, bufferSize: number, sampleRate: number) {
     const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
-    const left = getAudioBuffer(getAudioBufferToReadPointer(0), bufferSize);
-    // if (logDelay-- <= 0) {
-    //     console.log(JSON.stringify(left));
-    //     if (logDelay < -3)
-    //         logDelay += 1000;
-    // }
-    const right = getAudioBuffer(getAudioBufferToReadPointer(1), bufferSize);
+    const left = getAudioBuffer(leftPtr, bufferSize);
+    const right = getAudioBuffer(rightPtr, bufferSize);
     audioBuffer.copyToChannel(left, 0);
     audioBuffer.copyToChannel(right, 1);
     return audioBuffer;
