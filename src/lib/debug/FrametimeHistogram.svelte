@@ -1,21 +1,42 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { FrameStats, FRAME_TIMES_LEN } from "../../emulator";
+    import { GameFrames } from "stores/playStores";
 
     const W = FRAME_TIMES_LEN;
     const H = 60;
     const TARGET_60_MS = 1000 / 60;
     const TARGET_30_MS = 1000 / 30;
     const MAX_MS = 50;
+    const GAME_FPS_WINDOW_MS = 500;
 
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
     let raf = 0;
 
     let fpsText = "--";
+    let gameFpsText = "--";
     let p50Text = "--";
     let p99Text = "--";
     let droppedText = "0";
+
+    let gameWindowStartTime = 0;
+    let gameWindowStartFrame = -1;
+    const unsubGame = GameFrames.subscribe((frame) => {
+        const now = performance.now();
+        if (gameWindowStartFrame < 0) {
+            gameWindowStartFrame = frame;
+            gameWindowStartTime = now;
+            return;
+        }
+        const elapsed = now - gameWindowStartTime;
+        if (elapsed >= GAME_FPS_WINDOW_MS) {
+            const fps = ((frame - gameWindowStartFrame) * 1000) / elapsed;
+            gameFpsText = fps >= 100 ? fps.toFixed(0) : fps >= 10 ? fps.toFixed(1) : fps.toFixed(2);
+            gameWindowStartFrame = frame;
+            gameWindowStartTime = now;
+        }
+    });
 
     function colorFor(ms: number): string {
         if (ms < TARGET_60_MS) return "#3a3";
@@ -82,13 +103,14 @@
 
     onDestroy(() => {
         cancelAnimationFrame(raf);
+        unsubGame();
     });
 </script>
 
 <div class="frametime-widget">
     <canvas bind:this={canvas} width={W} height={H}></canvas>
     <div class="stats">
-        <span>{fpsText} fps</span>
+        <span>{fpsText}r / {gameFpsText}g fps</span>
         <span>p50 {p50Text}ms</span>
         <span>p99 {p99Text}ms</span>
         <span>drop {droppedText}</span>
