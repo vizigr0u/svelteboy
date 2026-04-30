@@ -280,7 +280,7 @@ export const Audio = {
     }
 }
 
-const TARGET_LOOKAHEAD_S = 0.30; // 80ms: survives occasional long frames without audible latency
+const TARGET_LOOKAHEAD_S = 0.30; // num seconds to survive occasional long frames without audible latency
 
 function postRunAudio() {
     const bufferSize = getAudioBuffersSize();
