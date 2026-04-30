@@ -1,14 +1,21 @@
 import { type ProgramLine, type RomReference, MemoryRegion } from "./types";
 
+import { get } from "svelte/store";
 import { appendLog, disassembledRomsStore } from "stores/debugStores";
 import {
     getCartLines,
     hexDump,
-    runOneFrame,
-    initEmulator,
-    setVerbose,
+    runFrames,
+    getAudioBuffersToReadCount,
+    markAudioBuffersRead,
     spliceLogs
 } from "../build/backend";
+import { EmulatorInitialized, EmulatorPaused } from "stores/playStores";
+import { Emulator } from "./emulator";
+
+export type BenchmarkResult =
+    | { ok: true; frames: number; ms: number; fps: number }
+    | { ok: false; error: string };
 
 function getLines(
     rom: RomReference,
@@ -24,17 +31,29 @@ export function getHexDump(fromPC: number, toPC: number): Promise<Uint8Array> {
     return new Promise<Uint8Array>((resolve) => resolve(hexDump(fromPC, toPC)));
 }
 
-export function benchmarkFrames(numFrames: number): Promise<number> {
-    return new Promise<number>((resolve) => {
-        initEmulator();
-        setVerbose(0);
-        const t0 = performance.now();
-        for (let i = 0; i < numFrames; i++) {
-            runOneFrame();
-        }
-        const t1 = performance.now();
-        return resolve(t1 - t0);
-    });
+export async function benchmarkFrames(numFrames: number): Promise<BenchmarkResult> {
+    if (!get(EmulatorInitialized))
+        return { ok: false, error: "No ROM loaded" };
+    if (numFrames <= 0)
+        return { ok: false, error: "Frame count must be > 0" };
+
+    const wasRunning = !get(EmulatorPaused);
+    if (wasRunning) Emulator.Pause();
+
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    const t0 = performance.now();
+    runFrames(numFrames);
+    const t1 = performance.now();
+
+    const pending = getAudioBuffersToReadCount();
+    if (pending > 0) markAudioBuffersRead(pending);
+
+    if (wasRunning) Emulator.RunUntilBreak();
+
+    const ms = t1 - t0;
+    const fps = ms > 0 ? (numFrames * 1000) / ms : 0;
+    return { ok: true, frames: numFrames, ms, fps };
 }
 
 function getMemoryBounds(region: MemoryRegion): number[] {
