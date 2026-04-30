@@ -203,8 +203,6 @@ let audioCtx: AudioContext;
 let analyzerNode: AnalyserNode;
 let masterVolumeNode: GainNode;
 let destinationNode: AudioNode;
-let audioContextStartOffset: number;
-
 export const Audio = {
     Init: () => {
         if (wasInit)
@@ -235,10 +233,6 @@ export const Audio = {
         document.addEventListener('keydown', resumeOnGesture);
 
         wasInit = true;
-    },
-    Play: () => {
-        let audioContextTimestamp = audioCtx.getOutputTimestamp();
-        audioContextStartOffset = audioContextTimestamp.contextTime ?? 0;
     }
 }
 
@@ -449,9 +443,9 @@ function step() {
     pauseEmulator();
 }
 
+Verbose.subscribe(setVerbose);
+
 function preRun(): void {
-    setVerbose(get(Verbose));
-    unPauseEmulator();
     EmulatorBusy.set(true);
     if (!get(EmulatorInitialized)) {
         initEmulator(get(useBoot));
