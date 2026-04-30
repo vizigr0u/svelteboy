@@ -10,15 +10,20 @@ You are working on the **Svelte 5 frontend** of SvelteBoy, a GameBoy DMG emulato
 
 - Framework: **Svelte 5** with runes (`$state`, `$derived`, `$effect`)
 - Dev: `pnpm run dev` | Build: `pnpm run build`
-- WASM bridge: `src/emulator.ts` — imports everything from `build/backend`
+- WASM bridge: `src/emulator/` module — re-exports `build/backend` via `wasmBridge.ts`, facade in `index.ts`
 - State management: Svelte stores in `src/stores/`
-- Currently on `svelte5-migration` branch (Svelte 4 → 5 runes migration)
 
 ## File Map
 
 | File/Dir | Purpose |
 |----------|---------|
-| `src/emulator.ts` | WASM bridge + `requestAnimationFrame` loop, pre/postRun hooks |
+| `src/emulator/index.ts` | `Emulator`+`Debug` facades, re-exports `AudioSuspended`/`FrameStats`/`RenderFrames` |
+| `src/emulator/wasmBridge.ts` | re-export `build/backend`, frame/audio typed-array views |
+| `src/emulator/loop.ts` | `requestAnimationFrame` loop, pre/postRun, FrameStats, callbacks |
+| `src/emulator/audio.ts` | AudioContext, queue, fade, mute subs, `suspendAudio`/`resumeAudio` |
+| `src/emulator/lifecycle.ts` | pause/unpause/reset/runUntilBreak, visibility, HMR |
+| `src/emulator/saveState.ts` | QuickSave/QuickLoad + thumbnails |
+| `src/emulator/rom.ts` | playRom, getRomBuffer, loadSaveGame |
 | `src/inputs.ts` | Keyboard → joypad bitmask → `setJoypad()` WASM call |
 | `src/types.ts` | TypeScript types mirroring WASM-exported shapes |
 | `src/stores/playStores.ts` | `GameFrames`, `KeyPressMap`, emulator running state |
@@ -36,20 +41,23 @@ You are working on the **Svelte 5 frontend** of SvelteBoy, a GameBoy DMG emulato
 
 ## Calling WASM from the Frontend
 
+Inside `src/emulator/*` use relative `./wasmBridge`. Outside, import from `./emulator` (facade).
+
 ```typescript
+// inside src/emulator/*
 import {
-  initEmulator, runEmulator, getGameFramePtr,
+  initEmulator, runEmulator,
   setJoypad, getDebugInfo, loadCartridgeRom,
-  memory as backendMemory
-} from "../build/backend";
+  getGameFrameView, getCgbGameFrameView, getAudioBufferView,
+  backendMemory
+} from "./wasmBridge";
 
 // Pass data TO wasm (bindings handle pointer/length automatically)
 loadCartridgeRom(new Uint8Array(romArrayBuffer));
 
-// Get frame (zero-copy view into WASM linear memory — fast)
-const ptr = getGameFramePtr();
-const frame = new Uint8ClampedArray(backendMemory.buffer, ptr, 160 * 144 * 4);
-canvas.putImageData(new ImageData(frame, 160, 144), 0, 0);
+// Zero-copy frame view (helper wraps backendMemory + ptr)
+const frame = getGameFrameView();   // Uint8Array(160*144) palette indices
+// or RGBA (CGB): getCgbGameFrameView() — Uint16Array RGB555
 
 // Get managed objects (copy via bindings)
 const info = getDebugInfo();   // → plain JS object matching DebugInfo shape
@@ -82,31 +90,24 @@ markAudioBuffersRead(count);
 
 ## Emulation Loop Pattern
 
+Loop logic in `src/emulator/loop.ts`. Audio postRun registered via `addPostRunCallback` from `audio.ts`. Render callbacks fire when ≥1 GB frame advanced this rAF tick.
+
 ```typescript
-// src/emulator.ts structure
-function run(timestamp: number) {
-  const delta = timestamp - lastTimestamp;
-  lastTimestamp = timestamp;
-
-  preRun();                              // setJoypad(inputBits)
-  const reason = runEmulator(delta);     // WASM — advances emulator by delta ms
-  postRun(reason);                       // fetch frame, audio, debug info
-
-  requestAnimationFrame(run);
-}
-
-function postRun(reason: EmulatorStopReason) {
-  // Draw frame
-  const ptr = getGameFramePtr();
-  onFrame(new Uint8ClampedArray(backendMemory.buffer, ptr, 160 * 144 * 4));
-  // Audio
-  postRunAudio();
-  // Debug (if debugger attached)
-  if (debuggerAttached) {
-    debugInfo.set(getDebugInfo());
+// loop.ts
+function run(time: number) {
+  accumulator += wallDt * get(EmulatorSpeed);
+  while (accumulator >= GB_FRAME_MS && framesThisTick < MAX_CATCHUP) {
+    preRun();                          // setJoypad(inputBits)
+    LastStopReason.set(runEmulator(GB_FRAME_MS));
+    postRun();                         // fetchLogs, GameFrames++, debug snapshot, AutoSave, postRunCallbacks
+    accumulator -= GB_FRAME_MS; framesThisTick++;
   }
+  if (framesThisTick > 0) renderCallbacks.forEach(cb => cb());
+  if (!get(EmulatorPaused)) requestAnimationFrame(run);
 }
 ```
+
+`Emulator.AddRenderCallback` / `AddPostRunCallback` for components (Player, AudioDebug) to hook in.
 
 ## Svelte 5 Runes Patterns Used Here
 
