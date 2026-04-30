@@ -18,10 +18,11 @@
     children: Snippet;
   }>();
 
-  function getValidDroppedFileItem(e: DragEvent): DataTransferItem {
-    if (e.dataTransfer.items.length != 1) return undefined;
-    if (e.dataTransfer.items[0].kind != "file") return undefined;
-    return e.dataTransfer.items[0];
+  function getValidDroppedFileItem(e: DragEvent): DataTransferItem | undefined {
+    const dt = e.dataTransfer;
+    if (!dt || dt.items.length != 1) return undefined;
+    if (dt.items[0].kind != "file") return undefined;
+    return dt.items[0];
   }
 
   async function processDroppedFile(file: File) {

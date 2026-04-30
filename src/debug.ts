@@ -73,9 +73,12 @@ export async function fetchDisassembly(rom: RomReference, region: MemoryRegion =
     const bounds = getMemoryBounds(region);
     let pc = bounds[0];
     const maxPC = bounds[1];
-    disassembledRomsStore.update(rom => {
-        rom = { ...rom, region, isLoading: true, programLines: [] };
-        return rom;
+    disassembledRomsStore.set({
+        name: rom.name,
+        sha1: rom.sha1,
+        region,
+        isLoading: true,
+        programLines: [],
     });
 
     while (pc <= maxPC) {
@@ -83,21 +86,18 @@ export async function fetchDisassembly(rom: RomReference, region: MemoryRegion =
         const thisMaxPC = maxPC - pc > 0x2000 ? pc + 0x2000 : maxPC;
         // await is converting Promise<number> into number
         const lines: Array<ProgramLine> = await getLines(rom, pc, thisMaxPC);
-        disassembledRomsStore.update(rom => {
-            rom.programLines = rom.programLines.concat(lines);
-            return rom;
+        disassembledRomsStore.update(current => {
+            if (current)
+                current.programLines = current.programLines.concat(lines);
+            return current;
         });
         pc = lines.at(-1)!.pc + lines.at(-1)!.byteSize;
-        // console.log(
-        //     `fetched ${lines.length} lines of  $${oldPc.toString(
-        //         16
-        //     )}->$${pc.toString(16)}`
-        // );
     }
 
-    disassembledRomsStore.update(rom => {
-        rom.isLoading = false;
-        return rom;
+    disassembledRomsStore.update(current => {
+        if (current)
+            current.isLoading = false;
+        return current;
     });
     // console.log("Done fetching ");
 }

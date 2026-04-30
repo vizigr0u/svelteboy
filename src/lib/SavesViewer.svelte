@@ -16,6 +16,7 @@
     }
 
     function onDownloadClick(save: SaveGameData) {
+        if (!$loadedCartridge) return;
         const link = document.createElement("a");
         const file = new Blob([save.buffer as BlobPart]);
         link.href = URL.createObjectURL(file);
@@ -25,6 +26,7 @@
     }
 
     async function onClickUpload() {
+        if (!$loadedCartridge) return;
         for (const file of files) {
             const buffer = await file.arrayBuffer();
             console.log(
@@ -67,9 +69,11 @@
     });
 
     function onClearAllClick() {
+        if (!$loadedCartridge) return;
+        const sha1 = $loadedCartridge.sha1;
         $AutoSave = undefined;
         SaveGames.update((saves) => {
-            return saves.filter((s) => s.gameSha1 != $loadedCartridge.sha1);
+            return saves.filter((s) => s.gameSha1 != sha1);
         });
     }
 </script>

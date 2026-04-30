@@ -15,6 +15,7 @@
     "allowJs": true,
     "checkJs": true,
     "verbatimModuleSyntax": true,
+    "types": ["node"],
     "paths": {
       "@/*": [
         "./src/*"

@@ -27,7 +27,7 @@
   let minPC: number = $state(areas[0].start);
   let count: number = $state(areas[0].size);
 
-  let selectedArea: MemArea = $state(undefined);
+  let selectedArea: MemArea | undefined = $state(undefined);
 
   function onClick() {
     promise = getHexDump(minPC, count);
