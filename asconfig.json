@@ -39,6 +39,11 @@
   },
   "options": {
     "bindings": "esm",
-    "memoryBase": 8621252
+    "memoryBase": 8621252,
+    "importMemory": true,
+    "sharedMemory": true,
+    "initialMemory": 256,
+    "maximumMemory": 1024,
+    "enable": ["threads"]
   }
 }

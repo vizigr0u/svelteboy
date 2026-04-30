@@ -1,8 +1,9 @@
-import {
+import backend from "../../scripts/loadBackendNode.mjs";
+const {
     loadCartridgeRom,
     loadBootRom, runFrames, initEmulator, setVerbose, instrumentedDiag,
     // serialEnableLog, dumpLogToConsole
-} from "../../build/backend.js";
+} = backend;
 
 import { open, writeFile } from 'node:fs/promises';
 import { Session } from 'node:inspector/promises';

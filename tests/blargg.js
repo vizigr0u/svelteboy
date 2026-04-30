@@ -1,13 +1,14 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import {
+import backend from "../scripts/loadBackendNode.mjs";
+const {
     initEmulator,
     runFrames,
     loadCartridgeRom,
     getDebugInfo,
     serialEnableLog,
-} from "../build/backend.js";
+} = backend;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

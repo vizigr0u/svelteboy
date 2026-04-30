@@ -9,7 +9,7 @@ import {
     getAudioBuffersToReadCount,
     markAudioBuffersRead,
     spliceLogs
-} from "../build/backend";
+} from "./emulator/wasmBridge";
 import { EmulatorInitialized, EmulatorPaused } from "stores/playStores";
 import { Emulator } from "./emulator";
 

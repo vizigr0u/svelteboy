@@ -11,8 +11,10 @@ const log = document.getElementById('log');
 const print = s => { log.textContent += s + '\n'; console.log(s); };
 
 try {
+  const { loadBackendInstance } = await import('/build/backend.js');
+  const memory = new WebAssembly.Memory({ initial: 256, maximum: 1024, shared: true });
   const { loadBootRom, loadCartridgeRom, initEmulator, runFrames } =
-    await import('/build/backend.js');
+    await loadBackendInstance({ env: { memory } });
 
   const [bootData, romData] = await Promise.all([
     fetch(bootUrl).then(r => { if (!r.ok) throw new Error(`fetch ${bootUrl}: ${r.status}`); return r.arrayBuffer(); }),
