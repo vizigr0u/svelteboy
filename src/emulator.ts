@@ -54,7 +54,7 @@ import { writable } from "svelte/store";
 
 export const AudioSuspended = writable<boolean>(false);
 import { DebugStopReason, type GbDebugInfo, type LibraryRom, type SaveGameData } from "./types";
-import { AudioMasterVolume, AutoSaveUriRoms, EmulatorSpeed, useBoot } from "stores/optionsStore";
+import { AudioMasterVolume, AutoSaveUriRoms, EmulatorSpeed, PauseOnVisibilityLost, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { getBytesBySha1, promoteUriToIdb, reconcileSha1OnFirstPlay } from "stores/libraryStore";
 import { humanReadableSize } from "./utils";
@@ -128,12 +128,12 @@ export const Emulator = {
         window.cancelAnimationFrame(runningAnimationFrameHandle);
         runningAnimationFrameHandle = window.requestAnimationFrame(run)
     },
-    Pause: pauseEmulator,
+    Pause: () => pauseEmulator(),
     GetGameFrame: () => new Uint8Array(backendMemory.buffer as ArrayBuffer, getGameFramePtr(), 160 * 144),
     GetCGBGameFrame: () => new Uint16Array(backendMemory.buffer as ArrayBuffer, getCGBGameFramePtr(), 160 * 144),
     IsCgbMode: () => isCgbMode(),
     LoadCartridgeRom: loadCartridgeRom,
-    LoadSave: (saveGame: SaveGameData) => { return loadSaveGame(saveGame); },
+    LoadSave: (saveGame: SaveGameData) => loadSaveGame(saveGame),
     PlayRom: playRom,
     AddPostRunCallback: (callback: () => void) => { postRunCallbacks.push(callback); },
     RemovePostRunCallback: (callback: () => void) => {
@@ -198,45 +198,6 @@ export const Debug = {
     GetAudioBufferFromPtr: (ptr: number) => getAudioBuffer(ptr, get(AudioBufferSize)),
 }
 
-//-------------------------------------
-function generateSineWaveBuffers(frequency: number, sampleRate: number, durationSeconds: number, numBuffers: number) {
-    const totalSamples = Math.round(durationSeconds * sampleRate);
-    const samplesPerBuffer = Math.round(totalSamples / numBuffers);
-    const sineWaveBuffers = [];
-
-    let phase = 0;
-    const angularFreq = 2 * Math.PI * frequency / sampleRate;
-
-    for (let buf = 0; buf < numBuffers; buf++) {
-        const audioBuffer = new Float32Array(samplesPerBuffer);
-        for (let i = 0; i < samplesPerBuffer; i++) {
-            audioBuffer[i] = Math.sin(phase);
-            phase += angularFreq;
-            if (phase >= 2 * Math.PI) phase -= 2 * Math.PI;
-        }
-        sineWaveBuffers.push(audioBuffer);
-    }
-
-    return sineWaveBuffers;
-}
-
-// Example usage:
-const sampleRate = 44100;  // CD Quality
-const durationSeconds = 10;
-const numBuffers = 5;
-const bufferSize = sampleRate * durationSeconds / numBuffers;
-
-const AudioTestBuffers = generateSineWaveBuffers(440, 44100, 10, 5);
-
-function getTestAudioBuffer(index: number): AudioBuffer {
-    const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
-    audioBuffer.copyToChannel(AudioTestBuffers[index], 0);
-    audioBuffer.copyToChannel(AudioTestBuffers[index], 1);
-    return audioBuffer;
-}
-
-//-------------------------------------
-
 let wasInit: boolean = false;
 let audioCtx: AudioContext;
 let analyzerNode: AnalyserNode;
@@ -265,6 +226,7 @@ export const Audio = {
         Emulator.AddPostRunCallback(postRunAudio);
 
         const updateSuspended = () => AudioSuspended.set(audioCtx.state === 'suspended');
+
         audioCtx.addEventListener('statechange', updateSuspended);
         updateSuspended();
 
@@ -410,10 +372,7 @@ async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
 async function playRom(rom: LibraryRom): Promise<void> {
     const buffer = await getRomBuffer(rom);
     if (!buffer) return;
-    const loaded = await new Promise<boolean>((r) =>
-        r(Emulator.LoadCartridgeRom(buffer))
-    );
-    if (!loaded) {
+    if (!Emulator.LoadCartridgeRom(buffer)) {
         console.log(`Error loading rom`);
         return;
     }
@@ -526,10 +485,9 @@ function postRun(): void {
     }
 }
 
-function loadSaveGame(savegame: SaveGameData): boolean {
+function loadSaveGame(savegame: SaveGameData): void {
     console.log(`Loading savegame '${savegame.name}' of size ${humanReadableSize(savegame.buffer.byteLength)}...`)
     emuLoadSave(savegame.buffer);
-    return false;
 }
 
 function getInputForEmu(): number {
@@ -580,3 +538,17 @@ if (import.meta.hot) {
         window.cancelAnimationFrame(runningAnimationFrameHandle);
     });
 }
+
+let pausedByVisibility = false;
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (get(PauseOnVisibilityLost) && !get(EmulatorPaused)) {
+            pausedByVisibility = true;
+            Emulator.Pause();
+        }
+    } else if (!get(DebuggerAttached) && pausedByVisibility) {
+        pausedByVisibility = false;
+        Emulator.RunUntilBreak();
+    }
+});
+

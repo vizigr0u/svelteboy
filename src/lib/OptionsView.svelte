@@ -7,11 +7,11 @@
         LibraryImportSourceUri,
         AutoSaveUriRoms,
         EmulatorSpeed,
+        PauseOnVisibilityLost,
         // AudioBufferSize,
         AudioMasterVolume,
         HideKeyboardWarning,
     } from "stores/optionsStore";
-    import { showDebugWindow } from "../stores/windowStores";
     import { EmulatorInitialized } from "stores/playStores";
     import { clearAllStorage } from "../stores/idbStore";
     import { bulkImportFromManifest } from "stores/libraryStore";
@@ -94,6 +94,13 @@
         >
         <input id="useBoot" type="checkbox" bind:checked={$useBoot} disabled />
         <span>Todo: </span><span>Select boot rom</span>
+
+        <label for="pauseOnVisibilityLost">Pause when tab hidden:</label>
+        <input
+            id="pauseOnVisibilityLost"
+            type="checkbox"
+            bind:checked={$PauseOnVisibilityLost}
+        />
     </div>
 
     <h4>Audio</h4>
@@ -113,12 +120,6 @@
             step="0.01"
             bind:value={$AudioMasterVolume}
         />
-    </div>
-
-    <h4>Interface</h4>
-    <div class="options">
-        <label for="showdebugger">Show Debugger:</label>
-        <input id="showdebugger" type="checkbox" bind:checked={$showDebugWindow} />
     </div>
 
     <h4>Library</h4>
