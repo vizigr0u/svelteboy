@@ -129,7 +129,14 @@ assembly/
 src/
 ├ main.ts               ← app entry point (mounts Svelte)
 ├ App.svelte            ← root component
-├ emulator.ts           ← WASM bridge & animation loop
+├ emulator/             ← WASM bridge + animation loop (split module)
+│ ├ index.ts          ← Emulator/Debug facades
+│ ├ wasmBridge.ts     ← re-export build/backend, frame/audio views
+│ ├ loop.ts           ← rAF loop, pre/postRun, FrameStats, callbacks
+│ ├ audio.ts          ← AudioContext, queue, fade, mute
+│ ├ lifecycle.ts      ← pause/unpause/reset/runUntilBreak, visibility, HMR
+│ ├ saveState.ts      ← QuickSave/QuickLoad + thumbnails
+│ └ rom.ts            ← playRom, getRomBuffer, loadSaveGame
 ├ debug.ts              ← debug helpers
 ├ inputs.ts             ← keyboard input handlers
 ├ types.ts              ← TypeScript types
