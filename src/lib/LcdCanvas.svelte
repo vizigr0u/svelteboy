@@ -34,7 +34,7 @@
   let initialized: boolean = false;
 
   $effect(() => {
-    const unsub = frameStore.subscribe((frame) => {
+    const unsub = frameStore.subscribe((frame: number) => {
       if (initialized && autodraw) {
         if (frame != -1) {
           drawToCanvas();
@@ -54,10 +54,12 @@
   });
 
   onMount(() => {
-    context = canvas.getContext("2d");
+    context = canvas.getContext("2d")!;
     screenData = context.createImageData(width, height);
     initialized = true;
   });
+
+  export const draw = () => drawToCanvas();
 
   function drawToCanvas() {
     if (screenData != undefined) {

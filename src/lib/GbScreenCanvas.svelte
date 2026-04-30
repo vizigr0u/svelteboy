@@ -13,7 +13,7 @@
   const key = 0xea3742c76bf95d47;
 
   onMount(() => {
-    context = canvas.getContext("2d");
+    context = canvas.getContext("2d")!;
     screenData = context.createImageData(width, height);
   });
 </script>
@@ -24,7 +24,7 @@
   {height}
   class="canvas"
   style="width: {width * pixelSize}px; height: {height * pixelSize}px;"
-/>
+></canvas>
 <div class="canvas-controls">
   <input type="range" bind:value={pixelSize} min="1" max="10" />
 </div>

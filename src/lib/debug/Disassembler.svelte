@@ -29,7 +29,7 @@
 
   $effect(() => disassembleRom($loadedCartridge));
 
-  function disassembleRom(rom: RomReference): void {
+  function disassembleRom(rom: RomReference | undefined): void {
     if (rom && get(disassembledRomsStore)?.sha1 != rom.sha1) {
       fetchDisassembly(rom);
     } else if (!rom) {

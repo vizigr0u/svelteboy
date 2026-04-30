@@ -5,8 +5,6 @@
 
     let soundTimeSeconds = 2;
 
-    const channels = 2;
-
     let audioCtx: AudioContext;
     let audioBuffer: AudioBuffer;
 
@@ -35,7 +33,7 @@
         const left = make(audioBuffer.length);
         const right = new Float32Array(left.length);
         new Uint8Array(right).set(new Uint8Array(left));
-        audioBuffer.copyToChannel(left, 0, 0);
+        audioBuffer.copyToChannel(left as Float32Array<ArrayBuffer>, 0, 0);
         audioBuffer.copyToChannel(right, 1, 0);
 
         // set the buffer in the AudioBufferSourceNode

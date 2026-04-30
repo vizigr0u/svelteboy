@@ -9,13 +9,13 @@
   let initialized: boolean = false;
 
   onMount(() => {
-    context = canvas.getContext("2d");
+    context = canvas.getContext("2d")!;
     screenData = context.createImageData(width, height);
     initialized = true;
   });
 
   export function draw(buffer: Uint8ClampedArray) {
-    context.putImageData(new ImageData(buffer, width, height), 0, 0);
+    context.putImageData(new ImageData(buffer as Uint8ClampedArray<ArrayBuffer>, width, height), 0, 0);
   }
 </script>
 

@@ -11,7 +11,7 @@
     let tileMap: Uint8Array = new Uint8Array(32 * 32);
     let posDebug: string = $state("");
     let tileDebug: string = $state("");
-    let lcdCanvas = $state(null);
+    let lcdCanvas: { draw: () => void } | null = $state(null);
 
     function drawBGLines(ctx: CanvasRenderingContext2D): void {
         if ($GbDebugInfoStore == undefined) return;
