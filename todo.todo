@@ -1,54 +1,7 @@
-☐ Video:
-    ☐ fix PPU - e.g. Zelda beach parallax scrolling
-    ☐ (check) Support mid-line changes
 ☐ Architecture:
-    ☐ Migrate to scheduler model for PPU (see todo.architecture.md for more details)
-    ☐ Better audio sync with frontend (see todo.audio-sync.md for more details)
-☐ Audio (see todo.audio.md for more details):
-    ☐ CH1 sweep entire feature
-    ☐ Mixer wrong	All output volume balance is off
-    ☐ Length timer formula	Notes cut at wrong times
-    ☐ DACs not tracked	Spurious channel enables/disables
-    ☐ LFSR shift 14/15	Noise channel doesn't silence correctly
-    ☐ No HPF	Audio pops on every DAC/volume change
-    ☐ Envelope period 0	Fast envelope decay broken
-    ☐ NR52 status bits	Games that poll channel state break
-    ☐ APU power-off	APU reset sequence incorrect
-    ☐ Period delay	Very slight pitch timing inaccuracy
-    ☐ CH3 last-sample	CH3 retrigger has brief wrong output
-    ☐ Obscure DIV-APU edge cases	Rarely noticeable
+    ☐ Migrate to scheduler model for PPU? (see todo.architecture.md for more details)
+    ☐ try threaded audio?
 ☐ Check timing test roms
-☐ disassemble dynamic parts (WRAM, HRAM)
-☐ Use webgl for display + shader to choose coloring?
-☐ Improve overall UX for saving loading etc.
-☐ ???
-☐ PROFIT
-
-callstack to investigate:
--Uncaught Error: null in ~lib/rt/itcms.ts:132:16
-    run emulator.ts:290
-backend.js:12:17
-    abort backend.js:12
-    abort backend.js:13
-    Object#unlink backend.wasm:5705
-    Object#unlink backend.wasm:5681
-    Object#makeGray backend.wasm:5905
-    Object#makeGray backend.wasm:5874
-    __visit backend.wasm:5959
-    visitStack backend.wasm:5998
-    step backend.wasm:7981
-    interrupt backend.wasm:8176
-    __new backend.wasm:9195
-    wrap backend.wasm:105205
-    varargs backend.wasm:105339
-    varargs backend.wasm:105277
-    enterMode backend.wasm:142774
-    tickHblank backend.wasm:142903
-    tickHblank backend.wasm:142882
-    Tick backend.wasm:16317
-    Tick backend.wasm:143767
-    Run backend.wasm:19741
-    Prepare backend.wasm:13707
-    Run backend.wasm:19725
-    runEmulator backend.wasm:19772
-    run emulator.ts:280
+☐ Give love to debugger
+    ☐ disassemble dynamic parts (WRAM, HRAM)
+    ☐ etc.
