@@ -28,7 +28,9 @@ export const RenderFrames = writable<number>(0);
 
 const GB_FRAME_MS = 70224 / 4194.304;
 const MIN_CATCHUP = 4;
-const MAX_SPEED = 16;
+const HARD_CAP_FRAMES = 256;
+const TICK_BUDGET_MS = 12;
+const MAX_SPEED = 100;
 const DROPPED_FRAME_MS = 20;
 
 let lastTime = -1;
@@ -87,10 +89,13 @@ function run(time: number): void {
         : userSpeed;
     accumulator += wallDt * speed;
 
-    const catchupCap = Math.max(MIN_CATCHUP, Math.ceil(speed * 1.5));
-
+    const tickStart = performance.now();
     let framesThisTick = 0;
-    while (accumulator >= GB_FRAME_MS && framesThisTick < catchupCap) {
+    while (accumulator >= GB_FRAME_MS && framesThisTick < HARD_CAP_FRAMES) {
+        // Always grant MIN_CATCHUP frames (covers occasional rAF stalls at 1x);
+        // beyond that, only continue while wall-time budget remains.
+        if (framesThisTick >= MIN_CATCHUP && performance.now() - tickStart >= TICK_BUDGET_MS)
+            break;
         preRun();
         const stopReason = runEmulator(GB_FRAME_MS);
         LastStopReason.set(stopReason);
@@ -103,7 +108,8 @@ function run(time: number): void {
         framesThisTick++;
     }
 
-    if (accumulator > GB_FRAME_MS * catchupCap) accumulator = 0;
+    // Backlog grew faster than backend can run — drop it to prevent runaway accumulation.
+    if (accumulator > GB_FRAME_MS * HARD_CAP_FRAMES) accumulator = 0;
 
     if (framesThisTick > 0) {
         for (let i = 0; i < renderCallbacks.length; i++) renderCallbacks[i]();

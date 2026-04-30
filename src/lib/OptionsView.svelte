@@ -86,7 +86,7 @@
             id="emulatorspeed"
             type="number"
             min="0.01"
-            max="16"
+            max="100"
             step="0.1"
             bind:value={$EmulatorSpeed}
         />
