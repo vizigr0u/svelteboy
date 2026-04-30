@@ -7,6 +7,8 @@
         LibraryImportSourceUri,
         AutoSaveUriRoms,
         EmulatorSpeed,
+        HoldSpaceForSpeed,
+        MuteOnFastForward,
         PauseOnVisibilityLost,
         // AudioBufferSize,
         AudioMasterVolume,
@@ -84,9 +86,23 @@
             id="emulatorspeed"
             type="number"
             min="0.01"
-            max="6"
+            max="16"
             step="0.1"
             bind:value={$EmulatorSpeed}
+        />
+
+        <label for="holdspaceforspeed">Hold Space for speed (else always on):</label>
+        <input
+            id="holdspaceforspeed"
+            type="checkbox"
+            bind:checked={$HoldSpaceForSpeed}
+        />
+
+        <label for="muteonfastforward">Mute sound while speed on:</label>
+        <input
+            id="muteonfastforward"
+            type="checkbox"
+            bind:checked={$MuteOnFastForward}
         />
 
         <label for="useBoot"

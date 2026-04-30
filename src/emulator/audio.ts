@@ -1,4 +1,4 @@
-import { get, writable } from "svelte/store";
+import { derived, get, writable } from "svelte/store";
 import {
     getAudioSampleRate,
     getAudioBuffersSize,
@@ -17,8 +17,14 @@ import {
     MuteSoundChannel3,
     MuteSoundChannel4,
 } from "stores/debugStores";
-import { AudioMasterVolume } from "stores/optionsStore";
+import { AudioMasterVolume, EmulatorSpeed, HoldSpaceForSpeed, MuteOnFastForward } from "stores/optionsStore";
+import { FastForwardActive } from "stores/playStores";
 import { addPostRunCallback } from "./loop";
+
+const FastForwardMute = derived(
+    [MuteOnFastForward, HoldSpaceForSpeed, FastForwardActive, EmulatorSpeed],
+    ([mute, hold, active, speed]) => mute && (hold ? active : speed !== 1)
+);
 
 export const AudioSuspended = writable<boolean>(false);
 
@@ -38,6 +44,23 @@ const activeSourceNodes: AudioBufferSourceNode[] = [];
 let audioFadedOut = false;
 let pendingSuspendTimeout: ReturnType<typeof setTimeout> | null = null;
 
+const GAIN_RAMP_S = 0.01;
+
+function computeTargetGain(): number {
+    if (get(FastForwardMute)) return 0;
+    const v = get(AudioMasterVolume);
+    return v * v;
+}
+
+function applyTargetGain(): void {
+    if (!audioCtx || audioFadedOut) return;
+    const target = computeTargetGain();
+    const now = audioCtx.currentTime;
+    masterVolumeNode.gain.cancelScheduledValues(now);
+    masterVolumeNode.gain.setValueAtTime(masterVolumeNode.gain.value, now);
+    masterVolumeNode.gain.linearRampToValueAtTime(target, now + GAIN_RAMP_S);
+}
+
 export const Audio = {
     Init: () => {
         if (wasInit) return;
@@ -47,8 +70,9 @@ export const Audio = {
         analyzerNode.connect(masterVolumeNode);
         AudioAnalyzerNode.set(analyzerNode);
         masterVolumeNode.connect(audioCtx.destination);
-        masterVolumeNode.gain.value = get(AudioMasterVolume) * get(AudioMasterVolume);
-        AudioMasterVolume.subscribe(gain => { masterVolumeNode.gain.value = gain * gain });
+        masterVolumeNode.gain.value = computeTargetGain();
+        AudioMasterVolume.subscribe(() => applyTargetGain());
+        FastForwardMute.subscribe(() => applyTargetGain());
         MuteSoundChannel1.subscribe(setMute => { setMuteChannel(1, setMute); });
         MuteSoundChannel2.subscribe(setMute => { setMuteChannel(2, setMute); });
         MuteSoundChannel3.subscribe(setMute => { setMuteChannel(3, setMute); });
@@ -178,7 +202,7 @@ export function resumeAudio(): void {
     audioFadedOut = false;
     audioCtx.resume().then(() => {
         if (!audioCtx) return;
-        const target = get(AudioMasterVolume) ** 2;
+        const target = computeTargetGain();
         const now = audioCtx.currentTime;
         const cur = masterVolumeNode.gain.value;
         masterVolumeNode.gain.cancelScheduledValues(now);
