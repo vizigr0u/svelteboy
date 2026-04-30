@@ -11,8 +11,8 @@ import {
 } from "./wasmBridge";
 import { fetchLogs } from "../debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "stores/debugStores";
-import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, GameFrames, KeyPressMap } from "stores/playStores";
-import { EmulatorSpeed, useBoot } from "stores/optionsStore";
+import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, FastForwardActive, GameFrames, KeyPressMap } from "stores/playStores";
+import { EmulatorSpeed, HoldSpaceForSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebugStopReason, type GbDebugInfo } from "../types";
 import { pauseEmulator } from "./lifecycle";
@@ -27,7 +27,8 @@ export const FrameStats = {
 export const RenderFrames = writable<number>(0);
 
 const GB_FRAME_MS = 70224 / 4194.304;
-const MAX_CATCHUP = 4;
+const MIN_CATCHUP = 4;
+const MAX_SPEED = 16;
 const DROPPED_FRAME_MS = 20;
 
 let lastTime = -1;
@@ -77,10 +78,19 @@ function run(time: number): void {
     FrameStats.totalWrites++;
     if (wallDt > DROPPED_FRAME_MS) FrameStats.droppedCount++;
 
-    accumulator += wallDt * get(EmulatorSpeed);
+    const rawSpeed = get(EmulatorSpeed);
+    const userSpeed = Number.isFinite(rawSpeed) && rawSpeed > 0
+        ? Math.min(rawSpeed, MAX_SPEED)
+        : 1;
+    const speed = get(HoldSpaceForSpeed)
+        ? (get(FastForwardActive) ? userSpeed : 1)
+        : userSpeed;
+    accumulator += wallDt * speed;
+
+    const catchupCap = Math.max(MIN_CATCHUP, Math.ceil(speed * 1.5));
 
     let framesThisTick = 0;
-    while (accumulator >= GB_FRAME_MS && framesThisTick < MAX_CATCHUP) {
+    while (accumulator >= GB_FRAME_MS && framesThisTick < catchupCap) {
         preRun();
         const stopReason = runEmulator(GB_FRAME_MS);
         LastStopReason.set(stopReason);
@@ -93,7 +103,7 @@ function run(time: number): void {
         framesThisTick++;
     }
 
-    if (accumulator > GB_FRAME_MS * MAX_CATCHUP) accumulator = 0;
+    if (accumulator > GB_FRAME_MS * catchupCap) accumulator = 0;
 
     if (framesThisTick > 0) {
         for (let i = 0; i < renderCallbacks.length; i++) renderCallbacks[i]();
