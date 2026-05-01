@@ -12,6 +12,7 @@
         PauseOnVisibilityLost,
         // AudioBufferSize,
         AudioMasterVolume,
+        AudioResampleMode,
         HideKeyboardWarning,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
@@ -139,6 +140,12 @@
             step="0.01"
             bind:value={$AudioMasterVolume}
         />
+
+        <label for="resamplemode">Resample mode:</label>
+        <select id="resamplemode" bind:value={$AudioResampleMode}>
+            <option value="apu">APU-side (clean anti-alias)</option>
+            <option value="js">JS-side (linear interp)</option>
+        </select>
     </div>
 
     <h4>Library</h4>

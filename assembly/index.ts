@@ -97,6 +97,7 @@ export {
   markAudioBuffersRead,
   setMuteChannel,
   setMasterAudioToggle,
+  setAudioSpeedDivisor,
 } from './audio/render';
 
 // #strip-start
