@@ -6,6 +6,7 @@ import {
     getAudioBufferToReadPointer,
     markAudioBuffersRead,
     setMuteChannel,
+    setAudioSpeedDivisor,
     getAudioBufferView,
 } from "./wasmBridge";
 import {
@@ -17,7 +18,7 @@ import {
     MuteSoundChannel3,
     MuteSoundChannel4,
 } from "stores/debugStores";
-import { AudioMasterVolume, MuteOnFastForward } from "stores/optionsStore";
+import { AudioMasterVolume, AudioResampleMode, BurstSpeed, MuteOnFastForward, RegularSpeed } from "stores/optionsStore";
 import { FastForwardActive } from "stores/playStores";
 import { addPostRunCallback } from "./loop";
 import { SabRing, SabWriter } from "../audio/sabRingBuffer";
@@ -55,6 +56,13 @@ let sabWriter: SabWriter | null = null;
 
 let audioFadedOut = false;
 let pendingSuspendTimeout: ReturnType<typeof setTimeout> | null = null;
+
+let wasmRate = 44100;
+let outRate = 44100;
+let resamplePhase = 0;
+let resamplePrevL = 0;
+let resamplePrevR = 0;
+let lastAppliedDivisor = 1;
 
 function isWorkletSupported(): boolean {
     return typeof SharedArrayBuffer === 'function'
@@ -107,13 +115,15 @@ export const Audio = {
             return;
         }
 
-        // Pin context to WASM APU rate so worklet streams 1:1 without resampling drift.
-        const wasmRate = getAudioSampleRate();
+        // Try to pin context to WASM APU rate; browser may fall back to OS default (often 48 kHz).
+        // Either way, we drive resampling against actual audioCtx.sampleRate.
+        wasmRate = getAudioSampleRate();
         try {
             audioCtx = new window.AudioContext({ sampleRate: wasmRate });
         } catch (_) {
             audioCtx = new window.AudioContext();
         }
+        outRate = audioCtx.sampleRate;
         masterVolumeNode = audioCtx.createGain();
         analyzerNode = audioCtx.createAnalyser();
         analyzerNode.connect(masterVolumeNode);
@@ -122,6 +132,10 @@ export const Audio = {
         masterVolumeNode.gain.value = computeTargetGain();
         AudioMasterVolume.subscribe(() => applyTargetGain());
         FastForwardMute.subscribe(() => applyTargetGain());
+        AudioResampleMode.subscribe(() => onResampleParamsChanged());
+        FastForwardActive.subscribe(() => onResampleParamsChanged());
+        BurstSpeed.subscribe(() => onResampleParamsChanged());
+        RegularSpeed.subscribe(() => onResampleParamsChanged());
         MuteSoundChannel1.subscribe(setMute => { setMuteChannel(1, setMute); });
         MuteSoundChannel2.subscribe(setMute => { setMuteChannel(2, setMute); });
         MuteSoundChannel3.subscribe(setMute => { setMuteChannel(3, setMute); });
@@ -146,8 +160,55 @@ export const Audio = {
         });
 
         wasInit = true;
+        onResampleParamsChanged();
     }
 };
+
+function getEffectiveSpeed(): number {
+    const raw = get(FastForwardActive) ? get(BurstSpeed) : get(RegularSpeed);
+    return Number.isFinite(raw) && raw > 0 ? raw : 1;
+}
+
+// Mode 'apu': APU emits at outRate × (1/speed) wall-time samples — divisor handles all rate
+// matching, JS does identity copy.
+// Mode 'js' : APU emits at fixed wasmRate; JS resamples to outRate with step = wasmRate*speed/outRate.
+function onResampleParamsChanged(): void {
+    if (!wasInit) return;
+    const mode = get(AudioResampleMode);
+    const speed = getEffectiveSpeed();
+    const divisor = mode === 'apu' ? (wasmRate / outRate) * speed : 1;
+    if (divisor !== lastAppliedDivisor) {
+        setAudioSpeedDivisor(divisor);
+        lastAppliedDivisor = divisor;
+    }
+}
+
+// Linear-interpolation resampler with phase preserved across calls. step in input-samples per
+// output-sample. Identity when step === 1.
+function resampleStereo(left: Float32Array, right: Float32Array, step: number): { L: Float32Array, R: Float32Array } {
+    const inLen = left.length;
+    const maxOut = Math.max(0, Math.ceil((inLen - resamplePhase) / step) + 1);
+    const outL = new Float32Array(maxOut);
+    const outR = new Float32Array(maxOut);
+    let pos = resamplePhase;
+    let n = 0;
+    while (pos < inLen) {
+        const i = Math.floor(pos);
+        const t = pos - i;
+        const l0 = i <= 0 ? resamplePrevL : left[i - 1];
+        const r0 = i <= 0 ? resamplePrevR : right[i - 1];
+        const l1 = left[i];
+        const r1 = right[i];
+        outL[n] = l0 * (1 - t) + l1 * t;
+        outR[n] = r0 * (1 - t) + r1 * t;
+        n++;
+        pos += step;
+    }
+    resamplePhase = pos - inLen;
+    resamplePrevL = left[inLen - 1];
+    resamplePrevR = right[inLen - 1];
+    return { L: outL.subarray(0, n), R: outR.subarray(0, n) };
+}
 
 function postRunAudio(): void {
     const bufferSize = getAudioBuffersSize();
@@ -162,13 +223,24 @@ function postRunAudio(): void {
 
     if (numAvailableBuffers === 0) return;
 
-    // Backpressure: only fill SAB up to target. Excess WASM buffers are dropped here (real-time pace)
-    // rather than at the SAB via drop-oldest (which sounds like fast-forward).
-    const occupancy = sabWriter.availableRead();
-    const headroom = Math.max(0, SAB_TARGET_FRAMES - occupancy);
-    const buffersToWrite = Math.min(numAvailableBuffers, Math.ceil(headroom / bufferSize));
-    const toDrain = numAvailableBuffers - buffersToWrite;
-    if (toDrain > 0) markAudioBuffersRead(toDrain);
+    const mode = get(AudioResampleMode);
+    const speed = getEffectiveSpeed();
+    // step = 1 in 'apu' mode (APU already at outRate); resample only in 'js' mode.
+    const step = mode === 'apu' ? 1 : (wasmRate * speed) / outRate;
+
+    let buffersToWrite: number;
+    if (step >= 1.0) {
+        // Decimation already matches wall-clock pace — write all input buffers, no drops.
+        buffersToWrite = numAvailableBuffers;
+    } else {
+        // Upsample (e.g. js mode at 48 kHz) grows output; backpressure on SAB target.
+        const occupancy = sabWriter.availableRead();
+        const headroom = Math.max(0, SAB_TARGET_FRAMES - occupancy);
+        const outPerInput = Math.max(1, Math.ceil(bufferSize / step));
+        buffersToWrite = Math.min(numAvailableBuffers, Math.max(1, Math.ceil(headroom / outPerInput)));
+        const toDrain = numAvailableBuffers - buffersToWrite;
+        if (toDrain > 0) markAudioBuffersRead(toDrain);
+    }
 
     if (buffersToWrite === 0) return;
     const ptrs: number[][] = [];
@@ -178,7 +250,12 @@ function postRunAudio(): void {
         ptrs.push([leftPtr, rightPtr]);
         const left = getAudioBufferView(leftPtr, bufferSize);
         const right = getAudioBufferView(rightPtr, bufferSize);
-        sabWriter.write(left, right);
+        if (step === 1) {
+            sabWriter.write(left, right);
+        } else {
+            const { L, R } = resampleStereo(left, right, step);
+            if (L.length > 0) sabWriter.write(L, R);
+        }
         markAudioBuffersRead(1);
     }
     AudioBufferPointers.set(ptrs);
@@ -199,6 +276,9 @@ export function stopQueuedAudio(): void {
     setTimeout(() => {
         sabWriter?.reset();
         workletNode?.port.postMessage({ type: 'reset' });
+        resamplePhase = 0;
+        resamplePrevL = 0;
+        resamplePrevR = 0;
     }, FADE_OUT_S * 1000 + 5);
 }
 

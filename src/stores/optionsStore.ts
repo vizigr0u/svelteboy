@@ -32,4 +32,6 @@ export const MuteOnFastForward = MakeLocalStore<boolean>('option-mute-on-fast-fo
 export const PauseOnVisibilityLost = MakeLocalStore<boolean>('option-pause-on-visibility-lost', true);
 // export const AudioBufferSize = writable<number>(512);
 export const AudioMasterVolume = MakeLocalStore<number>("option-master-volume", 0.25);
+export type AudioResampleModeType = 'js' | 'apu';
+export const AudioResampleMode = MakeLocalStore<AudioResampleModeType>('option-audio-resample-mode', 'apu');
 export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings', DEFAULT_KEYBINDINGS);

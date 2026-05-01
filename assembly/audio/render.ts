@@ -33,6 +33,7 @@ export class AudioRender {
     static channel4: NoiseChannel = new NoiseChannel(AudioChannelId.Channel4);
     static sampleIndex: u64;
     static initialCycles: u64;
+    static cyclesPerSample: f64 = CYCLES_PER_SAMPLE;
 
     static debugMute1: boolean = false;
     static debugMute2: boolean = false;
@@ -73,7 +74,7 @@ export class AudioRender {
             log(`AudioEvent: ${type} = ${value}`);
         }
         const cycleDiff: u32 = <u32>(CgbState.masterCycleCount - AudioRender.initialCycles);
-        const frameSampleIndex: u32 = <u32>Math.round(<f64>cycleDiff / CYCLES_PER_SAMPLE);
+        const frameSampleIndex: u32 = <u32>Math.round(<f64>cycleDiff / AudioRender.cyclesPerSample);
         return AudioEventQueue.Enqueue(frameSampleIndex, type, value);
     }
 
@@ -322,8 +323,9 @@ export class AudioRender {
 
     static Render(currentCycles: u64): void {
         const t_cycles: u64 = currentCycles - AudioRender.initialCycles;
-        assert(<f64>CYCLES_PER_SAMPLE > 0, `CYCLES_PER_SAMPLE should be > 0, got ${CYCLES_PER_SAMPLE}`);
-        const samplesToWrite: i32 = <i32>Math.round(<f64>t_cycles / <f64>CYCLES_PER_SAMPLE);
+        const cps: f64 = AudioRender.cyclesPerSample;
+        assert(cps > 0, `cyclesPerSample should be > 0, got ${cps}`);
+        const samplesToWrite: i32 = <i32>Math.round(<f64>t_cycles / cps);
         if (Logger.verbose >= 2)
             log(`${samplesToWrite} samples = ${samplesToWrite >> 9} buffers of ${AudioOutBuffer.BufferSize}.i = ${AudioRender.sampleIndex} `);
         if (Logger.verbose >= 2 && AudioEventQueue.Size > 0) { // TODO: tone down
@@ -378,6 +380,13 @@ export function setMuteChannel(channel: u8, setMute: boolean = false): void {
 
 export function setMasterAudioToggle(on: boolean): void {
     AudioRender.masterToggle = on;
+}
+
+// Sets cyclesPerSample = base × divisor. Used by the frontend to make the APU emit at any
+// effective sample rate (e.g. divisor = (44100 / outRate) × speed) so the worklet streams 1:1.
+export function setAudioSpeedDivisor(divisor: f64): void {
+    const d = divisor > 0 ? divisor : 1.0;
+    AudioRender.cyclesPerSample = CYCLES_PER_SAMPLE * d;
 }
 
 export function getAudioSampleRate(): f64 {
