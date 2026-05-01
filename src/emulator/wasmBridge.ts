@@ -1,13 +1,41 @@
 // Bridge between Svelte/UI code and the AssemblyScript backend.
-// Eagerly instantiates the backend onto a JS-provided shared WebAssembly.Memory,
-// then re-exports lifted functions and helper views so existing call sites stay sync.
+// Owns the shared WebAssembly.Memory, spawns the emulator worker, then
+// instantiates the main-thread backend on the SAME memory.
 //
-// B2 will move WASM hosting into a worker; consumers should migrate to async APIs.
-// Until then this module keeps the legacy import shape working.
+// Order matters. The worker has to bootstrap FIRST so its module-init runs
+// first; the main-thread `loadBackend` then runs second and its static field
+// initializers (Cartridge.Data = new Metadata(), TLSF heap header, etc.)
+// overwrite the worker's, leaving the main-thread instance as the canonical
+// owner of static state. Subsequent main calls (loadCartridgeRom, …) update
+// shared memory in place, and the worker's runEmulator reads the same state.
+//
+// B5/B6 will move every remaining stateful main-thread call into the worker
+// so we can drop the second instantiation entirely.
 
 import { loadBackend, createSharedMemory, type BackendInstance } from './backendLoader';
+import { createProxy, type EmulatorProxy, type ProxyTransport } from './worker/proxy';
+import type { WorkerCommand, WorkerOutbound } from './worker/protocol';
 
 const sharedMemory = createSharedMemory();
+
+function makeTransport(worker: Worker): ProxyTransport {
+    return {
+        postMessage: (msg: WorkerCommand) => worker.postMessage(msg),
+        addMessageListener: (cb) => {
+            const listener = (e: MessageEvent<WorkerOutbound>) => cb(e.data);
+            worker.addEventListener('message', listener as EventListener);
+            return () => worker.removeEventListener('message', listener as EventListener);
+        },
+    };
+}
+
+const emulatorWorker = new Worker(new URL('./worker/worker.ts', import.meta.url), {
+    type: 'module',
+    name: 'svelteboy-emulator',
+});
+export const emulatorProxy: EmulatorProxy = createProxy(makeTransport(emulatorWorker));
+await emulatorProxy.bootstrap(sharedMemory);
+
 const backend: BackendInstance = await loadBackend(sharedMemory);
 
 export const memory: WebAssembly.Memory = sharedMemory;
