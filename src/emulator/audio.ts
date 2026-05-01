@@ -17,14 +17,14 @@ import {
     MuteSoundChannel3,
     MuteSoundChannel4,
 } from "stores/debugStores";
-import { AudioMasterVolume, EmulatorSpeed, HoldSpaceForSpeed, MuteOnFastForward } from "stores/optionsStore";
+import { AudioMasterVolume, MuteOnFastForward } from "stores/optionsStore";
 import { FastForwardActive } from "stores/playStores";
 import { addPostRunCallback } from "./loop";
 import { SabRing, SabWriter } from "../audio/sabRingBuffer";
 
 const FastForwardMute = derived(
-    [MuteOnFastForward, HoldSpaceForSpeed, FastForwardActive, EmulatorSpeed],
-    ([mute, hold, active, speed]) => mute && (hold ? active : speed !== 1)
+    [MuteOnFastForward, FastForwardActive],
+    ([mute, active]) => mute && active
 );
 
 export const AudioSuspended = writable<boolean>(false);
