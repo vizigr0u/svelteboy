@@ -5,16 +5,8 @@ function isAddCarry8bit(a: u8, b: u8): boolean {
     return (b > (0xFF - a));
 }
 
-function isAddCarry16bit(a: u16, b: u16): boolean {
-    return b > (0xFFFF - a);
-}
-
 function isAddHalfCarry8bit(a: u8, b: u8): boolean {
     return ((((a & 0xf) + (b & 0xf)) & 0x10) == 0x10);
-}
-
-function isAddHalfCarry16bit(a: u16, b: u16): boolean {
-    return isAddHalfCarry8bit(<u8>(a >> 8), <u8>(b >> 8));
 }
 
 function rr(value: u8): u8 {
