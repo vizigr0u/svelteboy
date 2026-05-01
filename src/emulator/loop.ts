@@ -1,17 +1,14 @@
 import { get, writable } from "svelte/store";
 import {
     setJoypad,
+    runOneFrame as backendRunOneFrame,
+    runEmulator,
     getDebugInfo,
     debugStep,
     initEmulator,
     getLastSave,
     getLastSaveFrame,
 } from "./wasmBridge";
-import { getEmulatorProxy } from "./workerBridge";
-
-// Spawn the emulator worker as soon as the loop module is imported so the
-// first frame doesn't pay the full bootstrap cost on click-to-play.
-void getEmulatorProxy();
 import { fetchLogs } from "../debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, FastForwardActive, GameFrames, KeyPressMap } from "stores/playStores";
@@ -73,7 +70,7 @@ export function requestStep(): void {
     runningAnimationFrameHandle = window.requestAnimationFrame(stepTick);
 }
 
-async function run(time: number): Promise<void> {
+function run(time: number): void {
     if (lastTime < 0) lastTime = time;
     const wallDt = Math.min(time - lastTime, 100);
     lastTime = time;
@@ -92,8 +89,6 @@ async function run(time: number): Promise<void> {
         : userSpeed;
     accumulator += wallDt * speed;
 
-    const proxy = await getEmulatorProxy();
-
     const tickStart = performance.now();
     let framesThisTick = 0;
     while (accumulator >= GB_FRAME_MS && framesThisTick < HARD_CAP_FRAMES) {
@@ -102,11 +97,11 @@ async function run(time: number): Promise<void> {
         if (framesThisTick >= MIN_CATCHUP && performance.now() - tickStart >= TICK_BUDGET_MS)
             break;
         preRun();
-        const result = await proxy.runEmulator(GB_FRAME_MS);
-        LastStopReason.set(result.stopReason);
+        const stopReason = runEmulator(GB_FRAME_MS);
+        LastStopReason.set(stopReason);
         postRun();
-        if (result.stopReason !== DebugStopReason.EndOfFrame && result.stopReason !== DebugStopReason.TargetCyclesReached) {
-            console.log('Stopped because ' + DebugStopReason[result.stopReason]);
+        if (stopReason !== DebugStopReason.EndOfFrame && stopReason !== DebugStopReason.TargetCyclesReached) {
+            console.log('Stopped because ' + DebugStopReason[stopReason]);
             return;
         }
         accumulator -= GB_FRAME_MS;
@@ -125,11 +120,9 @@ async function run(time: number): Promise<void> {
         runningAnimationFrameHandle = window.requestAnimationFrame(run);
 }
 
-async function runOneFrameTick(): Promise<void> {
-    const proxy = await getEmulatorProxy();
+function runOneFrameTick(): void {
     preRun();
-    const result = await proxy.runOneFrame();
-    LastStopReason.set(result.stopReason);
+    LastStopReason.set(backendRunOneFrame());
     postRun();
     pauseEmulator();
 }
