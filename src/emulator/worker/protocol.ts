@@ -6,6 +6,7 @@
 // availability) — those have id == 0 and a discriminating `event` field.
 
 export const enum WorkerCommandKind {
+    Bootstrap = 'bootstrap',
     Init = 'init',
     LoadBootRom = 'loadBootRom',
     LoadCartridgeRom = 'loadCartridgeRom',
@@ -15,6 +16,7 @@ export const enum WorkerCommandKind {
 }
 
 export type WorkerCommand =
+    | { id: number; kind: WorkerCommandKind.Bootstrap; memory: WebAssembly.Memory }
     | { id: number; kind: WorkerCommandKind.Init; useBootRom: boolean }
     | { id: number; kind: WorkerCommandKind.LoadBootRom; rom: ArrayBuffer }
     | { id: number; kind: WorkerCommandKind.LoadCartridgeRom; rom: ArrayBuffer }
@@ -23,6 +25,7 @@ export type WorkerCommand =
     | { id: number; kind: WorkerCommandKind.SetJoypad; bits: number };
 
 export type WorkerResponse =
+    | { id: number; kind: WorkerCommandKind.Bootstrap }
     | { id: number; kind: WorkerCommandKind.Init }
     | { id: number; kind: WorkerCommandKind.LoadBootRom; ok: boolean }
     | { id: number; kind: WorkerCommandKind.LoadCartridgeRom; ok: boolean }
