@@ -28,8 +28,14 @@ export interface RunOptions {
     maxLogLines: number;
 }
 
+export interface BootstrapArgs {
+    memory: WebAssembly.Memory;
+    audioSab: SharedArrayBuffer;
+    audioCapacity: number;
+}
+
 export interface EmulatorProxy {
-    bootstrap(memory: WebAssembly.Memory): Promise<BackendStaticInfo>;
+    bootstrap(args: BootstrapArgs): Promise<BackendStaticInfo>;
     init(useBootRom: boolean): Promise<BackendAddresses>;
     runEmulator(timeMs: number, opts: RunOptions): Promise<RunResult>;
     runOneFrame(opts: RunOptions): Promise<RunResult>;
@@ -64,9 +70,9 @@ export function createProxy(transport: ProxyTransport): EmulatorProxy {
     }
 
     return {
-        async bootstrap(memory: WebAssembly.Memory): Promise<BackendStaticInfo> {
+        async bootstrap(args: BootstrapArgs): Promise<BackendStaticInfo> {
             const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.Bootstrap }>>(
-                { kind: WorkerCommandKind.Bootstrap, memory }
+                { kind: WorkerCommandKind.Bootstrap, memory: args.memory, audioSab: args.audioSab, audioCapacity: args.audioCapacity }
             );
             return { audioSampleRate: r.audioSampleRate, audioBufferSize: r.audioBufferSize };
         },

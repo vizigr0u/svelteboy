@@ -14,10 +14,16 @@ import { writable } from 'svelte/store';
 import { createSharedMemory } from './backendLoader';
 import { createProxy, type EmulatorProxy, type ProxyTransport, type RunOptions } from './worker/proxy';
 import type { BackendStaticInfo, WorkerCommand, WorkerOutbound } from './worker/protocol';
+import { SabRing } from '../audio/sabRingBuffer';
 
 // Reactive mirror of `isCgbMode()` — refreshed on each Init so sync callers
 // (per-frame render path) don't pay a round-trip per query.
 export const isCgbModeStore = writable<boolean>(false);
+
+// Audio SAB ring shared across {worker (writer), worklet (reader), main (reset)}.
+// 16384 stereo frames @ 44.1 kHz ≈ 371 ms — enough to absorb stalls.
+export const AUDIO_SAB_CAPACITY = 16384;
+export const audioSab: SharedArrayBuffer = SabRing.allocate(AUDIO_SAB_CAPACITY);
 
 const sharedMemory = createSharedMemory();
 
@@ -40,7 +46,11 @@ const emulatorWorker = new Worker(new URL('./worker/worker.ts', import.meta.url)
 export const emulatorProxy: EmulatorProxy = createProxy(makeTransport(emulatorWorker));
 export const memory: WebAssembly.Memory = sharedMemory;
 export const backendMemory: WebAssembly.Memory = sharedMemory;
-export const backendStaticInfo: BackendStaticInfo = await emulatorProxy.bootstrap(sharedMemory);
+export const backendStaticInfo: BackendStaticInfo = await emulatorProxy.bootstrap({
+    memory: sharedMemory,
+    audioSab,
+    audioCapacity: AUDIO_SAB_CAPACITY,
+});
 
 // Frame pointers — set on every Init, cached so view helpers stay sync.
 let cachedGameFramePtr = 0;

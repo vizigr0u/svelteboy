@@ -2,15 +2,12 @@ import { derived, get, writable } from "svelte/store";
 import {
     getAudioSampleRate,
     getAudioBuffersSize,
-    getAudioBuffersToReadCount,
-    getAudioBufferToReadPointer,
-    markAudioBuffersRead,
     setMuteChannel,
-    getAudioBufferView,
+    audioSab,
+    AUDIO_SAB_CAPACITY,
 } from "./wasmBridge";
 import {
     AudioAnalyzerNode,
-    AudioBufferPointers,
     AudioBufferSize,
     MuteSoundChannel1,
     MuteSoundChannel2,
@@ -19,8 +16,7 @@ import {
 } from "stores/debugStores";
 import { AudioMasterVolume, EmulatorSpeed, HoldSpaceForSpeed, MuteOnFastForward } from "stores/optionsStore";
 import { FastForwardActive } from "stores/playStores";
-import { addPostRunCallback } from "./loop";
-import { SabRing, SabWriter } from "../audio/sabRingBuffer";
+import { SabWriter } from "../audio/sabRingBuffer";
 
 const FastForwardMute = derived(
     [MuteOnFastForward, HoldSpaceForSpeed, FastForwardActive, EmulatorSpeed],
@@ -34,12 +30,6 @@ export const AudioUnderrunStats = writable<{ underruns: number; frames: number }
 const FADE_OUT_S = 0.02;
 const RESUME_FADE_S = 0.02;
 const GAIN_RAMP_S = 0.01;
-
-// Stereo frames in the SAB ring. 16384 @ 44.1 kHz ≈ 371 ms — large enough to absorb stalls.
-const SAB_CAPACITY_FRAMES = 16384;
-// Target SAB occupancy. Catch-up bursts above this are dropped at the WASM ring, not the SAB,
-// so the worklet always plays at wall-clock pace instead of skipping forward.
-const SAB_TARGET_FRAMES = 4096; // ~93 ms
 
 const WORKLET_MODULE_URL = '/gameboy-audio-processor.js';
 const WORKLET_PROCESSOR_NAME = 'svelteboy-audio-processor';
@@ -80,7 +70,6 @@ function applyTargetGain(): void {
 
 async function setupWorklet(): Promise<void> {
     await audioCtx.audioWorklet.addModule(WORKLET_MODULE_URL);
-    const sab = SabRing.allocate(SAB_CAPACITY_FRAMES);
     workletNode = new AudioWorkletNode(audioCtx, WORKLET_PROCESSOR_NAME, {
         numberOfInputs: 0,
         numberOfOutputs: 1,
@@ -92,8 +81,8 @@ async function setupWorklet(): Promise<void> {
             AudioUnderrunStats.set({ underruns: data.underruns, frames: data.underrunFrames });
         }
     };
-    workletNode.port.postMessage({ type: 'init', sab, capacity: SAB_CAPACITY_FRAMES });
-    sabWriter = new SabWriter(sab, SAB_CAPACITY_FRAMES);
+    workletNode.port.postMessage({ type: 'init', sab: audioSab, capacity: AUDIO_SAB_CAPACITY });
+    sabWriter = new SabWriter(audioSab, AUDIO_SAB_CAPACITY);
     workletNode.connect(destinationNode);
     AudioWorkletActive.set(true);
 }
@@ -128,7 +117,7 @@ export const Audio = {
         MuteSoundChannel4.subscribe(setMute => { setMuteChannel(4, setMute); });
 
         destinationNode = analyzerNode;
-        addPostRunCallback(postRunAudio);
+        AudioBufferSize.set(getAudioBuffersSize());
 
         const updateSuspended = () => AudioSuspended.set(audioCtx.state === 'suspended');
         audioCtx.addEventListener('statechange', updateSuspended);
@@ -149,41 +138,6 @@ export const Audio = {
     }
 };
 
-async function postRunAudio(): Promise<void> {
-    const bufferSize = getAudioBuffersSize();
-    AudioBufferSize.set(bufferSize);
-    const numAvailableBuffers = await getAudioBuffersToReadCount();
-
-    // No worklet yet (still loading) or context not running: drain WASM ring to keep backend live.
-    if (!sabWriter || audioCtx.state !== 'running') {
-        if (numAvailableBuffers > 0) await markAudioBuffersRead(numAvailableBuffers);
-        return;
-    }
-
-    if (numAvailableBuffers === 0) return;
-
-    // Backpressure: only fill SAB up to target. Excess WASM buffers are dropped here (real-time pace)
-    // rather than at the SAB via drop-oldest (which sounds like fast-forward).
-    const occupancy = sabWriter.availableRead();
-    const headroom = Math.max(0, SAB_TARGET_FRAMES - occupancy);
-    const buffersToWrite = Math.min(numAvailableBuffers, Math.ceil(headroom / bufferSize));
-    const toDrain = numAvailableBuffers - buffersToWrite;
-    if (toDrain > 0) await markAudioBuffersRead(toDrain);
-
-    if (buffersToWrite === 0) return;
-    const ptrs: number[][] = [];
-    for (let i = 0; i < buffersToWrite; i++) {
-        const leftPtr = await getAudioBufferToReadPointer(0);
-        const rightPtr = await getAudioBufferToReadPointer(1);
-        ptrs.push([leftPtr, rightPtr]);
-        const left = getAudioBufferView(leftPtr, bufferSize);
-        const right = getAudioBufferView(rightPtr, bufferSize);
-        sabWriter.write(left, right);
-        await markAudioBuffersRead(1);
-    }
-    AudioBufferPointers.set(ptrs);
-}
-
 export function stopQueuedAudio(): void {
     if (!audioCtx) return;
     audioFadedOut = true;
@@ -192,12 +146,8 @@ export function stopQueuedAudio(): void {
     masterVolumeNode.gain.setValueAtTime(masterVolumeNode.gain.value, now);
     masterVolumeNode.gain.linearRampToValueAtTime(0, now + FADE_OUT_S);
 
-    void (async () => {
-        const pending = await getAudioBuffersToReadCount();
-        if (pending > 0) await markAudioBuffersRead(pending);
-    })();
-
-    // Drain ring after gain reaches 0 to avoid resuming with stale samples.
+    // The worker still appends APU output to the SAB while we ramp down. Drop
+    // it after the fade so we don't resume on stale samples.
     setTimeout(() => {
         sabWriter?.reset();
         workletNode?.port.postMessage({ type: 'reset' });

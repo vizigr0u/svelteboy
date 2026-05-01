@@ -24,7 +24,7 @@ export const enum WorkerCommandKind {
 }
 
 export type WorkerCommand =
-    | { id: number; kind: WorkerCommandKind.Bootstrap; memory: WebAssembly.Memory }
+    | { id: number; kind: WorkerCommandKind.Bootstrap; memory: WebAssembly.Memory; audioSab: SharedArrayBuffer; audioCapacity: number }
     | { id: number; kind: WorkerCommandKind.Init; useBootRom: boolean }
     | { id: number; kind: WorkerCommandKind.Call; fn: string; args: unknown[] }
     | { id: number; kind: WorkerCommandKind.RunEmulator; timeMs: number; joypad: number; maxLogLines: number }

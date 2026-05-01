@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createSharedMemory, loadBackend, type BackendInstance } from '../backendLoader';
+import { SabRing } from '../../audio/sabRingBuffer';
+const audioCapacity = 1024;
+const audioSab = SabRing.allocate(audioCapacity);
 import { createHost, type EmulatorHost } from './host';
 import { WorkerCommandKind, type WorkerCommand, type WorkerOutbound, type WorkerResponse } from './protocol';
 
@@ -25,7 +28,7 @@ function dispatch(cmd: WorkerCommand): WorkerResponse {
 
 describe('emulator worker host', () => {
     it('Bootstrap reports audio sample rate + buffer size', () => {
-        const reply = dispatch({ id: 1, kind: WorkerCommandKind.Bootstrap, memory });
+        const reply = dispatch({ id: 1, kind: WorkerCommandKind.Bootstrap, memory, audioSab, audioCapacity });
         if (reply.kind !== WorkerCommandKind.Bootstrap) throw new Error('wrong kind');
         expect(reply.audioSampleRate).toBeGreaterThan(0);
         expect(reply.audioBufferSize).toBeGreaterThan(0);

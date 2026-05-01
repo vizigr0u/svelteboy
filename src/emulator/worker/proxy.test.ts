@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { MessageChannel } from 'node:worker_threads';
 import { createSharedMemory, loadBackend, type BackendInstance } from '../backendLoader';
+import { SabRing } from '../../audio/sabRingBuffer';
+const audioCapacity = 1024;
+const audioSab = SabRing.allocate(audioCapacity);
 import { createHost, type EmulatorHost } from './host';
 import { createProxy, type EmulatorProxy } from './proxy';
 import type { WorkerCommand, WorkerOutbound } from './protocol';
@@ -36,7 +39,7 @@ beforeAll(async () => {
         },
     });
 
-    await proxy.bootstrap(memory);
+    await proxy.bootstrap({ memory, audioSab, audioCapacity });
 });
 
 afterAll(() => {
@@ -47,7 +50,7 @@ afterAll(() => {
 describe('emulator worker proxy', () => {
     it('bootstrap returns audio static info', async () => {
         // bootstrap was awaited in beforeAll; re-issue to inspect shape
-        const info = await proxy.bootstrap(memory);
+        const info = await proxy.bootstrap({ memory, audioSab, audioCapacity });
         expect(info.audioSampleRate).toBeGreaterThan(0);
         expect(info.audioBufferSize).toBeGreaterThan(0);
     });
