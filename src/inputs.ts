@@ -1,5 +1,6 @@
-import { FastForwardActive, KeyPressMap } from "stores/playStores";
+import { EmulatorPaused, FastForwardActive, KeyPressMap } from "stores/playStores";
 import { HoldSpaceForSpeed, KeyBindingsStore } from "stores/optionsStore";
+import { loadedBootRom, loadedCartridge } from "stores/romStores";
 import { InputType } from "./types";
 import { Emulator } from "./emulator";
 import { get } from "svelte/store";
@@ -74,6 +75,14 @@ window.addEventListener('keyup', (e: KeyboardEvent) => {
     if (!get(HoldSpaceForSpeed)) return;
     e.preventDefault();
     FastForwardActive.set(false);
+});
+
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code !== 'KeyP' || e.repeat) return;
+    if (!get(loadedCartridge) && !get(loadedBootRom)) return;
+    e.preventDefault();
+    if (get(EmulatorPaused)) Emulator.RunUntilBreak();
+    else Emulator.Pause();
 });
 
 window.addEventListener('blur', () => FastForwardActive.set(false));
