@@ -29,27 +29,6 @@
 
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
 
-    async function togglePlayPause() {
-        if (!hasRom) return;
-        if ($EmulatorPaused) await Emulator.RunUntilBreak();
-        else Emulator.Pause();
-    }
-
-    let clickTimer: number | undefined;
-    const DOUBLE_CLICK_MS = 250;
-    function handleScreenClick() {
-        if (clickTimer !== undefined) {
-            clearTimeout(clickTimer);
-            clickTimer = undefined;
-            toggleFullscreen();
-            return;
-        }
-        clickTimer = window.setTimeout(() => {
-            clickTimer = undefined;
-            togglePlayPause();
-        }, DOUBLE_CLICK_MS);
-    }
-
     function toggleWindow(store: Writable<boolean>) {
         store.update(v => !v);
         menuOpen = false;
@@ -117,12 +96,10 @@
             class:drop-disallowed={dragState == DragState.Reject}
             bind:this={screenEl}
         >
-            <button
-                type="button"
+            <div
                 class="screen-tap"
-                onclick={handleScreenClick}
-                aria-disabled={!hasRom}
-                aria-label={$EmulatorPaused ? "Resume" : "Pause"}
+                ondblclick={toggleFullscreen}
+                role="presentation"
             >
                 <WebGLCanvas
                     bind:this={webglCanvas}
@@ -132,7 +109,7 @@
                 {#if $EmulatorPaused && hasRom}
                     <div class="pause-overlay">PAUSE</div>
                 {/if}
-            </button>
+            </div>
             {#if $showFPS}
                 <div class="fps-wrapper">
                     <FpsCounter />
@@ -306,20 +283,7 @@
     .screen-tap {
         position: relative;
         display: block;
-        padding: 0;
-        margin: 0;
-        background: none;
-        border: none;
-        cursor: pointer;
         line-height: 0;
-    }
-
-    .screen-tap[aria-disabled="true"] {
-        cursor: default;
-    }
-
-    .screen-tap:focus {
-        outline: none;
     }
 
     .pause-overlay {
