@@ -12,7 +12,7 @@ import {
 import { fetchLogs } from "../debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, FastForwardActive, GameFrames, KeyPressMap } from "stores/playStores";
-import { EmulatorSpeed, HoldSpaceForSpeed, useBoot } from "stores/optionsStore";
+import { BurstSpeed, RegularSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebugStopReason, type GbDebugInfo } from "../types";
 import { pauseEmulator } from "./lifecycle";
@@ -80,13 +80,10 @@ function run(time: number): void {
     FrameStats.totalWrites++;
     if (wallDt > DROPPED_FRAME_MS) FrameStats.droppedCount++;
 
-    const rawSpeed = get(EmulatorSpeed);
-    const userSpeed = Number.isFinite(rawSpeed) && rawSpeed > 0
+    const rawSpeed = get(FastForwardActive) ? get(BurstSpeed) : get(RegularSpeed);
+    const speed = Number.isFinite(rawSpeed) && rawSpeed > 0
         ? Math.min(rawSpeed, MAX_SPEED)
         : 1;
-    const speed = get(HoldSpaceForSpeed)
-        ? (get(FastForwardActive) ? userSpeed : 1)
-        : userSpeed;
     accumulator += wallDt * speed;
 
     const tickStart = performance.now();

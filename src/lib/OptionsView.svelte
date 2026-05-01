@@ -6,8 +6,8 @@
         showFrametimeHistogram,
         LibraryImportSourceUri,
         AutoSaveUriRoms,
-        EmulatorSpeed,
-        HoldSpaceForSpeed,
+        RegularSpeed,
+        BurstSpeed,
         MuteOnFastForward,
         PauseOnVisibilityLost,
         // AudioBufferSize,
@@ -81,24 +81,27 @@
 
     <h4>Emulation</h4>
     <div class="options">
-        <label for="emulatorspeed">Speed:</label>
+        <label for="regularspeed">Regular speed:</label>
         <input
-            id="emulatorspeed"
+            id="regularspeed"
             type="number"
             min="0.01"
             max="100"
             step="0.1"
-            bind:value={$EmulatorSpeed}
+            bind:value={$RegularSpeed}
         />
 
-        <label for="holdspaceforspeed">Hold Space for speed (else always on):</label>
+        <label for="burstspeed">Burst speed (hold Space):</label>
         <input
-            id="holdspaceforspeed"
-            type="checkbox"
-            bind:checked={$HoldSpaceForSpeed}
+            id="burstspeed"
+            type="number"
+            min="0.01"
+            max="100"
+            step="0.1"
+            bind:value={$BurstSpeed}
         />
 
-        <label for="muteonfastforward">Mute sound while speed on:</label>
+        <label for="muteonfastforward">Mute sound while burst active:</label>
         <input
             id="muteonfastforward"
             type="checkbox"

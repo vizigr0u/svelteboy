@@ -85,7 +85,8 @@
             {displayKey($KeyBindingsStore.a)} for A &nbsp;·&nbsp;
             {displayKey($KeyBindingsStore.b)} for B &nbsp;·&nbsp;
             {displayKey($KeyBindingsStore.select)} for Select &nbsp;·&nbsp;
-            Enter for Start
+            Enter for Start &nbsp;·&nbsp;
+            Space for Burst speed
             <br /><span class="hint-sub">Click to dismiss · Change bindings in Options.</span>
         </div>
     </div>

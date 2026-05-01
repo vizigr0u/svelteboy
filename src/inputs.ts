@@ -1,8 +1,7 @@
 import { FastForwardActive, KeyPressMap } from "stores/playStores";
-import { HoldSpaceForSpeed, KeyBindingsStore } from "stores/optionsStore";
+import { KeyBindingsStore } from "stores/optionsStore";
 import { InputType } from "./types";
 import { Emulator } from "./emulator";
-import { get } from "svelte/store";
 
 let activeKeybinds: { [k: string]: InputType } = {};
 
@@ -64,14 +63,12 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code !== 'Space' || e.repeat) return;
-    if (!get(HoldSpaceForSpeed)) return;
     e.preventDefault();
     FastForwardActive.set(true);
 });
 
 window.addEventListener('keyup', (e: KeyboardEvent) => {
     if (e.code !== 'Space') return;
-    if (!get(HoldSpaceForSpeed)) return;
     e.preventDefault();
     FastForwardActive.set(false);
 });
