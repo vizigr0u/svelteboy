@@ -3,7 +3,7 @@ import { MessageChannel } from 'node:worker_threads';
 import { createSharedMemory, loadBackend, type BackendInstance } from '../backendLoader';
 import { createHost, type EmulatorHost } from './host';
 import { createProxy, type EmulatorProxy } from './proxy';
-import { WorkerCommandKind, type WorkerCommand, type WorkerOutbound } from './protocol';
+import type { WorkerCommand, WorkerOutbound } from './protocol';
 
 let proxy: EmulatorProxy;
 let backend: BackendInstance;
@@ -23,11 +23,8 @@ beforeAll(async () => {
 
     let host: EmulatorHost | null = null;
     hostPort.on('message', (m: WorkerCommand) => {
-        if (host) { host.dispatch(m); return; }
-        if (m.kind === WorkerCommandKind.Bootstrap) {
-            host = createHost(backend, msg => hostPort.postMessage(msg));
-            hostPort.postMessage({ id: m.id, kind: WorkerCommandKind.Bootstrap } as WorkerOutbound);
-        }
+        if (!host) host = createHost(backend, msg => hostPort.postMessage(msg));
+        host.dispatch(m);
     });
 
     proxy = createProxy({
@@ -48,13 +45,21 @@ afterAll(() => {
 });
 
 describe('emulator worker proxy', () => {
-    it('init resolves', async () => {
-        await expect(proxy.init(false)).resolves.toBeUndefined();
+    it('bootstrap returns audio static info', async () => {
+        // bootstrap was awaited in beforeAll; re-issue to inspect shape
+        const info = await proxy.bootstrap(memory);
+        expect(info.audioSampleRate).toBeGreaterThan(0);
+        expect(info.audioBufferSize).toBeGreaterThan(0);
     });
 
-    it('loadCartridgeRom round-trips ok=true', async () => {
-        const rom = new ArrayBuffer(0x8000);
-        const ok = await proxy.loadCartridgeRom(rom);
+    it('init returns frame pointers', async () => {
+        const addr = await proxy.init(false);
+        expect(addr.gameFramePtr).toBeGreaterThan(0);
+        expect(addr.cgbFramePtr).toBeGreaterThan(0);
+    });
+
+    it('call(loadCartridgeRom) round-trips ok=true', async () => {
+        const ok = await proxy.call<boolean>('loadCartridgeRom', [new ArrayBuffer(0x8000)]);
         expect(ok).toBe(true);
     });
 
@@ -74,7 +79,13 @@ describe('emulator worker proxy', () => {
         expect(typeof r2.stopReason).toBe('number');
     });
 
-    it('setJoypad resolves', async () => {
-        await expect(proxy.setJoypad(0xFF)).resolves.toBeUndefined();
+    it('call(setJoypad) resolves to undefined', async () => {
+        const v = await proxy.call('setJoypad', [0xFF]);
+        expect(v).toBeUndefined();
+    });
+
+    it('call(isCgbMode) returns boolean', async () => {
+        const v = await proxy.call<boolean>('isCgbMode');
+        expect(typeof v).toBe('boolean');
     });
 });

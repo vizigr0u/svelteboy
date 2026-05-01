@@ -8,6 +8,8 @@ import {
     type WorkerCommand,
     type WorkerOutbound,
     type WorkerResponse,
+    type BackendAddresses,
+    type BackendStaticInfo,
 } from './protocol';
 
 export interface ProxyTransport {
@@ -21,13 +23,12 @@ export interface RunResult {
 }
 
 export interface EmulatorProxy {
-    bootstrap(memory: WebAssembly.Memory): Promise<void>;
-    init(useBootRom: boolean): Promise<void>;
-    loadBootRom(rom: ArrayBuffer): Promise<boolean>;
-    loadCartridgeRom(rom: ArrayBuffer): Promise<boolean>;
+    bootstrap(memory: WebAssembly.Memory): Promise<BackendStaticInfo>;
+    init(useBootRom: boolean): Promise<BackendAddresses>;
     runEmulator(timeMs: number): Promise<RunResult>;
     runOneFrame(): Promise<RunResult>;
-    setJoypad(bits: number): Promise<void>;
+    /** Generic backend call. Use the typed helpers below in preference. */
+    call<R = unknown>(fn: string, args?: unknown[]): Promise<R>;
     dispose(): void;
 }
 
@@ -57,23 +58,17 @@ export function createProxy(transport: ProxyTransport): EmulatorProxy {
     }
 
     return {
-        async bootstrap(memory: WebAssembly.Memory): Promise<void> {
-            await send({ kind: WorkerCommandKind.Bootstrap, memory });
-        },
-        async init(useBootRom: boolean): Promise<void> {
-            await send({ kind: WorkerCommandKind.Init, useBootRom });
-        },
-        async loadBootRom(rom: ArrayBuffer): Promise<boolean> {
-            const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.LoadBootRom }>>(
-                { kind: WorkerCommandKind.LoadBootRom, rom }
+        async bootstrap(memory: WebAssembly.Memory): Promise<BackendStaticInfo> {
+            const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.Bootstrap }>>(
+                { kind: WorkerCommandKind.Bootstrap, memory }
             );
-            return r.ok;
+            return { audioSampleRate: r.audioSampleRate, audioBufferSize: r.audioBufferSize };
         },
-        async loadCartridgeRom(rom: ArrayBuffer): Promise<boolean> {
-            const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.LoadCartridgeRom }>>(
-                { kind: WorkerCommandKind.LoadCartridgeRom, rom }
+        async init(useBootRom: boolean): Promise<BackendAddresses> {
+            const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.Init }>>(
+                { kind: WorkerCommandKind.Init, useBootRom }
             );
-            return r.ok;
+            return { gameFramePtr: r.gameFramePtr, cgbFramePtr: r.cgbFramePtr };
         },
         async runEmulator(timeMs: number): Promise<RunResult> {
             const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.RunEmulator }>>(
@@ -87,8 +82,11 @@ export function createProxy(transport: ProxyTransport): EmulatorProxy {
             );
             return { stopReason: r.stopReason, lastSaveFrame: r.lastSaveFrame };
         },
-        async setJoypad(bits: number): Promise<void> {
-            await send({ kind: WorkerCommandKind.SetJoypad, bits });
+        async call<R = unknown>(fn: string, args: unknown[] = []): Promise<R> {
+            const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.Call }>>(
+                { kind: WorkerCommandKind.Call, fn, args }
+            );
+            return r.value as R;
         },
         dispose(): void {
             removeListener();
