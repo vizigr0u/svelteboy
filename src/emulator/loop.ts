@@ -34,10 +34,6 @@ const HARD_CAP_FRAMES = 256;
 const TICK_BUDGET_MS = 12;
 const MAX_SPEED = 100;
 const DROPPED_FRAME_MS = 20;
-// Worker round-trip is ~0.1 ms; doing one per emulator frame caps fast-forward
-// throughput. Batch up to this many frames per RunEmulator call so a 50× run
-// pays a handful of round-trips per rAF tick instead of 50.
-const MAX_FRAMES_PER_BATCH = 16;
 
 let lastTime = -1;
 let accumulator = 0;
@@ -102,26 +98,20 @@ async function run(time: number): Promise<void> {
         // beyond that, only continue while wall-time budget remains.
         if (framesThisTick >= MIN_CATCHUP && performance.now() - tickStart >= TICK_BUDGET_MS)
             break;
-        const framesPossible = Math.min(
-            Math.floor(accumulator / GB_FRAME_MS),
-            HARD_CAP_FRAMES - framesThisTick,
-            MAX_FRAMES_PER_BATCH,
-        );
-        const batchSize = Math.max(1, framesPossible);
         await preRun();
-        const result = await runEmulator(GB_FRAME_MS * batchSize, {
+        const result = await runEmulator(GB_FRAME_MS, {
             joypad: getInputForEmu(),
-            maxLogLines: FRAME_LOG_BATCH * batchSize,
+            maxLogLines: FRAME_LOG_BATCH,
         });
         if (result.logs.length) appendLog(result.logs);
         LastStopReason.set(result.stopReason);
-        await postRun(result.lastSaveFrame, batchSize);
+        await postRun(result.lastSaveFrame);
         if (result.stopReason !== DebugStopReason.EndOfFrame && result.stopReason !== DebugStopReason.TargetCyclesReached) {
             console.log('Stopped because ' + DebugStopReason[result.stopReason]);
             return;
         }
-        accumulator -= GB_FRAME_MS * batchSize;
-        framesThisTick += batchSize;
+        accumulator -= GB_FRAME_MS;
+        framesThisTick++;
     }
 
     // Backlog grew faster than backend can run — drop it to prevent runaway accumulation.
