@@ -12,7 +12,7 @@
 
 import { writable } from 'svelte/store';
 import { createSharedMemory } from './backendLoader';
-import { createProxy, type EmulatorProxy, type ProxyTransport } from './worker/proxy';
+import { createProxy, type EmulatorProxy, type ProxyTransport, type RunOptions } from './worker/proxy';
 import type { BackendStaticInfo, WorkerCommand, WorkerOutbound } from './worker/protocol';
 
 // Reactive mirror of `isCgbMode()` — refreshed on each Init so sync callers
@@ -76,8 +76,8 @@ export async function initEmulator(useBootRom: boolean): Promise<void> {
     updateFramePtrs(addr.gameFramePtr, addr.cgbFramePtr);
     isCgbModeStore.set(await emulatorProxy.call<boolean>('isCgbMode'));
 }
-export const runEmulator = (timeMs: number) => emulatorProxy.runEmulator(timeMs);
-export const runOneFrame = () => emulatorProxy.runOneFrame();
+export const runEmulator = (timeMs: number, opts: RunOptions) => emulatorProxy.runEmulator(timeMs, opts);
+export const runOneFrame = (opts: RunOptions) => emulatorProxy.runOneFrame(opts);
 export const runFrames = (n: number) => c<void>('runFrames', [n]);
 
 export const setJoypad = (bits: number) => c<void>('setJoypad', [bits]);

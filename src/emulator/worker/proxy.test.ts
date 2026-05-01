@@ -65,15 +65,15 @@ describe('emulator worker proxy', () => {
 
     it('runEmulator returns numeric stop reason', async () => {
         await proxy.init(false);
-        const result = await proxy.runEmulator(16.7);
+        const result = await proxy.runEmulator(16.7, { joypad: 0, maxLogLines: 0 });
         expect(typeof result.stopReason).toBe('number');
         expect(typeof result.lastSaveFrame).toBe('number');
     });
 
     it('parallel commands resolve to their own replies (id pairing)', async () => {
         const [r1, r2] = await Promise.all([
-            proxy.runEmulator(1),
-            proxy.runEmulator(1),
+            proxy.runEmulator(1, { joypad: 0, maxLogLines: 0 }),
+            proxy.runEmulator(1, { joypad: 0, maxLogLines: 0 }),
         ]);
         expect(typeof r1.stopReason).toBe('number');
         expect(typeof r2.stopReason).toBe('number');

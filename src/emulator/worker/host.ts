@@ -51,15 +51,19 @@ export function createHost(
                     return;
                 }
                 case WorkerCommandKind.RunEmulator: {
+                    backend.setJoypad(command.joypad);
                     const stopReason = backend.runEmulator(command.timeMs);
                     const lastSaveFrame = backend.getLastSaveFrame();
-                    send({ id: command.id, kind: WorkerCommandKind.RunEmulator, stopReason, lastSaveFrame });
+                    const logs = command.maxLogLines > 0 ? backend.spliceLogs(command.maxLogLines) : [];
+                    send({ id: command.id, kind: WorkerCommandKind.RunEmulator, stopReason, lastSaveFrame, logs });
                     return;
                 }
                 case WorkerCommandKind.RunOneFrame: {
+                    backend.setJoypad(command.joypad);
                     const stopReason = backend.runOneFrame();
                     const lastSaveFrame = backend.getLastSaveFrame();
-                    send({ id: command.id, kind: WorkerCommandKind.RunOneFrame, stopReason, lastSaveFrame });
+                    const logs = command.maxLogLines > 0 ? backend.spliceLogs(command.maxLogLines) : [];
+                    send({ id: command.id, kind: WorkerCommandKind.RunOneFrame, stopReason, lastSaveFrame, logs });
                     return;
                 }
             }

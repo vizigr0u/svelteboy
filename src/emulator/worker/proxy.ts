@@ -20,13 +20,19 @@ export interface ProxyTransport {
 export interface RunResult {
     stopReason: number;
     lastSaveFrame: number;
+    logs: string[];
+}
+
+export interface RunOptions {
+    joypad: number;
+    maxLogLines: number;
 }
 
 export interface EmulatorProxy {
     bootstrap(memory: WebAssembly.Memory): Promise<BackendStaticInfo>;
     init(useBootRom: boolean): Promise<BackendAddresses>;
-    runEmulator(timeMs: number): Promise<RunResult>;
-    runOneFrame(): Promise<RunResult>;
+    runEmulator(timeMs: number, opts: RunOptions): Promise<RunResult>;
+    runOneFrame(opts: RunOptions): Promise<RunResult>;
     /** Generic backend call. Use the typed helpers below in preference. */
     call<R = unknown>(fn: string, args?: unknown[]): Promise<R>;
     dispose(): void;
@@ -70,17 +76,17 @@ export function createProxy(transport: ProxyTransport): EmulatorProxy {
             );
             return { gameFramePtr: r.gameFramePtr, cgbFramePtr: r.cgbFramePtr };
         },
-        async runEmulator(timeMs: number): Promise<RunResult> {
+        async runEmulator(timeMs: number, opts: RunOptions): Promise<RunResult> {
             const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.RunEmulator }>>(
-                { kind: WorkerCommandKind.RunEmulator, timeMs }
+                { kind: WorkerCommandKind.RunEmulator, timeMs, joypad: opts.joypad, maxLogLines: opts.maxLogLines }
             );
-            return { stopReason: r.stopReason, lastSaveFrame: r.lastSaveFrame };
+            return { stopReason: r.stopReason, lastSaveFrame: r.lastSaveFrame, logs: r.logs };
         },
-        async runOneFrame(): Promise<RunResult> {
+        async runOneFrame(opts: RunOptions): Promise<RunResult> {
             const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.RunOneFrame }>>(
-                { kind: WorkerCommandKind.RunOneFrame }
+                { kind: WorkerCommandKind.RunOneFrame, joypad: opts.joypad, maxLogLines: opts.maxLogLines }
             );
-            return { stopReason: r.stopReason, lastSaveFrame: r.lastSaveFrame };
+            return { stopReason: r.stopReason, lastSaveFrame: r.lastSaveFrame, logs: r.logs };
         },
         async call<R = unknown>(fn: string, args: unknown[] = []): Promise<R> {
             const r = await send<Extract<WorkerResponse, { kind: WorkerCommandKind.Call }>>(

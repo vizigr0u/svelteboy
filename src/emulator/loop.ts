@@ -1,6 +1,5 @@
 import { get, writable } from "svelte/store";
 import {
-    setJoypad,
     runOneFrame as backendRunOneFrame,
     runEmulator,
     getDebugInfo,
@@ -10,12 +9,15 @@ import {
     getLastSaveFrame,
 } from "./wasmBridge";
 import { fetchLogs } from "../debug";
+import { appendLog } from "stores/debugStores";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, FastForwardActive, GameFrames, KeyPressMap } from "stores/playStores";
 import { EmulatorSpeed, HoldSpaceForSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebugStopReason, type GbDebugInfo } from "../types";
 import { pauseEmulator } from "./lifecycle";
+
+const FRAME_LOG_BATCH = 1000;
 
 export const FRAME_TIMES_LEN = 240;
 export const FrameStats = {
@@ -97,7 +99,8 @@ async function run(time: number): Promise<void> {
         if (framesThisTick >= MIN_CATCHUP && performance.now() - tickStart >= TICK_BUDGET_MS)
             break;
         await preRun();
-        const result = await runEmulator(GB_FRAME_MS);
+        const result = await runEmulator(GB_FRAME_MS, { joypad: getInputForEmu(), maxLogLines: FRAME_LOG_BATCH });
+        if (result.logs.length) appendLog(result.logs);
         LastStopReason.set(result.stopReason);
         await postRun(result.lastSaveFrame);
         if (result.stopReason !== DebugStopReason.EndOfFrame && result.stopReason !== DebugStopReason.TargetCyclesReached) {
@@ -122,7 +125,8 @@ async function run(time: number): Promise<void> {
 
 async function runOneFrameTick(): Promise<void> {
     await preRun();
-    const result = await backendRunOneFrame();
+    const result = await backendRunOneFrame({ joypad: getInputForEmu(), maxLogLines: FRAME_LOG_BATCH });
+    if (result.logs.length) appendLog(result.logs);
     LastStopReason.set(result.stopReason);
     await postRun(result.lastSaveFrame);
     pauseEmulator();
@@ -141,12 +145,14 @@ async function preRun(): Promise<void> {
         await initEmulator(get(useBoot));
         EmulatorInitialized.set(true);
     }
-    const keys = getInputForEmu();
-    await setJoypad(keys);
 }
 
 export async function postRun(latestSaveFrame?: number): Promise<void> {
-    await fetchLogs();
+    // Run-loop / runOneFrameTick already pulled logs as part of the bundled
+    // command. Non-run callers (resetEmulator, stepTick) still drain manually.
+    if (latestSaveFrame === undefined) {
+        await fetchLogs();
+    }
     GameFrames.update(frames => frames + 1);
     if (get(DebuggerAttached)) {
         const info = (await getDebugInfo()) as GbDebugInfo;

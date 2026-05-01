@@ -57,7 +57,7 @@ export async function quickSave(slot: number): Promise<void> {
     if (get(DebuggerAttached)) return;
     const wasRunning = !get(EmulatorPaused);
     pauseEmulator();
-    if (!await isAtFrameBoundary()) await backendRunOneFrame();
+    if (!await isAtFrameBoundary()) await backendRunOneFrame({ joypad: 0, maxLogLines: 0 });
     const state = await createSaveState();
     if (state.byteLength === 0) {
         if (wasRunning) runUntilBreak();

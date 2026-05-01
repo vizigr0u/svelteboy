@@ -27,8 +27,8 @@ export type WorkerCommand =
     | { id: number; kind: WorkerCommandKind.Bootstrap; memory: WebAssembly.Memory }
     | { id: number; kind: WorkerCommandKind.Init; useBootRom: boolean }
     | { id: number; kind: WorkerCommandKind.Call; fn: string; args: unknown[] }
-    | { id: number; kind: WorkerCommandKind.RunEmulator; timeMs: number }
-    | { id: number; kind: WorkerCommandKind.RunOneFrame };
+    | { id: number; kind: WorkerCommandKind.RunEmulator; timeMs: number; joypad: number; maxLogLines: number }
+    | { id: number; kind: WorkerCommandKind.RunOneFrame; joypad: number; maxLogLines: number };
 
 export interface BackendAddresses {
     gameFramePtr: number;
@@ -44,8 +44,8 @@ export type WorkerResponse =
     | ({ id: number; kind: WorkerCommandKind.Bootstrap } & BackendStaticInfo)
     | ({ id: number; kind: WorkerCommandKind.Init } & BackendAddresses)
     | { id: number; kind: WorkerCommandKind.Call; value: unknown }
-    | { id: number; kind: WorkerCommandKind.RunEmulator; stopReason: number; lastSaveFrame: number }
-    | { id: number; kind: WorkerCommandKind.RunOneFrame; stopReason: number; lastSaveFrame: number };
+    | { id: number; kind: WorkerCommandKind.RunEmulator; stopReason: number; lastSaveFrame: number; logs: string[] }
+    | { id: number; kind: WorkerCommandKind.RunOneFrame; stopReason: number; lastSaveFrame: number; logs: string[] };
 
 export type WorkerEvent =
     | { id: 0; event: 'ready' };

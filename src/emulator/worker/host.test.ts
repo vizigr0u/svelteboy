@@ -64,7 +64,7 @@ describe('emulator worker host', () => {
 
     it('RunEmulator returns numeric stopReason + lastSaveFrame', () => {
         host.dispatch({ id: 7, kind: WorkerCommandKind.Init, useBootRom: false });
-        const reply = dispatch({ id: 8, kind: WorkerCommandKind.RunEmulator, timeMs: 16.7 });
+        const reply = dispatch({ id: 8, kind: WorkerCommandKind.RunEmulator, timeMs: 16.7, joypad: 0, maxLogLines: 0 });
         if (reply.kind !== WorkerCommandKind.RunEmulator) throw new Error('wrong kind');
         expect(typeof reply.stopReason).toBe('number');
         expect(typeof reply.lastSaveFrame).toBe('number');
