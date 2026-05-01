@@ -115,7 +115,7 @@ async function run(time: number): Promise<void> {
         });
         if (result.logs.length) appendLog(result.logs);
         LastStopReason.set(result.stopReason);
-        await postRun(result.lastSaveFrame);
+        await postRun(result.lastSaveFrame, batchSize);
         if (result.stopReason !== DebugStopReason.EndOfFrame && result.stopReason !== DebugStopReason.TargetCyclesReached) {
             console.log('Stopped because ' + DebugStopReason[result.stopReason]);
             return;
@@ -160,13 +160,13 @@ async function preRun(): Promise<void> {
     }
 }
 
-export async function postRun(latestSaveFrame?: number): Promise<void> {
+export async function postRun(latestSaveFrame?: number, framesAdvanced: number = 1): Promise<void> {
     // Run-loop / runOneFrameTick already pulled logs as part of the bundled
     // command. Non-run callers (resetEmulator, stepTick) still drain manually.
     if (latestSaveFrame === undefined) {
         await fetchLogs();
     }
-    GameFrames.update(frames => frames + 1);
+    GameFrames.update(frames => frames + framesAdvanced);
     if (get(DebuggerAttached)) {
         const info = (await getDebugInfo()) as GbDebugInfo;
         GbDebugInfoStore.set(info);
