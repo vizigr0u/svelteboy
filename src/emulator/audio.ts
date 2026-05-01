@@ -31,14 +31,16 @@ export const AudioSuspended = writable<boolean>(false);
 export const AudioWorkletActive = writable<boolean>(false);
 export const AudioUnderrunStats = writable<{ underruns: number; frames: number }>({ underruns: 0, frames: 0 });
 
-const TARGET_LOOKAHEAD_S = 0.30; // legacy path: how far ahead to schedule
 const FADE_OUT_S = 0.02;
-const PREROLL_S = 0.05;
 const RESUME_FADE_S = 0.02;
 const GAIN_RAMP_S = 0.01;
 
-// Worklet ring capacity in stereo frames. 16384 @ 44.1kHz ≈ 371 ms — large enough for big stalls.
+// Stereo frames in the SAB ring. 16384 @ 44.1 kHz ≈ 371 ms — large enough to absorb stalls.
 const SAB_CAPACITY_FRAMES = 16384;
+// Target SAB occupancy. Catch-up bursts above this are dropped at the WASM ring, not the SAB,
+// so the worklet always plays at wall-clock pace instead of skipping forward.
+const SAB_TARGET_FRAMES = 4096; // ~93 ms
+
 const WORKLET_MODULE_URL = '/gameboy-audio-processor.js';
 const WORKLET_PROCESSOR_NAME = 'svelteboy-audio-processor';
 
@@ -48,13 +50,9 @@ let analyzerNode: AnalyserNode;
 let masterVolumeNode: GainNode;
 let destinationNode: AudioNode;
 
-// Worklet path
 let workletNode: AudioWorkletNode | null = null;
 let sabWriter: SabWriter | null = null;
 
-// Legacy path
-let currentPlayTime = -1;
-const activeSourceNodes: AudioBufferSourceNode[] = [];
 let audioFadedOut = false;
 let pendingSuspendTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -103,7 +101,13 @@ async function setupWorklet(): Promise<void> {
 export const Audio = {
     Init: () => {
         if (wasInit) return;
-        // Pin context to WASM APU rate so the worklet streams 1:1 without resampling drift.
+        if (!isWorkletSupported()) {
+            console.warn('[audio] AudioWorklet path unavailable (need crossOriginIsolated + SharedArrayBuffer). No audio will play.');
+            wasInit = true;
+            return;
+        }
+
+        // Pin context to WASM APU rate so worklet streams 1:1 without resampling drift.
         const wasmRate = getAudioSampleRate();
         try {
             audioCtx = new window.AudioContext({ sampleRate: wasmRate });
@@ -134,14 +138,12 @@ export const Audio = {
         document.addEventListener('click', resumeOnGesture);
         document.addEventListener('keydown', resumeOnGesture);
 
-        if (isWorkletSupported()) {
-            setupWorklet().catch(err => {
-                console.warn('[audio] Worklet setup failed, falling back to legacy path:', err);
-                workletNode = null;
-                sabWriter = null;
-                AudioWorkletActive.set(false);
-            });
-        }
+        setupWorklet().catch(err => {
+            console.error('[audio] Worklet setup failed:', err);
+            workletNode = null;
+            sabWriter = null;
+            AudioWorkletActive.set(false);
+        });
 
         wasInit = true;
     }
@@ -150,66 +152,36 @@ export const Audio = {
 function postRunAudio(): void {
     const bufferSize = getAudioBuffersSize();
     AudioBufferSize.set(bufferSize);
-    const sampleRate = getAudioSampleRate();
     const numAvailableBuffers = getAudioBuffersToReadCount();
 
-    if (audioCtx.state !== 'running') {
+    // No worklet yet (still loading) or context not running: drain WASM ring to keep backend live.
+    if (!sabWriter || audioCtx.state !== 'running') {
         if (numAvailableBuffers > 0) markAudioBuffersRead(numAvailableBuffers);
         return;
     }
 
-    if (sabWriter) {
-        postRunWorklet(bufferSize, numAvailableBuffers);
-        return;
-    }
-    postRunLegacy(bufferSize, sampleRate, numAvailableBuffers);
-}
-
-function postRunWorklet(bufferSize: number, numAvailableBuffers: number): void {
     if (numAvailableBuffers === 0) return;
+
+    // Backpressure: only fill SAB up to target. Excess WASM buffers are dropped here (real-time pace)
+    // rather than at the SAB via drop-oldest (which sounds like fast-forward).
+    const occupancy = sabWriter.availableRead();
+    const headroom = Math.max(0, SAB_TARGET_FRAMES - occupancy);
+    const buffersToWrite = Math.min(numAvailableBuffers, Math.ceil(headroom / bufferSize));
+    const toDrain = numAvailableBuffers - buffersToWrite;
+    if (toDrain > 0) markAudioBuffersRead(toDrain);
+
+    if (buffersToWrite === 0) return;
     const ptrs: number[][] = [];
-    for (let i = 0; i < numAvailableBuffers; i++) {
+    for (let i = 0; i < buffersToWrite; i++) {
         const leftPtr = getAudioBufferToReadPointer(0);
         const rightPtr = getAudioBufferToReadPointer(1);
         ptrs.push([leftPtr, rightPtr]);
         const left = getAudioBufferView(leftPtr, bufferSize);
         const right = getAudioBufferView(rightPtr, bufferSize);
-        sabWriter!.write(left, right);
+        sabWriter.write(left, right);
         markAudioBuffersRead(1);
     }
     AudioBufferPointers.set(ptrs);
-}
-
-function postRunLegacy(bufferSize: number, sampleRate: number, numAvailableBuffers: number): void {
-    const bufferDuration = bufferSize / sampleRate;
-    const lookahead = currentPlayTime - audioCtx.currentTime;
-    const buffersToFillTarget = Math.ceil((TARGET_LOOKAHEAD_S - lookahead) / bufferDuration);
-    const buffersToSchedule = Math.max(0, Math.min(numAvailableBuffers, buffersToFillTarget));
-
-    const toDrain = numAvailableBuffers - buffersToSchedule;
-    if (toDrain > 0) markAudioBuffersRead(toDrain);
-
-    if (buffersToSchedule > 0) {
-        const ptrs = [];
-        for (let i = 0; i < buffersToSchedule; i++) {
-            const leftPtr = getAudioBufferToReadPointer(0);
-            const rightPtr = getAudioBufferToReadPointer(1);
-            ptrs.push([leftPtr, rightPtr]);
-            const buffer = createAudioBufferFromData(leftPtr, rightPtr, bufferSize, sampleRate);
-            queueBuffer(buffer);
-            markAudioBuffersRead(1);
-        }
-        AudioBufferPointers.set(ptrs);
-    }
-}
-
-function createAudioBufferFromData(leftPtr: number, rightPtr: number, bufferSize: number, sampleRate: number): AudioBuffer {
-    const audioBuffer = audioCtx.createBuffer(2, bufferSize, sampleRate);
-    const left = getAudioBufferView(leftPtr, bufferSize);
-    const right = getAudioBufferView(rightPtr, bufferSize);
-    audioBuffer.copyToChannel(left, 0);
-    audioBuffer.copyToChannel(right, 1);
-    return audioBuffer;
 }
 
 export function stopQueuedAudio(): void {
@@ -223,44 +195,11 @@ export function stopQueuedAudio(): void {
     const pending = getAudioBuffersToReadCount();
     if (pending > 0) markAudioBuffersRead(pending);
 
-    if (sabWriter) {
-        // Drain ring after gain reaches 0 to avoid resuming with stale samples.
-        setTimeout(() => {
-            sabWriter?.reset();
-            workletNode?.port.postMessage({ type: 'reset' });
-        }, FADE_OUT_S * 1000 + 5);
-        return;
-    }
-
-    const nodesToStop = activeSourceNodes.slice();
-    activeSourceNodes.length = 0;
-    currentPlayTime = -1;
+    // Drain ring after gain reaches 0 to avoid resuming with stale samples.
     setTimeout(() => {
-        for (const node of nodesToStop) {
-            try { node.stop(); } catch (_) { }
-        }
+        sabWriter?.reset();
+        workletNode?.port.postMessage({ type: 'reset' });
     }, FADE_OUT_S * 1000 + 5);
-}
-
-function queueBuffer(buffer: AudioBuffer): void {
-    if (currentPlayTime < audioCtx.currentTime) {
-        currentPlayTime = audioCtx.currentTime + PREROLL_S;
-    }
-    const source = playBuffer(buffer, currentPlayTime);
-    activeSourceNodes.push(source);
-    source.onended = () => {
-        const i = activeSourceNodes.indexOf(source);
-        if (i !== -1) activeSourceNodes.splice(i, 1);
-    };
-    currentPlayTime += buffer.duration;
-}
-
-function playBuffer(buffer: AudioBuffer, startTime: number): AudioBufferSourceNode {
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(destinationNode);
-    source.start(startTime);
-    return source;
 }
 
 export function suspendAudio(): void {
