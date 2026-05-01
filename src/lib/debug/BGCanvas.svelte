@@ -69,8 +69,8 @@
         }
     }
 
-    function postProcess(ctx: CanvasRenderingContext2D): void {
-        tileMap = Debug.GetBGTileMap(tileMap);
+    async function postProcess(ctx: CanvasRenderingContext2D): Promise<void> {
+        tileMap = await Debug.GetBGTileMap(tileMap);
         drawBGLines(ctx);
     }
 

@@ -6,8 +6,10 @@
   let {
     width = 42,
     height = 42,
-    updateBuffer = (a: Uint8ClampedArray) => a,
-    postProcess = undefined as ((ctx: CanvasRenderingContext2D) => void) | undefined,
+    updateBuffer = (a: Uint8ClampedArray) => a as Uint8ClampedArray | Promise<Uint8ClampedArray>,
+    postProcess = undefined as
+      | ((ctx: CanvasRenderingContext2D) => void | Promise<void>)
+      | undefined,
     mouseMove = undefined as ((ev: MouseEvent) => void) | undefined,
     pixelSize = $bindable(2),
     autodraw = $bindable(true),
@@ -15,8 +17,8 @@
   } = $props<{
     width?: number;
     height?: number;
-    updateBuffer?: (a: Uint8ClampedArray) => Uint8ClampedArray;
-    postProcess?: (ctx: CanvasRenderingContext2D) => void;
+    updateBuffer?: (a: Uint8ClampedArray) => Uint8ClampedArray | Promise<Uint8ClampedArray>;
+    postProcess?: (ctx: CanvasRenderingContext2D) => void | Promise<void>;
     mouseMove?: (ev: MouseEvent) => void;
     pixelSize?: number;
     autodraw?: boolean;
@@ -61,18 +63,18 @@
 
   export const draw = () => drawToCanvas();
 
-  function drawToCanvas() {
+  async function drawToCanvas() {
     if (screenData != undefined) {
       const data = screenData.data;
       const t0 = performance.now();
-      const other = updateBuffer(data);
+      const other = await updateBuffer(data);
       timeSpentDrawing += performance.now() - t0;
       if (other) {
         context.putImageData(new ImageData(other, width, height), 0, 0);
       }
       if (postProcess) {
         const t1 = performance.now();
-        postProcess(context);
+        await postProcess(context);
         postProcessTime = performance.now() - t1;
       }
     }

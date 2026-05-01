@@ -17,18 +17,16 @@ export type BenchmarkResult =
     | { ok: true; frames: number; ms: number; fps: number }
     | { ok: false; error: string };
 
-function getLines(
-    rom: RomReference,
+async function getLines(
+    _rom: RomReference,
     fromPC: number,
     toPC: number
 ): Promise<Array<ProgramLine>> {
-    return new Promise<Array<ProgramLine>>((resolve) => {
-        resolve(getCartLines(fromPC, toPC));
-    });
+    return (await getCartLines(fromPC, toPC)) as ProgramLine[];
 }
 
 export function getHexDump(fromPC: number, toPC: number): Promise<Uint8Array> {
-    return new Promise<Uint8Array>((resolve) => resolve(hexDump(fromPC, toPC)));
+    return hexDump(fromPC, toPC);
 }
 
 export async function benchmarkFrames(numFrames: number): Promise<BenchmarkResult> {
@@ -43,11 +41,11 @@ export async function benchmarkFrames(numFrames: number): Promise<BenchmarkResul
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     const t0 = performance.now();
-    runFrames(numFrames);
+    await runFrames(numFrames);
     const t1 = performance.now();
 
-    const pending = getAudioBuffersToReadCount();
-    if (pending > 0) markAudioBuffersRead(pending);
+    const pending = await getAudioBuffersToReadCount();
+    if (pending > 0) await markAudioBuffersRead(pending);
 
     if (wasRunning) Emulator.RunUntilBreak();
 
@@ -107,8 +105,8 @@ export async function fetchLogs(): Promise<void> {
     const maxLinePerFetch = 1000;
     let linesFetched: number = 0;
     do {
-        const lines = await new Promise<string[]>(r => r(spliceLogs(maxLinePerFetch)));
+        const lines = await spliceLogs(maxLinePerFetch);
         linesFetched = lines.length;
-        await new Promise<void>(r => { appendLog(lines); r() });
+        appendLog(lines);
     } while (linesFetched == maxLinePerFetch);
 }

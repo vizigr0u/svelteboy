@@ -27,7 +27,7 @@ async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
 export async function playRom(rom: LibraryRom): Promise<void> {
     const buffer = await getRomBuffer(rom);
     if (!buffer) return;
-    if (!loadCartridgeRom(buffer)) {
+    if (!await loadCartridgeRom(buffer)) {
         console.log(`Error loading rom`);
         return;
     }
@@ -39,13 +39,13 @@ export async function playRom(rom: LibraryRom): Promise<void> {
         promoteUriToIdb(rom.sha1, buffer).catch(err => console.error('promoteUriToIdb failed:', err));
     }
     pauseEmulator();
-    resetEmulator();
+    await resetEmulator();
     loadedCartridge.set(activeRom);
     if (!get(DebuggerAttached))
         runUntilBreak();
 }
 
-export function loadSaveGame(savegame: SaveGameData): void {
+export async function loadSaveGame(savegame: SaveGameData): Promise<void> {
     console.log(`Loading savegame '${savegame.name}' of size ${humanReadableSize(savegame.buffer.byteLength)}...`);
-    backendLoadSave(savegame.buffer);
+    await backendLoadSave(savegame.buffer);
 }

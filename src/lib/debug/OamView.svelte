@@ -18,9 +18,9 @@
         BGandWindowOver = 7,
     }
 
-    GameFrames.subscribe((frameNumber) => {
+    GameFrames.subscribe(async (frameNumber) => {
         if (frameNumber == 0 || !$DebuggerAttached) return;
-        buffer = Debug.GetOAMTiles(buffer);
+        buffer = await Debug.GetOAMTiles(buffer);
         buffer.forEach((n, i) => {
             const flags = (n >> 24) & 0xff;
             objects[i] = {

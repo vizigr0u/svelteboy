@@ -149,14 +149,14 @@ export const Audio = {
     }
 };
 
-function postRunAudio(): void {
+async function postRunAudio(): Promise<void> {
     const bufferSize = getAudioBuffersSize();
     AudioBufferSize.set(bufferSize);
-    const numAvailableBuffers = getAudioBuffersToReadCount();
+    const numAvailableBuffers = await getAudioBuffersToReadCount();
 
     // No worklet yet (still loading) or context not running: drain WASM ring to keep backend live.
     if (!sabWriter || audioCtx.state !== 'running') {
-        if (numAvailableBuffers > 0) markAudioBuffersRead(numAvailableBuffers);
+        if (numAvailableBuffers > 0) await markAudioBuffersRead(numAvailableBuffers);
         return;
     }
 
@@ -168,18 +168,18 @@ function postRunAudio(): void {
     const headroom = Math.max(0, SAB_TARGET_FRAMES - occupancy);
     const buffersToWrite = Math.min(numAvailableBuffers, Math.ceil(headroom / bufferSize));
     const toDrain = numAvailableBuffers - buffersToWrite;
-    if (toDrain > 0) markAudioBuffersRead(toDrain);
+    if (toDrain > 0) await markAudioBuffersRead(toDrain);
 
     if (buffersToWrite === 0) return;
     const ptrs: number[][] = [];
     for (let i = 0; i < buffersToWrite; i++) {
-        const leftPtr = getAudioBufferToReadPointer(0);
-        const rightPtr = getAudioBufferToReadPointer(1);
+        const leftPtr = await getAudioBufferToReadPointer(0);
+        const rightPtr = await getAudioBufferToReadPointer(1);
         ptrs.push([leftPtr, rightPtr]);
         const left = getAudioBufferView(leftPtr, bufferSize);
         const right = getAudioBufferView(rightPtr, bufferSize);
         sabWriter.write(left, right);
-        markAudioBuffersRead(1);
+        await markAudioBuffersRead(1);
     }
     AudioBufferPointers.set(ptrs);
 }
@@ -192,8 +192,10 @@ export function stopQueuedAudio(): void {
     masterVolumeNode.gain.setValueAtTime(masterVolumeNode.gain.value, now);
     masterVolumeNode.gain.linearRampToValueAtTime(0, now + FADE_OUT_S);
 
-    const pending = getAudioBuffersToReadCount();
-    if (pending > 0) markAudioBuffersRead(pending);
+    void (async () => {
+        const pending = await getAudioBuffersToReadCount();
+        if (pending > 0) await markAudioBuffersRead(pending);
+    })();
 
     // Drain ring after gain reaches 0 to avoid resuming with stale samples.
     setTimeout(() => {

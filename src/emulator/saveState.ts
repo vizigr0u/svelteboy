@@ -57,13 +57,13 @@ export async function quickSave(slot: number): Promise<void> {
     if (get(DebuggerAttached)) return;
     const wasRunning = !get(EmulatorPaused);
     pauseEmulator();
-    if (!isAtFrameBoundary()) backendRunOneFrame();
-    const state = createSaveState();
+    if (!await isAtFrameBoundary()) await backendRunOneFrame();
+    const state = await createSaveState();
     if (state.byteLength === 0) {
         if (wasRunning) runUntilBreak();
         return;
     }
-    const thumbnail = isCgbMode()
+    const thumbnail = await isCgbMode()
         ? captureCgbFrameThumbnail(getCgbGameFrameView())
         : captureFrameThumbnail(getGameFrameView(), PALETTE_PRESETS[get(SelectedPaletteIndex)]);
     await saveSlot(cartridge.sha1, slot, { state, thumbnail, savedAt: Date.now() });
@@ -78,6 +78,6 @@ export async function quickLoad(slot: number): Promise<void> {
     const wasRunning = !get(EmulatorPaused);
     pauseEmulator();
     stopQueuedAudio();
-    loadSaveState(entry.state);
+    await loadSaveState(entry.state);
     if (wasRunning && !get(DebuggerAttached)) runUntilBreak();
 }

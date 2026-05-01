@@ -7,6 +7,8 @@
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
     import { AudioSuspended, Emulator } from "../emulator";
+    import { isCgbModeStore } from "../emulator/wasmBridge";
+    import { get } from "svelte/store";
     import { EmulatorPaused } from "stores/playStores";
     import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
@@ -71,7 +73,7 @@
 
     onMount(() => {
         const drawCallback = () => {
-            if (Emulator.IsCgbMode()) {
+            if (get(isCgbModeStore)) {
                 webglCanvas?.draw(Emulator.GetCGBGameFrame());
             } else {
                 webglCanvas?.draw(Emulator.GetGameFrame());

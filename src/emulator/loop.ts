@@ -70,7 +70,7 @@ export function requestStep(): void {
     runningAnimationFrameHandle = window.requestAnimationFrame(stepTick);
 }
 
-function run(time: number): void {
+async function run(time: number): Promise<void> {
     if (lastTime < 0) lastTime = time;
     const wallDt = Math.min(time - lastTime, 100);
     lastTime = time;
@@ -96,12 +96,12 @@ function run(time: number): void {
         // beyond that, only continue while wall-time budget remains.
         if (framesThisTick >= MIN_CATCHUP && performance.now() - tickStart >= TICK_BUDGET_MS)
             break;
-        preRun();
-        const stopReason = runEmulator(GB_FRAME_MS);
-        LastStopReason.set(stopReason);
-        postRun();
-        if (stopReason !== DebugStopReason.EndOfFrame && stopReason !== DebugStopReason.TargetCyclesReached) {
-            console.log('Stopped because ' + DebugStopReason[stopReason]);
+        await preRun();
+        const result = await runEmulator(GB_FRAME_MS);
+        LastStopReason.set(result.stopReason);
+        await postRun(result.lastSaveFrame);
+        if (result.stopReason !== DebugStopReason.EndOfFrame && result.stopReason !== DebugStopReason.TargetCyclesReached) {
+            console.log('Stopped because ' + DebugStopReason[result.stopReason]);
             return;
         }
         accumulator -= GB_FRAME_MS;
@@ -120,48 +120,49 @@ function run(time: number): void {
         runningAnimationFrameHandle = window.requestAnimationFrame(run);
 }
 
-function runOneFrameTick(): void {
-    preRun();
-    LastStopReason.set(backendRunOneFrame());
-    postRun();
+async function runOneFrameTick(): Promise<void> {
+    await preRun();
+    const result = await backendRunOneFrame();
+    LastStopReason.set(result.stopReason);
+    await postRun(result.lastSaveFrame);
     pauseEmulator();
 }
 
-function stepTick(): void {
-    preRun();
-    debugStep();
-    postRun();
+async function stepTick(): Promise<void> {
+    await preRun();
+    await debugStep();
+    await postRun();
     pauseEmulator();
 }
 
-function preRun(): void {
+async function preRun(): Promise<void> {
     EmulatorBusy.set(true);
     if (!get(EmulatorInitialized)) {
-        initEmulator(get(useBoot));
+        await initEmulator(get(useBoot));
         EmulatorInitialized.set(true);
     }
     const keys = getInputForEmu();
-    setJoypad(keys);
+    await setJoypad(keys);
 }
 
-export function postRun(): void {
-    fetchLogs();
+export async function postRun(latestSaveFrame?: number): Promise<void> {
+    await fetchLogs();
     GameFrames.update(frames => frames + 1);
     if (get(DebuggerAttached)) {
-        const info = getDebugInfo() as GbDebugInfo;
+        const info = (await getDebugInfo()) as GbDebugInfo;
         GbDebugInfoStore.set(info);
     }
     EmulatorBusy.set(false);
-    const latestSaveFrame = getLastSaveFrame();
-    if (latestSaveFrame > lastSaveFrame) {
+    const latest = latestSaveFrame ?? await getLastSaveFrame();
+    if (latest > lastSaveFrame) {
         const currentGame = get(loadedCartridge) as { sha1: string };
         const timeStamp = new Date().toISOString();
         AutoSave.set({
-            buffer: getLastSave(),
+            buffer: await getLastSave(),
             name: `autosave-${timeStamp}`,
             gameSha1: currentGame.sha1
         });
-        lastSaveFrame = latestSaveFrame;
+        lastSaveFrame = latest;
     }
     for (let i = 0; i < postRunCallbacks.length; i++) {
         postRunCallbacks[i]();

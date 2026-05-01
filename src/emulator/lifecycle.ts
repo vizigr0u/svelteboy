@@ -24,13 +24,13 @@ export function runUntilBreak(): void {
     requestRunLoop();
 }
 
-export function resetEmulator(): void {
+export async function resetEmulator(): Promise<void> {
     Audio.Init();
     EmulatorInitialized.set(false);
-    initEmulator(get(useBoot));
+    await initEmulator(get(useBoot));
     EmulatorInitialized.set(true);
     resetTiming();
-    postRun();
+    await postRun();
     if (get(DebuggerAttached))
         pauseEmulator();
 }
