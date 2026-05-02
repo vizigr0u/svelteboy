@@ -9,3 +9,4 @@ export const EmulatorBusy = writable<boolean>(false);
 export const FastForwardActive = writable<boolean>(false);
 export const AutoSave = writable<SaveGameData | undefined>(undefined);
 export const SaveGames = writable<SaveGameData[]>([]);
+export const QuickSaveFlyer = writable<{ thumbnail: string; key: number } | null>(null);

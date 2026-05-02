@@ -14,7 +14,7 @@ import { saveSlot, loadSlot } from "../saveStateDb";
 import { PALETTE_PRESETS, SelectedPaletteIndex, type GBPalette } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebuggerAttached } from "stores/debugStores";
-import { EmulatorPaused } from "stores/playStores";
+import { EmulatorPaused, QuickSaveFlyer } from "stores/playStores";
 
 function encodeThumbnail(data: Uint8ClampedArray): string {
     const canvas = document.createElement('canvas');
@@ -67,6 +67,7 @@ export async function quickSave(slot: number): Promise<void> {
         ? captureCgbFrameThumbnail(getCgbGameFrameView())
         : captureFrameThumbnail(getGameFrameView(), PALETTE_PRESETS[get(SelectedPaletteIndex)]);
     await saveSlot(cartridge.sha1, slot, { state, thumbnail, savedAt: Date.now() });
+    QuickSaveFlyer.set({ thumbnail, key: Date.now() });
     if (wasRunning) runUntilBreak();
 }
 

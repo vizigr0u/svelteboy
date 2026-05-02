@@ -1,5 +1,4 @@
 <script lang="ts">
-    import PlayerControls from "./PlayerControls.svelte";
     import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
     import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS } from "stores/optionsStore";
@@ -7,7 +6,7 @@
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
     import { AudioSuspended, Emulator } from "../emulator";
-    import { EmulatorPaused } from "stores/playStores";
+    import { EmulatorPaused, QuickSaveFlyer } from "stores/playStores";
     import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
@@ -26,6 +25,8 @@
     let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void } | null = $state(null);
     let menuOpen: boolean = $state(false);
     let screenEl: HTMLDivElement | undefined = $state();
+    let screenTapEl: HTMLDivElement | undefined = $state();
+    let burgerBtnEl: HTMLButtonElement | undefined = $state();
     let isFullscreen: boolean = $state(false);
 
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
@@ -43,7 +44,7 @@
 
     const menuItems = $derived([
         { label: 'ROMs',       active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
-        { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow) },
+        { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow), disabled: !hasRom },
         { label: 'Options',    active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
         { label: 'Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
         { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
@@ -80,6 +81,37 @@
             window.removeEventListener('keyup', gameInputKeyupHandler);
         };
     });
+
+    $effect(() => {
+        const data = $QuickSaveFlyer;
+        if (!data || !screenTapEl || !burgerBtnEl) return;
+        const from = screenTapEl.getBoundingClientRect();
+        const to = burgerBtnEl.getBoundingClientRect();
+        const targetSize = 16;
+        const targetLeft = to.left + to.width / 2 - targetSize / 2;
+        const targetTop = to.top + to.height / 2 - targetSize / 2;
+        const dx = from.left - targetLeft;
+        const dy = from.top - targetTop;
+        const sx = from.width / targetSize;
+        const sy = from.height / targetSize;
+        const img = document.createElement('img');
+        img.src = data.thumbnail;
+        img.style.cssText = `position:fixed;pointer-events:none;z-index:1000;image-rendering:pixelated;border-radius:2px;box-shadow:0 0 12px rgba(0,0,0,0.7);transform-origin:top left;`;
+        img.style.left = targetLeft + 'px';
+        img.style.top = targetTop + 'px';
+        img.style.width = targetSize + 'px';
+        img.style.height = targetSize + 'px';
+        document.body.appendChild(img);
+        const anim = img.animate(
+            [
+                { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 1 },
+                { transform: 'none', opacity: 0 },
+            ],
+            { duration: 650, easing: 'cubic-bezier(0.4, 0.7, 0.5, 1)', fill: 'forwards' }
+        );
+        anim.onfinish = () => img.remove();
+        anim.oncancel = () => img.remove();
+    });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -102,6 +134,7 @@
                 class="screen-tap"
                 ondblclick={toggleFullscreen}
                 role="presentation"
+                bind:this={screenTapEl}
             >
                 <WebGLCanvas
                     bind:this={webglCanvas}
@@ -127,7 +160,7 @@
                     🔇 Click to enable sound
                 </button>
             {/if}
-            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu">☰</button>
+            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
             {#if menuOpen}
                 <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
                 <BurgerMenu items={menuItems} />
@@ -162,7 +195,6 @@
     <span class="console-name">Svelte BOY</span>
     <LocalInputViewer />
 </div>
-<PlayerControls />
 
 <style>
     .console {
