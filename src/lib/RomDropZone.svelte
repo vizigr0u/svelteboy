@@ -3,12 +3,13 @@
   import { DragState, type LibraryRom } from "../types";
   import { addLibraryRomFromDrop } from "stores/libraryStore";
   import { humanReadableSize } from "../utils";
+  import { isZipFilename, extractRomFromZip } from "../zipRom";
 
   let {
     dragState = $bindable(DragState.Idle),
     dragStatus = $bindable(""),
     onRomReceived = (_: LibraryRom) => {},
-    validExtensions = ["gb", "gbc"],
+    validExtensions = ["gb", "gbc", "zip"],
     children,
   } = $props<{
     dragState?: DragState;
@@ -26,7 +27,7 @@
   }
 
   async function processDroppedFile(file: File) {
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop()?.toLowerCase();
     dragStatus = `dropped file:
         ${file.name}
       size: ${humanReadableSize(file.size)}`;
@@ -34,7 +35,29 @@
       dragStatus += ": Unknown file type";
       return;
     }
-    const rom = await addLibraryRomFromDrop(file);
+
+    let target = file;
+    if (isZipFilename(file.name)) {
+      dragStatus = "Extracting ROM from archive...";
+      const buf = await file.arrayBuffer();
+      const r = await extractRomFromZip(buf);
+      if (!r.ok) {
+        dragStatus =
+          r.reason === "no-rom"
+            ? "No .gb/.gbc found in archive"
+            : r.reason === "multi-rom"
+              ? "Multiple ROMs in archive — extract manually"
+              : "Invalid or corrupt zip file";
+        return;
+      }
+      const innerExt = r.innerName.match(/\.gbc?$/i)![0];
+      const stem = file.name.replace(/\.zip$/i, "");
+      target = new File([r.bytes], stem + innerExt, {
+        type: "application/octet-stream",
+      });
+    }
+
+    const rom = await addLibraryRomFromDrop(target);
     dragState = DragState.Idle;
     dragStatus = "";
     if (rom) onRomReceived(rom);
