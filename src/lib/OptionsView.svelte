@@ -1,10 +1,8 @@
 <script lang="ts">
     import {
-        useBoot,
         playerPixelSize,
         showFPS,
         showFrametimeHistogram,
-        LibraryImportSourceUri,
         AutoSaveUriRoms,
         RegularSpeed,
         BurstSpeed,
@@ -14,14 +12,10 @@
         AudioMasterVolume,
         AudioResampleMode,
     } from "stores/optionsStore";
-    import { EmulatorInitialized } from "stores/playStores";
     import { clearAllStorage } from "../stores/idbStore";
-    import { bulkImportFromManifest } from "stores/libraryStore";
     import PalettePicker from "./PalettePicker.svelte";
 
     let advancedOpen = $state(false);
-    let importing = $state(false);
-    let importStatus = $state("");
 
     async function clearAll() {
         const ok = confirm(
@@ -30,24 +24,6 @@
         if (!ok) return;
         await clearAllStorage();
         location.reload();
-    }
-
-    async function runImport() {
-        const uri = $LibraryImportSourceUri;
-        if (!uri || !uri.startsWith("http")) {
-            importStatus = "Provide an http(s) URL";
-            return;
-        }
-        importing = true;
-        importStatus = "Importing...";
-        try {
-            const { added, skipped } = await bulkImportFromManifest(uri);
-            importStatus = `Imported ${added}, skipped ${skipped}`;
-        } catch (e) {
-            importStatus = `Error: ${(e as Error).message}`;
-        } finally {
-            importing = false;
-        }
     }
 </script>
 
@@ -64,7 +40,7 @@
             bind:value={$playerPixelSize}
         />
 
-        <span class="option-label">Palette:</span>
+        <span class="option-label">GB Palette:</span>
         <PalettePicker />
 
         <label for="showfps">Display FPS:</label>
@@ -103,12 +79,6 @@
             bind:checked={$MuteOnFastForward}
         />
 
-        <label for="useBoot"
-            >Use Boot Rom{$EmulatorInitialized ? " (on next run)" : ""}:</label
-        >
-        <input id="useBoot" type="checkbox" bind:checked={$useBoot} disabled />
-        <span>Todo: </span><span>Select boot rom</span>
-
         <label for="pauseOnVisibilityLost">Pause when tab hidden:</label>
         <input
             id="pauseOnVisibilityLost"
@@ -144,21 +114,6 @@
 
     <h4>Library</h4>
     <div class="options">
-        <label for="libImportUri">Import source URL:</label>
-        <input
-            id="libImportUri"
-            type="text"
-            bind:value={$LibraryImportSourceUri}
-        />
-
-        <span class="option-label"></span>
-        <div class="lib-import-row">
-            <button onclick={runImport} disabled={importing}>
-                {importing ? "Importing..." : "Import"}
-            </button>
-            <span class="lib-import-status">{importStatus}</span>
-        </div>
-
         <label for="autoSaveUri">Auto-save URI ROMs after first play:</label>
         <input
             id="autoSaveUri"
@@ -194,16 +149,6 @@
         display: flex;
         align-items: center;
     }
-    .lib-import-row {
-        display: flex;
-        align-items: center;
-        gap: 0.5em;
-    }
-    .lib-import-status {
-        font-size: 0.9em;
-        color: #aaa;
-    }
-
     details summary h3 {
         display: inline;
         cursor: pointer;
