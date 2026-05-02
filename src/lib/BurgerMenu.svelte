@@ -3,6 +3,7 @@
         label: string;
         active: boolean;
         toggle: () => void;
+        disabled?: boolean;
     }
 
     interface Props {
@@ -18,6 +19,7 @@
             class="menu-item"
             class:active={item.active}
             onclick={item.toggle}
+            disabled={item.disabled}
         >
             {item.label}
         </button>
@@ -60,5 +62,14 @@
 
     .menu-item.active::before {
         content: "✓ ";
+    }
+
+    .menu-item:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .menu-item:disabled:hover {
+        background: none;
     }
 </style>

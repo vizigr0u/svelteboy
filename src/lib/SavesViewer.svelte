@@ -5,6 +5,7 @@
     import { humanReadableSize } from "../utils";
     import { loadedCartridge } from "stores/romStores";
     import { DismissSavesWarning } from "stores/optionsStore";
+    import QuickSaveControls from "./QuickSaveControls.svelte";
 
     const maxToShow = 50;
 
@@ -78,8 +79,14 @@
     }
 </script>
 
-{#if $loadedCartridge !== undefined}
+{#if $loadedCartridge === undefined}
+    <div class="savegame-section empty">
+        <p>No ROM loaded. Load a ROM to access saves.</p>
+    </div>
+{:else}
     <div class="savegame-section">
+        <h3>Quick Saves</h3>
+        <QuickSaveControls />
         <h3>
             Saves ({relevantSaves.length <= maxToShow
                 ? relevantSaves.length.toString()
@@ -140,6 +147,12 @@
     .savegame-section {
         padding: 1em;
         background-color: var(--section-bg-color);
+    }
+
+    .savegame-section.empty {
+        text-align: center;
+        color: #888;
+        font-style: italic;
     }
 
     .savegame-section > h3 {
