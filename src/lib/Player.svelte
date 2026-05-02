@@ -15,10 +15,11 @@
     import RomsSection from "./RomsSection.svelte";
     import SavesViewer from "./SavesViewer.svelte";
     import OptionsView from "./OptionsView.svelte";
+    import BindingsView from "./BindingsView.svelte";
     import DebugSection from "./debug/DebugSection.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
-    import { showRomsWindow, showSavesWindow, showOptionsWindow, showDebugWindow } from "../stores/windowStores";
+    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow } from "../stores/windowStores";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
@@ -44,6 +45,7 @@
         { label: 'ROMs',       active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
         { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow) },
         { label: 'Options',    active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
+        { label: 'Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
         { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
         { label: 'Fullscreen', active: isFullscreen,       toggle: toggleFullscreen },
     ]);
@@ -143,6 +145,11 @@
             {#if $showOptionsWindow}
                 <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
                     <OptionsView />
+                </Window>
+            {/if}
+            {#if $showBindingsWindow}
+                <Window title="Bindings" onclose={() => showBindingsWindow.set(false)}>
+                    <BindingsView />
                 </Window>
             {/if}
             {#if $showDebugWindow}
