@@ -1,12 +1,17 @@
 <script lang="ts">
-    import { libraryStore } from "@/stores/libraryStore";
-    import { LibrarySort, type LibrarySortOrder } from "@/stores/optionsStore";
+    import { bulkImportFromManifest, libraryStore } from "@/stores/libraryStore";
+    import {
+        LibraryImportSourceUri,
+        LibrarySort,
+        type LibrarySortOrder,
+    } from "@/stores/optionsStore";
     import { DragState } from "../types";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
 
     let dragState: DragState = $state(DragState.Idle);
     let dragStatus: string = $state("");
+    let importing = $state(false);
 
     const sortOptions: { value: LibrarySortOrder; label: string }[] = [
         { value: "added", label: "Added (newest)" },
@@ -19,6 +24,30 @@
             return (b.addedAt ?? 0) - (a.addedAt ?? 0);
         }),
     );
+
+    async function addSpecialSource() {
+        const input = prompt(
+            "Special source URL (manifest JSON):",
+            $LibraryImportSourceUri,
+        );
+        if (!input) return;
+        const uri = input.trim();
+        if (!uri.startsWith("http")) {
+            dragStatus = "Provide an http(s) URL";
+            return;
+        }
+        $LibraryImportSourceUri = uri;
+        importing = true;
+        dragStatus = "Importing...";
+        try {
+            const { added, skipped } = await bulkImportFromManifest(uri);
+            dragStatus = `Imported ${added}, skipped ${skipped}`;
+        } catch (e) {
+            dragStatus = `Error: ${(e as Error).message}`;
+        } finally {
+            importing = false;
+        }
+    }
 </script>
 
 <RomDropZone bind:dragState bind:dragStatus>
@@ -32,6 +61,15 @@
             <span>{dragStatus}</span>
         </p>
         <div class="library-controls">
+            <button
+                type="button"
+                class="add-source"
+                title="Add special source URL"
+                onclick={addSpecialSource}
+                disabled={importing}
+            >
+                +
+            </button>
             <label>
                 Sort:
                 <select bind:value={$LibrarySort}>
@@ -66,7 +104,19 @@
     .library-controls {
         display: flex;
         justify-content: flex-end;
+        align-items: center;
         gap: 0.5em;
         padding: 0.3em 0.5em;
+    }
+    .add-source {
+        margin-right: auto;
+        width: 1.8em;
+        height: 1.8em;
+        font-size: 1em;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .add-source:disabled {
+        cursor: wait;
     }
 </style>
