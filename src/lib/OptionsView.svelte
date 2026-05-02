@@ -13,12 +13,10 @@
         // AudioBufferSize,
         AudioMasterVolume,
         AudioResampleMode,
-        HideKeyboardWarning,
     } from "stores/optionsStore";
     import { EmulatorInitialized } from "stores/playStores";
     import { clearAllStorage } from "../stores/idbStore";
     import { bulkImportFromManifest } from "stores/libraryStore";
-    import ControlsView from "./ControlsView.svelte";
     import PalettePicker from "./PalettePicker.svelte";
 
     let advancedOpen = $state(false);
@@ -32,10 +30,6 @@
         if (!ok) return;
         await clearAllStorage();
         location.reload();
-    }
-
-    function resetKeybindingDisclaimer() {
-        HideKeyboardWarning.set(false);
     }
 
     async function runImport() {
@@ -173,12 +167,9 @@
         />
     </div>
 
-    <ControlsView />
-
     <details bind:open={advancedOpen}>
         <summary><h3>Advanced</h3></summary>
         <div class="advanced">
-            <button onclick={resetKeybindingDisclaimer}>Reset keybinding disclaimer</button>
             <button class="danger" onclick={clearAll}>Wipe all ROMs &amp; preferences</button>
         </div>
     </details>
