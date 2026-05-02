@@ -6,6 +6,7 @@ import { AutoSaveUriRoms } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebuggerAttached } from "stores/debugStores";
 import { humanReadableSize } from "../utils";
+import { isZipUri, extractRomFromZip } from "../zipRom";
 import type { LibraryRom, SaveGameData } from "../types";
 
 async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
@@ -16,7 +17,16 @@ async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
     if (src.kind === 'uri') {
         const response = await fetch(src.uri);
         if (!response.ok) return undefined;
-        return await response.arrayBuffer();
+        const buffer = await response.arrayBuffer();
+        if (isZipUri(src.uri)) {
+            const r = await extractRomFromZip(buffer);
+            if (!r.ok) {
+                console.error(`zip extract failed (${r.reason}) for ${src.uri}`);
+                return undefined;
+            }
+            return r.bytes.buffer.slice(r.bytes.byteOffset, r.bytes.byteOffset + r.bytes.byteLength);
+        }
+        return buffer;
     }
     if (src.kind === 'cloud') {
         throw new Error('Cloud ROM source not implemented');
