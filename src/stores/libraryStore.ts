@@ -12,6 +12,8 @@ import {
     normalizeSha1ForUri,
 } from './idbStore';
 import type { LibraryRom, RemoteRomsList } from '../types';
+import type { RenderModeOverride } from '../cartType';
+import { extractMetadata } from '../emulator/wasmBridge';
 
 export const libraryStore: Writable<LibraryRom[]> = writable<LibraryRom[]>([]);
 export const libraryHydrated: Writable<boolean> = writable(false);
@@ -26,6 +28,43 @@ async function sha1HexFromBytes(buffer: ArrayBuffer): Promise<string> {
     return Array.from(new Uint8Array(digest))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
+}
+
+function readCgbFlagFromBuffer(buffer: ArrayBuffer): number | undefined {
+    if (buffer.byteLength < 0x150) return undefined;
+    return new Uint8Array(buffer, 0x143, 1)[0];
+}
+
+export function ensureCgbFlag(rom: LibraryRom, buffer: ArrayBuffer): LibraryRom {
+    if (rom.cgbFlag !== undefined) return rom;
+    let cgbFlag: number | undefined;
+    try {
+        const md = extractMetadata(buffer);
+        cgbFlag = (md as unknown as { cgbFlag?: number }).cgbFlag;
+    } catch (e) {
+        console.warn('extractMetadata failed, falling back to byte read:', e);
+    }
+    if (cgbFlag === undefined) cgbFlag = readCgbFlagFromBuffer(buffer);
+    if (cgbFlag === undefined) return rom;
+    return { ...rom, cgbFlag };
+}
+
+export async function persistRomFields(rom: LibraryRom): Promise<void> {
+    const db = await openDB();
+    const existing = await libraryGet(db, rom.sha1);
+    if (!existing) return;
+    const merged: LibraryRom = { ...existing, ...rom };
+    await txAddUriRom(db, merged);
+    upsertLocal(merged);
+}
+
+export async function setRenderModeForRom(sha1: string, mode: RenderModeOverride): Promise<void> {
+    const db = await openDB();
+    const row = await libraryGet(db, sha1);
+    if (!row) return;
+    const updated: LibraryRom = { ...row, renderMode: mode };
+    await txAddUriRom(db, updated);
+    upsertLocal(updated);
 }
 
 function upsertLocal(row: LibraryRom): void {

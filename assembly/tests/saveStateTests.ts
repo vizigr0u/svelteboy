@@ -49,11 +49,11 @@ function testHeaderMagic(): void {
 }
 
 function testHeaderVersion(): void {
-    it("version is 4 at offset 4", () => {
+    it("version is 5 at offset 4", () => {
         setupClean();
         const state = createSaveState();
         assertEquals<u16>(load<u16>(state.dataStart + 4), SAVESTATE_VERSION, "version");
-        assertEquals<u16>(SAVESTATE_VERSION, 4, "SAVESTATE_VERSION");
+        assertEquals<u16>(SAVESTATE_VERSION, 5, "SAVESTATE_VERSION");
     });
 }
 
@@ -101,11 +101,11 @@ function testAcceptV3(): void {
 }
 
 function testAcceptV4(): void {
-    it("loadSaveState accepts freshly-created v4 blob", () => {
+    it("loadSaveState accepts freshly-created v5 blob", () => {
         setupClean();
         const state = createSaveState();
-        assertEquals<u16>(load<u16>(state.dataStart + 4), 4, "version=4");
-        assert(loadSaveState(state), "should succeed on v4 blob");
+        assertEquals<u16>(load<u16>(state.dataStart + 4), 5, "version=5");
+        assert(loadSaveState(state), "should succeed on v5 blob");
     });
 }
 

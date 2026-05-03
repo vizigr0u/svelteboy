@@ -15,6 +15,7 @@ import { PALETTE_PRESETS, SelectedPaletteIndex, type GBPalette } from "stores/op
 import { loadedCartridge } from "stores/romStores";
 import { DebuggerAttached } from "stores/debugStores";
 import { EmulatorPaused, QuickSaveFlyer } from "stores/playStores";
+import { showToast } from "stores/toastStore";
 
 function encodeThumbnail(data: Uint8ClampedArray): string {
     const canvas = document.createElement('canvas');
@@ -79,6 +80,9 @@ export async function quickLoad(slot: number): Promise<void> {
     const wasRunning = !get(EmulatorPaused);
     pauseEmulator();
     stopQueuedAudio();
-    loadSaveState(entry.state);
+    const ok = loadSaveState(entry.state);
+    if (!ok) {
+        showToast('Save state could not be loaded (mode mismatch or corrupt data).', 'error');
+    }
     if (wasRunning && !get(DebuggerAttached)) runUntilBreak();
 }

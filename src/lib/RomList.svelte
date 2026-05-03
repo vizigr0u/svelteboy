@@ -4,122 +4,38 @@
   import RomView from "./RomView.svelte";
 
   let { title, roms = [] } = $props<{ title: string; roms?: LibraryRom[] }>();
-
-  let init = $state(false);
-  const romWordsMap: Map<string, LibraryRom[]> = new Map<
-    string,
-    LibraryRom[]
-  >();
-
-  let filter: string = $state("");
-  let filteredRoms: LibraryRom[] = $state([]);
-
-  const maxChars = 5;
-
-  let cacheRomsPromise: Promise<void> | undefined = $state(undefined);
-  $effect(() => { cacheRomsPromise = cacheRoms(); });
-
-  function isLetterOrNumber(c: string): boolean {
-    return (c >= "a" && c <= "z") || (c >= "0" && c <= "9");
-  }
-
-  function wordIsRelevant(word: string): boolean {
-    return (
-      word.length >= 2 &&
-      isLetterOrNumber(word.charAt(0)) &&
-      (",.".includes(word.charAt(-1)) || isLetterOrNumber(word.charAt(-1)))
-    );
-  }
-
-  async function cacheRoms(): Promise<void> {
-    romWordsMap.clear();
-    for (let j = 0; j < roms.length; j++) {
-      const rom = roms[j];
-      if (!rom || !rom.name) continue;
-      const relevantWords = rom.name
-        .toLowerCase()
-        .split(" ")
-        .filter(wordIsRelevant);
-      for (let k = 0; k < relevantWords.length; k++) {
-        const word = relevantWords[k];
-        const numChars = Math.min(maxChars, word.length);
-        const beginning = word.slice(0, numChars);
-        for (let i = 1; i <= numChars; i++) {
-          const s = beginning.slice(0, i);
-          const existing = romWordsMap.get(s);
-          if (existing) {
-            existing.push(rom);
-          } else {
-            romWordsMap.set(s, [rom]);
-          }
-        }
-      }
-    }
-    await filterRoms();
-    init = true;
-  }
-
-  async function filterRoms() {
-    if (!filter || filter == "" || roms.length == 0) {
-      filteredRoms = roms;
-      return;
-    }
-    const lowercaseFilter = filter.slice(0, maxChars).toLowerCase();
-    filteredRoms = romWordsMap.get(lowercaseFilter) ?? [];
-  }
 </script>
 
 <div class="debug-tool-container">
   <h3 class="roms-list-title">
     {title}
     {#if roms.length > 0}
-      ({filteredRoms.length})
+      ({roms.length})
     {/if}
   </h3>
-  {#if roms.length > 3}
-    <label class="roms-filter-input"
-      >Search: <input
-        type="text"
-        bind:value={filter}
-        oninput={filterRoms}
-        disabled={!init}
-      />
-    </label>
-  {/if}
-  {#await cacheRomsPromise}
-    <div class="status">
-      <i class="fas fa-spinner fa-spin"></i>
-      Caching roms...
-    </div>
-  {:then}
-    {#if filteredRoms.length > 0}
-      <div class="roms-container">
-        {#if filteredRoms.length > 20}
-          <MyVirtualList items={filteredRoms}>
-            {#snippet children(item)}
-              {#key item.sha1}
-                <RomView rom={item} />
-              {/key}
-            {/snippet}
-          </MyVirtualList>
-        {:else}
-          {#each filteredRoms as item}
+  {#if roms.length > 0}
+    <div class="roms-container">
+      {#if roms.length > 20}
+        <MyVirtualList items={roms}>
+          {#snippet children(item)}
             {#key item.sha1}
               <RomView rom={item} />
             {/key}
-          {/each}
-        {/if}
-      </div>
-    {:else}
-      <div class="status">
-        <span class="roms-count">(none)</span>
-      </div>
-    {/if}
-  {:catch error}
-    <div class="status">
-      <span class="errors">{error}</span>
+          {/snippet}
+        </MyVirtualList>
+      {:else}
+        {#each roms as item}
+          {#key item.sha1}
+            <RomView rom={item} />
+          {/key}
+        {/each}
+      {/if}
     </div>
-  {/await}
+  {:else}
+    <div class="status">
+      <span class="roms-count">(none)</span>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -128,11 +44,6 @@
     border: 1px solid #333;
     padding: 0.8em;
     font-size: 1.2em;
-  }
-  .roms-filter-input {
-    display: block;
-    margin-left: auto;
-    text-align: right;
   }
   .roms-container {
     display: flex;

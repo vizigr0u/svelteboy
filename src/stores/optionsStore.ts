@@ -2,6 +2,7 @@ import { writable } from "svelte/store";
 import { MakeIDBStore as MakeLocalStore } from "./idbStore";
 import type { KeyBindings } from "../types";
 import { DEFAULT_KEYBINDINGS } from "../keybindPresets";
+import type { RenderModeOverride } from "../cartType";
 
 export type GBPalette = readonly [number, number, number, number];
 
@@ -28,6 +29,8 @@ export type LibrarySortOrder = 'lastPlayed' | 'added' | 'name';
 export const LibrarySort = MakeLocalStore<LibrarySortOrder>('option-library-sort', 'lastPlayed');
 export type LibrarySourceFilter = 'all' | 'local' | 'remote';
 export const LibrarySource = MakeLocalStore<LibrarySourceFilter>('option-library-source-filter', 'all');
+export type LibraryTypeFilter = 'all' | 'gb-compat' | 'cgb-only';
+export const LibraryTypeFilterStore = MakeLocalStore<LibraryTypeFilter>('option-library-type-filter', 'all');
 export const RegularSpeed = MakeLocalStore<number>('option-regular-speed', 1);
 export const BurstSpeed = MakeLocalStore<number>('option-emulator-speed', 4);
 export const MuteOnFastForward = MakeLocalStore<boolean>('option-mute-on-fast-forward', true);
@@ -37,3 +40,4 @@ export const AudioMasterVolume = MakeLocalStore<number>("option-master-volume", 
 export type AudioResampleModeType = 'js' | 'apu';
 export const AudioResampleMode = MakeLocalStore<AudioResampleModeType>('option-audio-resample-mode', 'apu');
 export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings', DEFAULT_KEYBINDINGS);
+export const DefaultRenderMode = MakeLocalStore<RenderModeOverride>('option-default-render-mode', 'auto');
