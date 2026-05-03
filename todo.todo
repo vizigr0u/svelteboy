@@ -1,7 +1,15 @@
 ☐ Architecture:
     ☐ Migrate to scheduler model for PPU? (see todo.architecture.md for more details)
-    ☐ try threaded audio?
 ☐ Check timing test roms
 ☐ Give love to debugger
     ☐ disassemble dynamic parts (WRAM, HRAM)
     ☐ etc.
+☐ Gameboy printer
+☐ CGB palette for GB games
+☐ Mute [M] / Volume +-
+☐ Rewind [R]
+☐ Soft Reset [Shift]+[R]
+☐ Hard Reset [Ctrl]+[Shift]+[R]
+☐ Serial over network
+☐ Step one frame during pause [.]
+☐ GBC shader
