@@ -21,6 +21,7 @@
     const systemShortcuts = [
         { label: 'Pause / Resume',     keys: ['P'] },
         { label: 'Reset',              keys: ['R'] },
+        { label: 'Screenshot (PNG)',   keys: ['Shift', '+', 'S'] },
         { label: 'Burst speed (hold)', keys: ['Space'] },
         { label: 'Quick Save slot 1-4', keys: ['Shift', '+', '1'], note: '…4' },
         { label: 'Quick Load slot 1-4', keys: ['1'], note: '…4' },

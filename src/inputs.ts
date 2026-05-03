@@ -3,6 +3,7 @@ import { KeyBindingsStore } from "stores/optionsStore";
 import { loadedBootRom, loadedCartridge } from "stores/romStores";
 import { InputType } from "./types";
 import { Emulator } from "./emulator";
+import { takeScreenshot } from "./screenshot";
 import { get } from "svelte/store";
 
 let activeKeybinds: { [k: string]: InputType } = {};
@@ -88,6 +89,14 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (!get(loadedCartridge) && !get(loadedBootRom)) return;
     e.preventDefault();
     Emulator.Reset();
+});
+
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code !== 'KeyS' || !e.shiftKey || e.repeat) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!get(loadedCartridge) && !get(loadedBootRom)) return;
+    e.preventDefault();
+    takeScreenshot();
 });
 
 window.addEventListener('blur', () => FastForwardActive.set(false));
