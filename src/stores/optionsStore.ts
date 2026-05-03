@@ -48,3 +48,6 @@ export const GhostingStrength = MakeLocalStore<number>('option-ghosting-strength
 export const PixelPerfect = MakeLocalStore<boolean>('option-pixel-perfect', true);
 export type ScreenshotSizeMode = 'gb' | 'canvas';
 export const ScreenshotSize = MakeLocalStore<ScreenshotSizeMode>('option-screenshot-size', 'canvas');
+export const HapticsEnabled = MakeLocalStore<boolean>('option-haptics-enabled', true);
+export const WakeLockEnabled = MakeLocalStore<boolean>('option-wakelock-enabled', true);
+export const OrientationLockEnabled = MakeLocalStore<boolean>('option-orientation-lock-enabled', true);

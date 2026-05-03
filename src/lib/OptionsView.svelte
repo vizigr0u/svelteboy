@@ -16,6 +16,9 @@
         GhostingStrength,
         ScreenshotSize,
         PixelPerfect,
+        HapticsEnabled,
+        WakeLockEnabled,
+        OrientationLockEnabled,
     } from "stores/optionsStore";
     import { clearAllStorage } from "../stores/idbStore";
     import PalettePicker from "./PalettePicker.svelte";
@@ -183,6 +186,18 @@
             type="checkbox"
             bind:checked={$AutoSaveUriRoms}
         />
+    </div>
+
+    <h4>Mobile</h4>
+    <div class="options">
+        <label for="haptics">Haptic feedback on tap:</label>
+        <input id="haptics" type="checkbox" bind:checked={$HapticsEnabled} />
+
+        <label for="wakelock">Keep screen awake while playing:</label>
+        <input id="wakelock" type="checkbox" bind:checked={$WakeLockEnabled} />
+
+        <label for="orientlock">Lock orientation in fullscreen:</label>
+        <input id="orientlock" type="checkbox" bind:checked={$OrientationLockEnabled} />
     </div>
 
     <details bind:open={advancedOpen}>

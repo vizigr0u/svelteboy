@@ -151,6 +151,7 @@ export const Audio = {
         const resumeOnGesture = () => { audioCtx?.resume(); };
         document.addEventListener('click', resumeOnGesture);
         document.addEventListener('keydown', resumeOnGesture);
+        document.addEventListener('pointerdown', resumeOnGesture);
 
         setupWorklet().catch(err => {
             console.error('[audio] Worklet setup failed:', err);

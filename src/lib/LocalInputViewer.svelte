@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { get } from "svelte/store";
     import { InputType, updateInput } from "../inputs";
-    import { HideKeyboardWarning, KeyBindingsStore } from "stores/optionsStore";
+    import { HideKeyboardWarning, KeyBindingsStore, HapticsEnabled } from "stores/optionsStore";
     import { KeyPressMap } from "stores/playStores";
     import { displayKey } from "../keybindPresets";
 
@@ -21,6 +22,12 @@
         ];
     }
 
+    function buzz(ms: number = 8): void {
+        if (!get(HapticsEnabled)) return;
+        if (typeof navigator === "undefined" || !navigator.vibrate) return;
+        navigator.vibrate(ms);
+    }
+
     onMount(() => {
         buttons = buttonContainer.querySelectorAll<HTMLButtonElement>("button[data-input]");
         const InputsAndButtons = Array.from(buttons).map(
@@ -30,7 +37,7 @@
         inputsByButton = new Map<HTMLButtonElement, InputType>(InputsAndButtons);
         buttons.forEach((button) => {
             const input = inputsByButton.get(button)!;
-            button.ontouchstart = () => updateInput(input, true);
+            button.ontouchstart = () => { updateInput(input, true); buzz(); };
             button.onmousedown = () => updateInput(input, true);
             button.onmouseup = () => updateInput(input, false);
             button.onblur = () => updateInput(input, false);

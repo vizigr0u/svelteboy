@@ -1,7 +1,7 @@
 <script lang="ts">
     import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
-    import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect } from "stores/optionsStore";
+    import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect, WakeLockEnabled, OrientationLockEnabled } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -29,6 +29,7 @@
     let screenTapEl: HTMLDivElement | undefined = $state();
     let burgerBtnEl: HTMLButtonElement | undefined = $state();
     let isFullscreen: boolean = $state(false);
+    let isCoarsePointer: boolean = $state(false);
 
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
 
@@ -68,10 +69,16 @@
         };
         document.addEventListener('fullscreenchange', onFullscreenChange);
 
+        const coarseMql = window.matchMedia('(pointer: coarse)');
+        const updateCoarse = () => { isCoarsePointer = coarseMql.matches; };
+        updateCoarse();
+        coarseMql.addEventListener('change', updateCoarse);
+
         return () => {
             Emulator.RemoveRenderCallback(drawCallback);
             registerShadedCanvas(null);
             document.removeEventListener('fullscreenchange', onFullscreenChange);
+            coarseMql.removeEventListener('change', updateCoarse);
         };
     });
 
@@ -83,6 +90,44 @@
             window.removeEventListener('keydown', gameInputKeydownHandler);
             window.removeEventListener('keyup', gameInputKeyupHandler);
         };
+    });
+
+    let wakeLock: WakeLockSentinel | null = null;
+
+    async function acquireWakeLock() {
+        if (wakeLock) return;
+        if (!('wakeLock' in navigator)) return;
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } catch (_) { /* permission/denial: ignore */ }
+    }
+    async function releaseWakeLock() {
+        if (!wakeLock) return;
+        try { await wakeLock.release(); } catch (_) { /* ignore */ }
+        wakeLock = null;
+    }
+
+    $effect(() => {
+        if (!hasRom || !$WakeLockEnabled) {
+            releaseWakeLock();
+            return;
+        }
+        acquireWakeLock();
+        const onVis = () => { if (document.visibilityState === 'visible') acquireWakeLock(); };
+        document.addEventListener('visibilitychange', onVis);
+        return () => {
+            document.removeEventListener('visibilitychange', onVis);
+            releaseWakeLock();
+        };
+    });
+
+    $effect(() => {
+        if (!isFullscreen || !isCoarsePointer || !$OrientationLockEnabled) return;
+        const so = (screen as any).orientation;
+        if (!so?.lock) return;
+        so.lock('landscape').catch(() => { /* ignore */ });
+        return () => { so.unlock?.(); };
     });
 
     $effect(() => {
@@ -207,6 +252,10 @@
         position: relative;
         padding-top: 1em;
         background-color: #bbb;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
         display: flex;
         flex-direction: column;
         justify-content: center;
