@@ -3,7 +3,9 @@
     import {
         LibraryImportSourceUri,
         LibrarySort,
+        LibrarySource,
         type LibrarySortOrder,
+        type LibrarySourceFilter,
     } from "@/stores/optionsStore";
     import { DragState } from "../types";
     import type { ImportReport } from "../romImport";
@@ -21,11 +23,23 @@
         { value: "name", label: "Name" },
     ];
 
+    const sourceOptions: { value: LibrarySourceFilter; label: string }[] = [
+        { value: "all", label: "All" },
+        { value: "local", label: "Local" },
+        { value: "remote", label: "Remote" },
+    ];
+
     let sortedRoms = $derived(
-        [...$libraryStore].sort((a, b) => {
-            if ($LibrarySort === "name") return a.name.localeCompare(b.name);
-            return (b.addedAt ?? 0) - (a.addedAt ?? 0);
-        }),
+        $libraryStore
+            .filter((r) => {
+                if ($LibrarySource === "local") return r.source.kind === "idb";
+                if ($LibrarySource === "remote") return r.source.kind !== "idb";
+                return true;
+            })
+            .sort((a, b) => {
+                if ($LibrarySort === "name") return a.name.localeCompare(b.name);
+                return (b.addedAt ?? 0) - (a.addedAt ?? 0);
+            }),
     );
 
     function onImportComplete(r: ImportReport) {
@@ -112,6 +126,14 @@
             >
                 +
             </button>
+            <label>
+                Source:
+                <select bind:value={$LibrarySource}>
+                    {#each sourceOptions as opt}
+                        <option value={opt.value}>{opt.label}</option>
+                    {/each}
+                </select>
+            </label>
             <label>
                 Sort:
                 <select bind:value={$LibrarySort}>
