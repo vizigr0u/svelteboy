@@ -188,6 +188,15 @@ export async function reconcileSha1OnFirstPlay(
     return merged;
 }
 
+export async function markLibraryRomPlayed(sha1: string): Promise<void> {
+    const db = await openDB();
+    const row = await libraryGet(db, sha1);
+    if (!row) return;
+    const updated: LibraryRom = { ...row, lastPlayedAt: Date.now() };
+    await txAddUriRom(db, updated);
+    upsertLocal(updated);
+}
+
 export async function findLibraryRomBySha1(sha1: string): Promise<LibraryRom | undefined> {
     const lower = sha1.toLowerCase();
     const rows = get(libraryStore);
