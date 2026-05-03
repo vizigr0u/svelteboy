@@ -24,7 +24,7 @@ async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
                 console.error(`zip extract failed (${r.reason}) for ${src.uri}`);
                 return undefined;
             }
-            return r.bytes.buffer.slice(r.bytes.byteOffset, r.bytes.byteOffset + r.bytes.byteLength);
+            return r.bytes.buffer.slice(r.bytes.byteOffset, r.bytes.byteOffset + r.bytes.byteLength) as ArrayBuffer;
         }
         return buffer;
     }
