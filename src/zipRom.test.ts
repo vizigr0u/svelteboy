@@ -10,7 +10,7 @@ const fakeRom = (label: string, size = 32) => {
 
 const buildZip = (files: Record<string, Uint8Array>): ArrayBuffer => {
   const out = zipSync(files);
-  return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength);
+  return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer;
 };
 
 describe('isZipFilename', () => {
