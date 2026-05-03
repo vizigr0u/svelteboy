@@ -44,10 +44,12 @@ function removeLocal(sha1: string): void {
     libraryStore.update(rows => rows.filter(r => r.sha1 !== sha1));
 }
 
-export async function addLibraryRomFromDrop(file: File): Promise<LibraryRom | undefined> {
-    const buffer = await file.arrayBuffer();
-    const sha1 = await sha1HexFromBytes(buffer);
+export type AddRomResult =
+    | { status: 'added'; rom: LibraryRom }
+    | { status: 'duplicate'; rom: LibraryRom };
 
+export async function addLibraryRomFromBuffer(name: string, buffer: ArrayBuffer): Promise<AddRomResult> {
+    const sha1 = await sha1HexFromBytes(buffer);
     const db = await openDB();
     const existing = await libraryGet(db, sha1);
     if (existing) {
@@ -55,26 +57,32 @@ export async function addLibraryRomFromDrop(file: File): Promise<LibraryRom | un
             const promoted: LibraryRom = {
                 ...existing,
                 source: { kind: 'idb' },
-                fileSize: file.size,
+                fileSize: buffer.byteLength,
                 originUri: existing.originUri ?? (existing.source.kind === 'uri' ? existing.source.uri : undefined),
             };
             await txPromoteUriToIdb(db, promoted, buffer);
             upsertLocal(promoted);
-            return promoted;
+            return { status: 'duplicate', rom: promoted };
         }
-        return existing;
+        return { status: 'duplicate', rom: existing };
     }
 
     const row: LibraryRom = {
-        name: file.name,
+        name,
         sha1,
         source: { kind: 'idb' },
-        fileSize: file.size,
+        fileSize: buffer.byteLength,
         addedAt: Date.now(),
     };
     await txAddIdbRom(db, row, buffer);
     upsertLocal(row);
-    return row;
+    return { status: 'added', rom: row };
+}
+
+export async function addLibraryRomFromDrop(file: File): Promise<LibraryRom | undefined> {
+    const buffer = await file.arrayBuffer();
+    const result = await addLibraryRomFromBuffer(file.name, buffer);
+    return result.rom;
 }
 
 export async function addLibraryRomFromUri(input: { sha1: string; name: string; uri: string }): Promise<LibraryRom> {

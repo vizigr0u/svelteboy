@@ -6,11 +6,14 @@
         type LibrarySortOrder,
     } from "@/stores/optionsStore";
     import { DragState } from "../types";
+    import type { ImportReport } from "../romImport";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
 
     let dragState: DragState = $state(DragState.Idle);
     let dragStatus: string = $state("");
+    let progress: { done: number; total: number } | undefined = $state(undefined);
+    let report: ImportReport | undefined = $state(undefined);
     let importing = $state(false);
 
     const sortOptions: { value: LibrarySortOrder; label: string }[] = [
@@ -24,6 +27,14 @@
             return (b.addedAt ?? 0) - (a.addedAt ?? 0);
         }),
     );
+
+    function onImportComplete(r: ImportReport) {
+        report = r;
+    }
+
+    function dismissReport() {
+        report = undefined;
+    }
 
     async function addSpecialSource() {
         const input = prompt(
@@ -50,7 +61,7 @@
     }
 </script>
 
-<RomDropZone bind:dragState bind:dragStatus>
+<RomDropZone bind:dragState bind:dragStatus bind:progress {onImportComplete}>
     <div
         class="dropzone-hint"
         class:drop-allowed={dragState == DragState.Accept}
@@ -60,6 +71,37 @@
             Drop your rom files here
             <span>{dragStatus}</span>
         </p>
+        {#if progress && progress.total > 4}
+            <progress value={progress.done} max={progress.total}></progress>
+        {/if}
+        {#if report}
+            <div class="import-report">
+                <button
+                    type="button"
+                    class="dismiss"
+                    title="Dismiss"
+                    onclick={dismissReport}>×</button
+                >
+                {#if report.added.length > 0}
+                    <div class="line ok">Added {report.added.length} roms</div>
+                {/if}
+                {#if report.duplicates.length > 0}
+                    <div class="line warn">
+                        {report.duplicates.length} already in library (check console)
+                    </div>
+                {/if}
+                {#if report.errors.length > 0}
+                    <div class="line err">
+                        {report.errors.length} imports failed (check console)
+                    </div>
+                {/if}
+                {#if report.skippedSav.length > 0}
+                    <div class="line muted">
+                        Skipped {report.skippedSav.length} .sav files (saves not persistent)
+                    </div>
+                {/if}
+            </div>
+        {/if}
         <div class="library-controls">
             <button
                 type="button"
@@ -118,5 +160,46 @@
     }
     .add-source:disabled {
         cursor: wait;
+    }
+
+    progress {
+        width: 100%;
+        margin: 0.3em 0;
+    }
+
+    .import-report {
+        position: relative;
+        margin: 0.3em 0;
+        padding: 0.4em 1.6em 0.4em 0.5em;
+        background: rgba(0, 0, 0, 0.25);
+        border-left: 3px solid #555;
+        font-size: 0.9em;
+    }
+    .import-report .line {
+        line-height: 1.3;
+    }
+    .import-report .ok {
+        color: greenyellow;
+    }
+    .import-report .warn {
+        color: goldenrod;
+    }
+    .import-report .err {
+        color: tomato;
+    }
+    .import-report .muted {
+        color: #888;
+    }
+    .import-report .dismiss {
+        position: absolute;
+        top: 0.1em;
+        right: 0.2em;
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 1.1em;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 0.2em;
     }
 </style>
