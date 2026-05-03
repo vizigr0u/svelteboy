@@ -83,4 +83,11 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
     else Emulator.Pause();
 });
 
+window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.code !== 'KeyR' || e.repeat) return;
+    if (!get(loadedCartridge) && !get(loadedBootRom)) return;
+    e.preventDefault();
+    Emulator.Reset();
+});
+
 window.addEventListener('blur', () => FastForwardActive.set(false));
