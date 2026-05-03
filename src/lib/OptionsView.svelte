@@ -11,11 +11,21 @@
         // AudioBufferSize,
         AudioMasterVolume,
         AudioResampleMode,
+        DefaultRenderMode,
     } from "stores/optionsStore";
     import { clearAllStorage } from "../stores/idbStore";
     import PalettePicker from "./PalettePicker.svelte";
+    import DisabledTooltip from "./DisabledTooltip.svelte";
+    import { isCgbMode } from "../emulator/wasmBridge";
+    import { EmulatorInitialized, GameFrames } from "stores/playStores";
 
     let advancedOpen = $state(false);
+    // Re-evaluate when frames advance or emulator re-initializes.
+    let cgbActive = $derived.by(() => {
+        $EmulatorInitialized;
+        $GameFrames;
+        return isCgbMode();
+    });
 
     async function clearAll() {
         const ok = confirm(
@@ -41,7 +51,19 @@
         />
 
         <span class="option-label">GB Palette:</span>
-        <PalettePicker />
+        <DisabledTooltip
+            disabled={cgbActive}
+            message="GB palette is unused in CGB mode."
+        >
+            <PalettePicker />
+        </DisabledTooltip>
+
+        <label for="defaultRenderMode">Default render mode:</label>
+        <select id="defaultRenderMode" bind:value={$DefaultRenderMode}>
+            <option value="auto">Auto (per cart)</option>
+            <option value="force-gb">Force GB</option>
+            <option value="force-cgb">Force CGB</option>
+        </select>
 
         <label for="showfps">Display FPS:</label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />

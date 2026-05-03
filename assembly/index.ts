@@ -26,7 +26,7 @@ export { loadBootRom, hexDump } from './memory/memoryMap';
 export { TOTAL_MEMORY_SIZE } from './memory/memoryConstants';
 
 export { loadCartridgeRom } from './cartridge';
-export { isCgbMode, isDoubleSpeed } from './cgbState';
+export { isCgbMode, isDoubleSpeed, setForcedRenderMode } from './cgbState';
 
 // #strip-start
 export { testRegisters } from "./tests/registerTests";

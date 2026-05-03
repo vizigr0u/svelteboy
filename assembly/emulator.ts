@@ -12,7 +12,8 @@ import { CYCLES_PER_SECOND, CYCLES_PER_FRAME } from './constants';
 import { APU } from "./audio/apu";
 import { Cartridge } from "./cartridge";
 import { CGBMode } from "./metadata";
-import { CgbState } from "./cgbState";
+import { CgbState, FORCED_RENDER_AUTO, FORCED_RENDER_GB, FORCED_RENDER_CGB } from "./cgbState";
+import { DmgCompatPalettes } from "./cgb/dmgCompatPalettes";
 
 function log(s: string): void {
     Logger.Log("EMU: " + s);
@@ -40,18 +41,29 @@ enum EmulatorStopReason {
     private static targetCycles: u64;
 
     static Init(useBootRom: boolean = true): void {
-        CgbState.setIsCGB(Cartridge.Data.getCGBMode() != CGBMode.NonCGB);
+        const cartCgbMode: CGBMode = Cartridge.Data.getCGBMode();
+        const forced: u8 = CgbState.forcedRenderMode;
+        let isCgb: boolean = cartCgbMode != CGBMode.NonCGB;
+        if (forced == FORCED_RENDER_GB) isCgb = false;
+        else if (forced == FORCED_RENDER_CGB) isCgb = true;
+        CgbState.setIsCGB(isCgb);
         CgbState.setDoubleSpeed(false);
         CgbState.setKey1(0);
         CgbState.masterCycleCount = 0;
         SaveGame.Init();
         Logger.Init()
-        MemoryMap.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
+        const willRunBootRom: boolean = MemoryMap.loadedBootRomSize > 0 && useBootRom;
+        MemoryMap.Init(willRunBootRom);
         IO.Init();
         Ppu.Init();
-        Cpu.Init(MemoryMap.loadedBootRomSize > 0 && useBootRom);
+        Cpu.Init(willRunBootRom);
         APU.Init();
         AudioRender.Init();
+        // Inject DMG-compat palettes when running a DMG cart in CGB mode without a CGB boot ROM.
+        // Real CGB boot ROM does this itself; we only inject when boot is skipped.
+        if (isCgb && cartCgbMode == CGBMode.NonCGB && !willRunBootRom) {
+            DmgCompatPalettes.Apply();
+        }
         Emulator.targetCycles = 0;
         Emulator.targetFrame = 0;
         Emulator.wasInit = true;

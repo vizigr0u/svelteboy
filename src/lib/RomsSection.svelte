@@ -4,11 +4,14 @@
         LibraryImportSourceUri,
         LibrarySort,
         LibrarySource,
+        LibraryTypeFilterStore,
         type LibrarySortOrder,
         type LibrarySourceFilter,
+        type LibraryTypeFilter,
     } from "@/stores/optionsStore";
-    import { DragState } from "../types";
+    import { DragState, type LibraryRom } from "../types";
     import type { ImportReport } from "../romImport";
+    import { CartType, cartTypeFromCgbFlag } from "../cartType";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
 
@@ -30,13 +33,41 @@
         { value: "remote", label: "Remote" },
     ];
 
+    const typeChips: { value: LibraryTypeFilter; label: string }[] = [
+        { value: "all", label: "All" },
+        { value: "gb-compat", label: "GB-compat" },
+        { value: "cgb-only", label: "CGB-only" },
+    ];
+
+    let search: string = $state("");
+    const SEARCH_MAX = 5;
+
+    function passesSource(r: LibraryRom, mode: LibrarySourceFilter): boolean {
+        if (mode === "local") return r.source.kind === "idb";
+        if (mode === "remote") return r.source.kind !== "idb";
+        return true;
+    }
+
+    function passesType(r: LibraryRom, mode: LibraryTypeFilter): boolean {
+        if (mode === "all") return true;
+        const t = cartTypeFromCgbFlag(r.cgbFlag);
+        if (mode === "cgb-only") return t === CartType.CGB_ONLY;
+        return t !== CartType.CGB_ONLY;
+    }
+
+    function passesSearch(r: LibraryRom, q: string): boolean {
+        if (!q) return true;
+        return r.name.toLowerCase().includes(q.toLowerCase().slice(0, SEARCH_MAX));
+    }
+
     let sortedRoms = $derived(
         $libraryStore
-            .filter((r) => {
-                if ($LibrarySource === "local") return r.source.kind === "idb";
-                if ($LibrarySource === "remote") return r.source.kind !== "idb";
-                return true;
-            })
+            .filter(
+                (r) =>
+                    passesSource(r, $LibrarySource) &&
+                    passesType(r, $LibraryTypeFilterStore) &&
+                    passesSearch(r, search),
+            )
             .sort((a, b) => {
                 if ($LibrarySort === "name") return a.name.localeCompare(b.name);
                 if ($LibrarySort === "lastPlayed")
@@ -129,6 +160,26 @@
             >
                 +
             </button>
+            <div class="type-chips" role="radiogroup" aria-label="Cart type filter">
+                {#each typeChips as chip}
+                    <button
+                        type="button"
+                        class="chip"
+                        class:active={$LibraryTypeFilterStore === chip.value}
+                        onclick={() => LibraryTypeFilterStore.set(chip.value)}
+                        aria-pressed={$LibraryTypeFilterStore === chip.value}
+                    >{chip.label}</button>
+                {/each}
+            </div>
+            <label class="search-label">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input
+                    type="search"
+                    placeholder="Search"
+                    bind:value={search}
+                    aria-label="Search library"
+                />
+            </label>
             <label>
                 Source:
                 <select bind:value={$LibrarySource}>
@@ -174,6 +225,35 @@
         align-items: center;
         gap: 0.5em;
         padding: 0.3em 0.5em;
+        flex-wrap: wrap;
+    }
+    .type-chips {
+        display: inline-flex;
+        gap: 0.3em;
+    }
+    .chip {
+        padding: 0.15em 0.6em;
+        border: 1px solid #45475a;
+        background: #313244;
+        color: #cdd6f4;
+        border-radius: 1em;
+        font-size: 0.78em;
+        cursor: pointer;
+    }
+    .chip.active {
+        background: var(--highlight-color, #89b4fa);
+        color: #1e1e2e;
+        border-color: var(--highlight-color, #89b4fa);
+    }
+    .search-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3em;
+    }
+    .search-label input {
+        padding: 0.15em 0.4em;
+        font-size: 0.85em;
+        max-width: 9em;
     }
     .add-source {
         margin-right: auto;

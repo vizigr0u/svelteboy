@@ -1,13 +1,19 @@
 import { get } from "svelte/store";
-import { loadCartridgeRom, loadSaveGame as backendLoadSave } from "./wasmBridge";
+import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode } from "./wasmBridge";
 import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
-import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay } from "stores/libraryStore";
-import { AutoSaveUriRoms } from "stores/optionsStore";
+import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, persistRomFields } from "stores/libraryStore";
+import { AutoSaveUriRoms, DefaultRenderMode } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebuggerAttached } from "stores/debugStores";
 import { humanReadableSize } from "../utils";
 import { isZipUri, extractRomFromZip } from "../zipRom";
+import { CartType, cartTypeFromCgbFlag, resolveRenderMode, type ResolvedRenderMode } from "../cartType";
+import { requestConfirm } from "stores/confirmStore";
 import type { LibraryRom, SaveGameData } from "../types";
+
+function renderModeToBackend(mode: ResolvedRenderMode): number {
+    return mode === 'gb' ? 1 : 2;
+}
 
 async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
     const src = rom.source;
@@ -41,12 +47,29 @@ export async function playRom(rom: LibraryRom): Promise<void> {
         console.log(`Error loading rom`);
         return;
     }
-    let activeRom: LibraryRom = rom;
+    let activeRom: LibraryRom = ensureCgbFlag(rom, buffer);
+    if (activeRom !== rom) {
+        persistRomFields({ ...activeRom }).catch(err => console.error('persistRomFields failed:', err));
+    }
     if (rom.sha1.startsWith('uri:')) {
         const reconciled = await reconcileSha1OnFirstPlay(rom.sha1, buffer, get(AutoSaveUriRoms));
-        if (reconciled) activeRom = reconciled;
+        if (reconciled) activeRom = ensureCgbFlag(reconciled, buffer);
     } else if (rom.source.kind === 'uri' && get(AutoSaveUriRoms)) {
         promoteUriToIdb(rom.sha1, buffer).catch(err => console.error('promoteUriToIdb failed:', err));
+    }
+    const cartType = cartTypeFromCgbFlag(activeRom.cgbFlag);
+    const resolved = resolveRenderMode(cartType, activeRom.renderMode, get(DefaultRenderMode));
+    if (cartType === CartType.CGB_ONLY && resolved === 'gb') {
+        const ok = await requestConfirm({
+            title: 'CGB-only ROM',
+            message: 'This ROM requires Color Game Boy mode. Switch to CGB and continue?',
+            confirmLabel: 'Switch',
+            cancelLabel: 'Cancel',
+        });
+        if (!ok) return;
+        setForcedRenderMode(renderModeToBackend('cgb'));
+    } else {
+        setForcedRenderMode(renderModeToBackend(resolved));
     }
     pauseEmulator();
     resetEmulator();

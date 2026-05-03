@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import { get } from "svelte/store";
   import Player from "./lib/Player.svelte";
+  import ConfirmDialog from "./lib/ConfirmDialog.svelte";
+  import Toaster from "./lib/Toaster.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
   import {
@@ -60,6 +62,8 @@
     <Player />
   </main>
 </div>
+<ConfirmDialog />
+<Toaster />
 
 <style>
   main {

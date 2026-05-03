@@ -1,5 +1,10 @@
 import { GB_VIDEO_BANK_SIZE, GB_WRAM_BANK_SIZE } from "./memory/memoryConstants";
 
+// Forced render mode (set from JS before initEmulator).
+export const FORCED_RENDER_AUTO: u8 = 0;
+export const FORCED_RENDER_GB: u8 = 1;
+export const FORCED_RENDER_CGB: u8 = 2;
+
 @final
 export class CgbState {
     static _isCGB: boolean = false;
@@ -10,7 +15,11 @@ export class CgbState {
     static _doubleSpeed: boolean = false;
     static _doubleSpeedShift: u8 = 0;
     static _key1: u8 = 0;
+    static _forcedRenderMode: u8 = 0;
     static masterCycleCount: u64 = 0;
+
+    @inline static get forcedRenderMode(): u8 { return CgbState._forcedRenderMode; }
+    static setForcedRenderMode(mode: u8): void { CgbState._forcedRenderMode = mode; }
 
     @inline static get isCgbMode(): boolean { return CgbState._isCGB; }
     @inline static get vramBank(): u32 { return CgbState._vramBank; }
@@ -69,4 +78,8 @@ export function isCgbMode(): boolean {
 
 export function isDoubleSpeed(): boolean {
     return CgbState.doubleSpeed;
+}
+
+export function setForcedRenderMode(mode: u8): void {
+    CgbState.setForcedRenderMode(mode);
 }

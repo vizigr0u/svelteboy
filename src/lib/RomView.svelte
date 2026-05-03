@@ -1,11 +1,17 @@
 <script lang="ts">
+    import { get } from "svelte/store";
     import type { LibraryRom } from "../types";
     import { loadedCartridge } from "stores/romStores";
-    import { deleteLibraryRom, promoteUriToIdb } from "stores/libraryStore";
+    import { deleteLibraryRom, promoteUriToIdb, setRenderModeForRom } from "stores/libraryStore";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
     import { onMount } from "svelte";
+    import { CartType, cartTypeFromCgbFlag, cartTypeLabel, type RenderModeOverride } from "../cartType";
+    import { GameFrames } from "stores/playStores";
+    import { requestConfirm } from "stores/confirmStore";
+
+    const FRAMES_SILENT_RESET_THRESHOLD = 600;
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
@@ -44,6 +50,39 @@
     let isLoaded = $derived(
         $loadedCartridge != undefined && $loadedCartridge.sha1 == rom.sha1,
     );
+    let cartType = $derived(cartTypeFromCgbFlag(rom.cgbFlag));
+    let cartLabel = $derived(cartTypeLabel(cartType));
+    let cartBadgeClass = $derived(
+        cartType === CartType.CGB_ONLY
+            ? "badge-cgb"
+            : cartType === CartType.MIXED
+              ? "badge-mixed"
+              : "badge-gb",
+    );
+    let currentMode = $derived<RenderModeOverride>(rom.renderMode ?? "auto");
+
+    async function changeRenderMode(mode: RenderModeOverride) {
+        if (mode === currentMode) return;
+        await setRenderModeForRom(rom.sha1, mode).catch((err) =>
+            console.error("setRenderModeForRom failed:", err),
+        );
+        if (!isLoaded) return;
+        const updated: LibraryRom = { ...rom, renderMode: mode };
+        const frames = get(GameFrames);
+        if (frames < FRAMES_SILENT_RESET_THRESHOLD) {
+            playRomPromise = Emulator.PlayRom(updated);
+            return;
+        }
+        const ok = await requestConfirm({
+            title: "Reset required",
+            message:
+                "Switching render mode requires a reset. Unsaved progress will be lost.",
+            confirmLabel: "Reset now",
+            cancelLabel: "Cancel",
+        });
+        if (!ok) return;
+        playRomPromise = Emulator.PlayRom(updated);
+    }
     let kindIcon = $derived(
         rom.source.kind === "idb"
             ? "fa-solid fa-hard-drive"
@@ -130,8 +169,25 @@
         </div>
     </div>
     <div class="rom-info-container">
-        <div class="rom-name">{rom.name}</div>
+        <div class="rom-name">
+            {rom.name}
+            <span class="cart-badge {cartBadgeClass}" title="Cart type: {cartLabel}">{cartLabel}</span>
+        </div>
         <div class="rom-description">{romDescription}</div>
+        <div class="render-mode-row" role="radiogroup" aria-label="Render mode">
+            {#each [["auto", "Auto"], ["force-gb", "GB"], ["force-cgb", "CGB"]] as [value, label]}
+                <label class="render-mode-radio" class:active={currentMode === value}>
+                    <input
+                        type="radio"
+                        name="render-mode-{rom.sha1}"
+                        value={value}
+                        checked={currentMode === value}
+                        onchange={() => changeRenderMode(value as RenderModeOverride)}
+                    />
+                    {label}
+                </label>
+            {/each}
+        </div>
         <div class="rom-action-buttons">
             {#if rom.source.kind === "uri"}
                 <button
@@ -262,6 +318,54 @@
     .rom-action-button {
         padding: 0.2em 0.5em;
         border-radius: 0;
+    }
+
+    .cart-badge {
+        display: inline-block;
+        margin-left: 0.4em;
+        padding: 0.05em 0.4em;
+        font-size: 0.75em;
+        border-radius: 0.25em;
+        vertical-align: middle;
+        font-weight: bold;
+        letter-spacing: 0.02em;
+    }
+    .cart-badge.badge-gb {
+        background: #4a5568;
+        color: #e2e8f0;
+    }
+    .cart-badge.badge-mixed {
+        background: #5e548e;
+        color: #f4f0fa;
+    }
+    .cart-badge.badge-cgb {
+        background: #d65f5f;
+        color: #fff;
+    }
+    .render-mode-row {
+        display: flex;
+        gap: 0.25em;
+        margin: 0.25em 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .render-mode-radio {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2em;
+        font-size: 0.8em;
+        padding: 0.1em 0.4em;
+        border-radius: 0.2em;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.04);
+    }
+    .render-mode-radio.active {
+        background: var(--highlight-color, #89b4fa);
+        color: #1e1e2e;
+    }
+    .render-mode-radio input {
+        accent-color: var(--highlight-color, #89b4fa);
+        margin: 0;
     }
 
     .rom-loaded {

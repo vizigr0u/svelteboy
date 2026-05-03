@@ -40,7 +40,8 @@ export const CGB_STATE_SIZE: u32 = CGB_STATE_SERIALIZED_SIZE
     + GB_CGB_PALETTE_RAM_SIZE;
 
 export const SAVESTATE_MAGIC: u32 = 0x59425653; // "SVBY" (little-endian: bytes 'S','V','B','Y')
-export const SAVESTATE_VERSION: u16 = 4;
+// v5 adds render-mode byte at offset 33 (was padding) — used to reject mismatched-mode loads.
+export const SAVESTATE_VERSION: u16 = 5;
 export { APU_STATE_SIZE };
 
 export function isAtFrameBoundary(): bool {
@@ -62,7 +63,7 @@ const OFF_SP: u32 = 20;
 const OFF_PC: u32 = 22;
 const OFF_CYCLE_COUNT: u32 = 24;
 const OFF_CPU_FLAGS: u32 = 32; // bit0=isHalted bit1=isStopped bit2=isEnablingIME bit3=masterEnabled bit4=failedLastCondition bit5=haltBug
-// [33] padding
+const OFF_RENDER_MODE: u32 = 33; // v5+: 0=auto/unforced, 1=force-gb, 2=force-cgb (was padding)
 // Timer (6 bytes, starts at 34)
 const OFF_INTERNAL_DIV: u32 = 34;
 const OFF_TIMA: u32 = 36;
@@ -131,7 +132,7 @@ export function createSaveState(): Uint8Array {
         | (Cpu.failedLastCondition ? 16 : 0)
         | (Cpu.haltBug ? 32 : 0);
     store<u8>(p + OFF_CPU_FLAGS, cpuFlags);
-    store<u8>(p + 33, 0);
+    store<u8>(p + OFF_RENDER_MODE, CgbState.forcedRenderMode);
 
     // Timer
     store<u16>(p + OFF_INTERNAL_DIV, Timer.internalDiv);
@@ -192,8 +193,14 @@ export function loadSaveState(data: Uint8Array): bool {
 
     if (load<u32>(p + OFF_MAGIC) != SAVESTATE_MAGIC) return false;
     const version: u16 = load<u16>(p + OFF_VERSION);
-    // v2: no APU block. v3: APU block. v4: APU + CGB state block.
-    if (version < 2 || version > 4) return false;
+    // v2: no APU block. v3: APU block. v4: APU + CGB state block. v5: + render-mode byte.
+    if (version < 2 || version > 5) return false;
+
+    // v5+: reject mismatched render mode (DMG-mode save on CGB-mode cart, or vice versa).
+    if (version >= 5) {
+        const savedMode: u8 = load<u8>(p + OFF_RENDER_MODE);
+        if (savedMode != CgbState.forcedRenderMode) return false;
+    }
 
     const extRamSize: u32 = load<u32>(p + OFF_EXT_RAM_SIZE);
     const apuSize: u32 = version >= 3 ? APU_STATE_SIZE : 0;

@@ -31,6 +31,8 @@ export interface LibraryRom extends RomReference {
     originUri?: string;
     favorite?: boolean;
     lastPlayedAt?: number;
+    cgbFlag?: number;
+    renderMode?: 'auto' | 'force-gb' | 'force-cgb';
 }
 
 export interface BootRomEntry extends RomReference {
