@@ -19,6 +19,7 @@
     let importing = $state(false);
 
     const sortOptions: { value: LibrarySortOrder; label: string }[] = [
+        { value: "lastPlayed", label: "Last played" },
         { value: "added", label: "Added (newest)" },
         { value: "name", label: "Name" },
     ];
@@ -38,6 +39,8 @@
             })
             .sort((a, b) => {
                 if ($LibrarySort === "name") return a.name.localeCompare(b.name);
+                if ($LibrarySort === "lastPlayed")
+                    return (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0);
                 return (b.addedAt ?? 0) - (a.addedAt ?? 0);
             }),
     );
