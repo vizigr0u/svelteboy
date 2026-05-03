@@ -331,8 +331,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.35);
-        color: rgba(255, 255, 255, 0.6);
+        background: rgba(0, 0, 0, 0.45);
+        color: rgba(255, 255, 255, 0.7);
         font-family: "Courier New", Courier, monospace;
         font-weight: bold;
         font-size: 3em;
