@@ -1,10 +1,6 @@
-import { EmulatorPaused, FastForwardActive, KeyPressMap } from "stores/playStores";
+import { KeyPressMap } from "stores/playStores";
 import { KeyBindingsStore } from "stores/optionsStore";
-import { loadedBootRom, loadedCartridge } from "stores/romStores";
 import { InputType } from "./types";
-import { Emulator } from "./emulator";
-import { takeScreenshot } from "./screenshot";
-import { get } from "svelte/store";
 
 let activeKeybinds: { [k: string]: InputType } = {};
 
@@ -54,49 +50,3 @@ export function gameInputKeyupHandler(event: KeyboardEvent) {
 }
 
 export { InputType };
-
-window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (!e.code.startsWith('Digit')) return;
-    const n = parseInt(e.code.slice(5));
-    if (n < 1 || n > 4) return;
-    e.preventDefault();
-    if (e.shiftKey) Emulator.QuickSave(n);
-    else Emulator.QuickLoad(n);
-});
-
-window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code !== 'Space' || e.repeat) return;
-    e.preventDefault();
-    FastForwardActive.set(true);
-});
-
-window.addEventListener('keyup', (e: KeyboardEvent) => {
-    if (e.code !== 'Space') return;
-    e.preventDefault();
-    FastForwardActive.set(false);
-});
-
-window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code !== 'KeyP' || e.repeat) return;
-    if (!get(loadedCartridge) && !get(loadedBootRom)) return;
-    e.preventDefault();
-    if (get(EmulatorPaused)) Emulator.RunUntilBreak();
-    else Emulator.Pause();
-});
-
-window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code !== 'KeyR' || e.repeat) return;
-    if (!get(loadedCartridge) && !get(loadedBootRom)) return;
-    e.preventDefault();
-    Emulator.Reset();
-});
-
-window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.code !== 'KeyS' || !e.shiftKey || e.repeat) return;
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (!get(loadedCartridge) && !get(loadedBootRom)) return;
-    e.preventDefault();
-    takeScreenshot();
-});
-
-window.addEventListener('blur', () => FastForwardActive.set(false));
