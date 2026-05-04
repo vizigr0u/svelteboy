@@ -119,28 +119,18 @@ void main() {
   vec2 fUV = vec2(vUV.x, 1.0 - vUV.y);
   vec2 srcSize = vec2(${W}.0, ${H}.0);
   ivec2 ipx = ivec2(fUV * srcSize);
-  vec2 cell = fract(fUV * srcSize);
 
   vec3 col  = texelFetch(uCurr, ipx, 0).rgb;
   vec3 prev = texelFetch(uPrev, ipx, 0).rgb;
   col = mix(col, prev, uGhost);
 
-  if (uMode == 1 && uGrid > 0.0) {
-    // CGB subpixel: physical primaries do colour correction implicitly.
-    vec3 sp = cgbSubpixel(uCurr, fUV, srcSize);
-    col = mix(col, sp, uGrid);
-  } else {
-    if (uLut > 0.5) col = applyCurve(col);
-
+  // CGB-only: subpixel or LUT. DMG mode passes through untouched (ghost only).
+  if (uMode == 1) {
     if (uGrid > 0.0) {
-      // DMG RGB stripe v1: 3 vertical bands per source pixel, weight RGB channels.
-      float band = cell.x * 3.0;
-      vec3 mask = vec3(1.0 - uGrid);
-      if      (band < 1.0) mask.r = 1.0;
-      else if (band < 2.0) mask.g = 1.0;
-      else                 mask.b = 1.0;
-      float gap = 1.0 - smoothstep(1.0 - uGrid * 0.25, 1.0, cell.y);
-      col *= mask * mix(1.0 - uGrid * 0.4, 1.0, gap);
+      vec3 sp = cgbSubpixel(uCurr, fUV, srcSize);
+      col = mix(col, sp, uGrid);
+    } else if (uLut > 0.5) {
+      col = applyCurve(col);
     }
   }
 

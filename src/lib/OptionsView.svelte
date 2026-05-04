@@ -54,14 +54,6 @@
             bind:value={$playerPixelSize}
         />
 
-        <span class="option-label">GB Palette:</span>
-        <DisabledTooltip
-            disabled={cgbActive}
-            message="GB palette is unused in CGB mode."
-        >
-            <PalettePicker />
-        </DisabledTooltip>
-
         <label for="defaultRenderMode">Default render mode:</label>
         <select id="defaultRenderMode" bind:value={$DefaultRenderMode}>
             <option value="auto">Auto (per cart)</option>
@@ -77,16 +69,6 @@
 
         <label for="pixelPerfect">Pixel-perfect scale:</label>
         <input id="pixelPerfect" type="checkbox" bind:checked={$PixelPerfect} />
-    </div>
-
-    <h4>Shaders</h4>
-    <div class="options">
-        <label for="cgbColor">CGB color treatment:</label>
-        <select id="cgbColor" bind:value={$CgbColor}>
-            <option value="none">None</option>
-            <option value="lut">Original colors (Gambatte LUT)</option>
-            <option value="subpixel">Original subpixels (LCD effect)</option>
-        </select>
 
         <label for="ghosting">Ghosting / motion blur:</label>
         <input
@@ -103,6 +85,32 @@
             <option value="gb">GB native (160×144, raw)</option>
             <option value="canvas">Canvas size (with shaders)</option>
         </select>
+    </div>
+
+    <h4>GB mode (DMG)</h4>
+    <div class="options">
+        <span class="option-label">Palette:</span>
+        <DisabledTooltip
+            disabled={cgbActive}
+            message="GB palette is unused in CGB mode."
+        >
+            <PalettePicker />
+        </DisabledTooltip>
+    </div>
+
+    <h4>CGB mode</h4>
+    <div class="options">
+        <span class="option-label">Color treatment:</span>
+        <DisabledTooltip
+            disabled={!cgbActive}
+            message="CGB color treatment is unused in GB mode."
+        >
+            <select id="cgbColor" bind:value={$CgbColor}>
+                <option value="none">None</option>
+                <option value="lut">Original colors (Gambatte LUT)</option>
+                <option value="subpixel">Original subpixels (LCD effect)</option>
+            </select>
+        </DisabledTooltip>
     </div>
 
     <h4>Emulation</h4>
