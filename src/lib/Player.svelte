@@ -48,7 +48,7 @@
         { label: 'ROMs',       active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
         { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow), disabled: !hasRom },
         { label: 'Options',    active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
-        { label: 'Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
+        { label: 'Keyboard Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
         { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
         { label: 'Fullscreen', active: isFullscreen,       toggle: toggleFullscreen },
     ]);
@@ -231,7 +231,7 @@
                 </Window>
             {/if}
             {#if $showBindingsWindow}
-                <Window title="Bindings" onclose={() => showBindingsWindow.set(false)}>
+                <Window title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
                     <BindingsView />
                 </Window>
             {/if}
@@ -273,9 +273,11 @@
                 + console-name(~4) + input-viewer(~12)             = 94 */
     @media (orientation: landscape) {
         .console {
-            height: 100dvh;
+            height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
             width: auto;
             aspect-ratio: 91 / 94;
+            margin-top: var(--safe-top);
+            margin-bottom: var(--safe-bottom);
         }
     }
     @media (orientation: portrait) {
@@ -283,7 +285,9 @@
             width: 100vw;
             height: auto;
             aspect-ratio: 91 / 94;
-            max-height: 100dvh;
+            max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+            margin-top: var(--safe-top);
+            margin-bottom: var(--safe-bottom);
         }
     }
 

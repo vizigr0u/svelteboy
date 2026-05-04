@@ -20,7 +20,6 @@ export const SelectedPaletteIndex = MakeLocalStore<number>('option-palette-index
 export const useBoot = writable<boolean>(false);
 export const showFPS = MakeLocalStore<boolean>('option-show-fps', false);
 export const showFrametimeHistogram = MakeLocalStore<boolean>('option-show-frametime-histogram', false);
-export const HideKeyboardWarning = MakeLocalStore<boolean>('option-hide-keyboard-warning', false);
 export const DismissSavesWarning = MakeLocalStore<boolean>('option-hide-saves-warning', false);
 export const LibraryImportSourceUri = MakeLocalStore<string>('option-library-import-source-uri', "");
 export const AutoSaveUriRoms = MakeLocalStore<boolean>('option-auto-save-uri-roms', true);
@@ -38,7 +37,12 @@ export const PauseOnVisibilityLost = MakeLocalStore<boolean>('option-pause-on-vi
 export const AudioMasterVolume = MakeLocalStore<number>("option-master-volume", 0.25);
 export type AudioResampleModeType = 'js' | 'apu';
 export const AudioResampleMode = MakeLocalStore<AudioResampleModeType>('option-audio-resample-mode', 'apu');
-export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings', DEFAULT_KEYBINDINGS);
+function migrateKeyBindings(stored: KeyBindings): KeyBindings {
+    const keys = Object.keys(DEFAULT_KEYBINDINGS) as (keyof KeyBindings)[];
+    const missing = keys.some(k => stored[k] === undefined);
+    return missing ? { ...DEFAULT_KEYBINDINGS, ...stored } : stored;
+}
+export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings', DEFAULT_KEYBINDINGS, migrateKeyBindings);
 export const DefaultRenderMode = MakeLocalStore<RenderModeOverride>('option-default-render-mode', 'auto');
 
 export type CgbColorMode = 'none' | 'lut' | 'subpixel';

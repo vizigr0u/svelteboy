@@ -1,15 +1,13 @@
 <script lang="ts">
     import { KeyBindingsStore } from "stores/optionsStore";
     import {
-        AB_PRESETS, SELECT_PRESETS, DPAD_PRESETS,
+        AB_PRESETS, START_PRESETS, SELECT_PRESETS, DPAD_PRESETS,
         matchesAbPreset, matchesDpadPreset,
-        abConflictReason, selectConflictReason, dpadConflictReason,
-        displayKey,
+        abConflictReason, startConflictReason, selectConflictReason, dpadConflictReason
     } from "../keybindPresets";
 </script>
 
 <div class="controls-view debug-tool-container">
-    <h3>Controls</h3>
     <div class="controls-section">
         <div class="control-row">
             <span class="control-label">D-Pad</span>
@@ -42,6 +40,21 @@
             </div>
         </div>
         <div class="control-row">
+            <span class="control-label">Start</span>
+            <div class="preset-group">
+                {#each START_PRESETS as key}
+                    {@const conflict = startConflictReason(key, $KeyBindingsStore)}
+                    <button
+                        class="preset-btn"
+                        class:active={$KeyBindingsStore.start === key}
+                        class:conflicted={!!conflict}
+                        title={conflict ?? ''}
+                        onclick={() => { if (!conflict) KeyBindingsStore.update(b => ({ ...b, start: key })); }}
+                    >{key}</button>
+                {/each}
+            </div>
+        </div>
+        <div class="control-row">
             <span class="control-label">Select</span>
             <div class="preset-group">
                 {#each SELECT_PRESETS as key}
@@ -55,13 +68,6 @@
                     >{key}</button>
                 {/each}
             </div>
-        </div>
-        <div class="mapping-legend">
-            <span>{displayKey($KeyBindingsStore.up)}{displayKey($KeyBindingsStore.down)}{displayKey($KeyBindingsStore.left)}{displayKey($KeyBindingsStore.right)}</span>
-            <span>A={displayKey($KeyBindingsStore.a)}</span>
-            <span>B={displayKey($KeyBindingsStore.b)}</span>
-            <span>Start=Enter</span>
-            <span>Select={displayKey($KeyBindingsStore.select)}</span>
         </div>
     </div>
 </div>
@@ -113,13 +119,5 @@
         opacity: 0.35;
         cursor: not-allowed;
         border-style: dashed;
-    }
-
-    .mapping-legend {
-        display: flex;
-        gap: 1em;
-        font-size: 0.8em;
-        opacity: 0.7;
-        margin-top: 0.25em;
     }
 </style>

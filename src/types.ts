@@ -170,6 +170,7 @@ export enum AudioChannel {
 export type KeyBindings = {
     a: string;
     b: string;
+    start: string;
     select: string;
     up: string;
     down: string;

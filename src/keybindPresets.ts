@@ -12,6 +12,8 @@ export const AB_PRESETS: AbPreset[] = [
     { label: 'L / K', a: 'l', b: 'k' },
 ];
 
+export const START_PRESETS: string[] = ['Enter'];
+
 export const SELECT_PRESETS: string[] = ['Shift', 'Backspace'];
 
 export const DPAD_PRESETS: DpadPreset[] = [
@@ -21,7 +23,8 @@ export const DPAD_PRESETS: DpadPreset[] = [
 ];
 
 export const DEFAULT_KEYBINDINGS: KeyBindings = {
-    a: 'x', b: 'z', select: 'Shift',
+    a: 'x', b: 'z',
+    start: 'Enter', select: 'Shift',
     up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
 };
 
@@ -40,6 +43,7 @@ function keyRole(key: string, bindings: KeyBindings): string {
     if (key === bindings.down)   return 'D-pad ↓';
     if (key === bindings.left)   return 'D-pad ←';
     if (key === bindings.right)  return 'D-pad →';
+    if (key === bindings.start)  return 'Start';
     if (key === bindings.select) return 'Select';
     if (key === bindings.a)      return 'A';
     if (key === bindings.b)      return 'B';
@@ -47,7 +51,7 @@ function keyRole(key: string, bindings: KeyBindings): string {
 }
 
 export function abConflictReason(preset: AbPreset, bindings: KeyBindings): string | null {
-    const occupied = new Set([bindings.up, bindings.down, bindings.left, bindings.right, bindings.select]);
+    const occupied = new Set([bindings.up, bindings.down, bindings.left, bindings.right, bindings.select, bindings.start]);
     const parts: string[] = [];
     if (occupied.has(preset.a)) parts.push(`${displayKey(preset.a)} used by ${keyRole(preset.a, bindings)}`);
     if (occupied.has(preset.b)) parts.push(`${displayKey(preset.b)} used by ${keyRole(preset.b, bindings)}`);
@@ -55,13 +59,19 @@ export function abConflictReason(preset: AbPreset, bindings: KeyBindings): strin
 }
 
 export function selectConflictReason(key: string, bindings: KeyBindings): string | null {
-    const occupied = new Set([bindings.up, bindings.down, bindings.left, bindings.right, bindings.a, bindings.b]);
+    const occupied = new Set([bindings.up, bindings.down, bindings.left, bindings.right, bindings.a, bindings.b, bindings.start]);
+    if (!occupied.has(key)) return null;
+    return `${displayKey(key)} already used by ${keyRole(key, bindings)}`;
+}
+
+export function startConflictReason(key: string, bindings: KeyBindings): string | null {
+    const occupied = new Set([bindings.up, bindings.down, bindings.left, bindings.right, bindings.a, bindings.b, bindings.select]);
     if (!occupied.has(key)) return null;
     return `${displayKey(key)} already used by ${keyRole(key, bindings)}`;
 }
 
 export function dpadConflictReason(preset: DpadPreset, bindings: KeyBindings): string | null {
-    const occupied = new Set([bindings.a, bindings.b, bindings.select]);
+    const occupied = new Set([bindings.a, bindings.b, bindings.select, bindings.start]);
     const parts: string[] = [];
     for (const key of [preset.up, preset.down, preset.left, preset.right]) {
         if (occupied.has(key)) parts.push(`${displayKey(key)} used by ${keyRole(key, bindings)}`);
