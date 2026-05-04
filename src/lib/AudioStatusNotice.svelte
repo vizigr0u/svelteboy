@@ -36,7 +36,7 @@
         display: flex;
         align-items: center;
         gap: 0.6em;
-        padding: 0.5em 0.9em;
+        padding: calc(0.5em + var(--safe-top)) calc(0.9em + var(--safe-right)) 0.5em calc(0.9em + var(--safe-left));
         font-size: 0.9em;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         background: #f38ba8;
