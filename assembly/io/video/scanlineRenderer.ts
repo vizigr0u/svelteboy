@@ -1,4 +1,4 @@
-import { GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
+import { GB_IO_START, GB_VIDEO_BANK_SIZE, GB_VIDEO_START } from "../../memory/memoryConstants";
 import { LCD_WIDTH } from "./constants";
 import { Lcd, LcdControlBit } from "./lcd";
 import { OamAttribute } from "./oam";
@@ -6,6 +6,8 @@ import { Ppu, PpuOamFifo } from "./ppu";
 import { TileCache } from "./tileCache";
 import { perfNow } from "../../debug/perfMarks";
 import { CgbState } from "../../cgbState";
+import { Cartridge } from "../../cartridge";
+import { CGBMode } from "../../metadata";
 
 
 @final
@@ -224,6 +226,14 @@ export class ScanlineRenderer {
         const bgPaletteNum = ScanlineRenderer.bgPaletteNum;
         const bgPriority = ScanlineRenderer.bgPriority;
 
+        // DMG-compat: forced-CGB rendering of a DMG cart. Tile attribute byte ignored (no CGB
+        // palette/bank/flip/prio); raw colorIds remapped through DMG palette regs (BGP/OBP0/OBP1)
+        // before the CGB palette RAM lookup. Sprite palette = OAM bit 4 (DMG OBP0/OBP1 select).
+        const dmgCompat: boolean = Cartridge.Data.getCGBMode() == CGBMode.NonCGB;
+        const bgp:  u8 = load<u8>(GB_IO_START + 0x47);
+        const obp0: u8 = load<u8>(GB_IO_START + 0x48);
+        const obp1: u8 = load<u8>(GB_IO_START + 0x49);
+
         const lcd = Lcd.data;
         const y = lcd.lY;
         const bgScrollX: u8 = lcd.scrollX;
@@ -248,8 +258,9 @@ export class ScanlineRenderer {
             const mapIdx: u32 = mapX >> 3;
 
             const dataIndex: u8 = load<u8>(mapRowBase + mapIdx);
-            // tile attributes always from VRAM bank 1 (same offset + GB_VIDEO_BANK_SIZE)
-            const attrs: u8 = load<u8>(mapRowBase + GB_VIDEO_BANK_SIZE + mapIdx);
+            // tile attributes always from VRAM bank 1 (same offset + GB_VIDEO_BANK_SIZE).
+            // DMG-compat: hardware ignores the CGB attribute byte entirely (and bank 1 may be uninit garbage).
+            const attrs: u8 = dmgCompat ? 0 : load<u8>(mapRowBase + GB_VIDEO_BANK_SIZE + mapIdx);
 
             const cgbPalette: u8 = attrs & 0x07;
             const vramBank: u8 = (attrs >> 3) & 1;
@@ -305,7 +316,10 @@ export class ScanlineRenderer {
                 }
                 unchecked(ScanlineRenderer.spriteXPos[fi] = oam.xPos);
                 unchecked(ScanlineRenderer.spriteBgPrio[fi] = oam.hasAttr(OamAttribute.BGandWindowOver) ? 1 : 0);
-                unchecked(ScanlineRenderer.spriteCgbPalette[fi] = oam.flags & 0x07);
+                // DMG-compat: palette comes from OAM bit 4 (DMG OBP0/OBP1 select), CGB pal bits ignored.
+                unchecked(ScanlineRenderer.spriteCgbPalette[fi] = dmgCompat
+                    ? (oam.flags >> 4) & 1
+                    : oam.flags & 0x07);
             }
         }
 
@@ -317,7 +331,8 @@ export class ScanlineRenderer {
 
         for (let x: u8 = 0; x < LCD_WIDTH; x++) {
             const bgColorId = unchecked(pixels[x]);
-            let finalColor: u16 = Lcd.getCGBBgColor(unchecked(bgPaletteNum[x]), bgColorId);
+            const bgIdx: u8 = dmgCompat ? ((bgp >> (bgColorId << 1)) & 3) : bgColorId;
+            let finalColor: u16 = Lcd.getCGBBgColor(unchecked(bgPaletteNum[x]), bgIdx);
 
             if (numSprites > 0) {
                 for (let si = 0; si < numSprites; si++) {
@@ -347,7 +362,11 @@ export class ScanlineRenderer {
                     }
 
                     if (objWins) {
-                        finalColor = Lcd.getCGBObjColor(unchecked(ScanlineRenderer.spriteCgbPalette[si]), spriteColorId);
+                        const palNum: u8 = unchecked(ScanlineRenderer.spriteCgbPalette[si]);
+                        const objIdx: u8 = dmgCompat
+                            ? (((palNum != 0 ? obp1 : obp0) >> (spriteColorId << 1)) & 3)
+                            : spriteColorId;
+                        finalColor = Lcd.getCGBObjColor(palNum, objIdx);
                     }
                     break;
                 }
