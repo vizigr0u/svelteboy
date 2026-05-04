@@ -22,14 +22,18 @@ import { AudioMasterVolume, AudioResampleMode, BurstSpeed, MuteOnFastForward, Re
 import { FastForwardActive } from "stores/playStores";
 import { addPostRunCallback } from "./loop";
 import { SabRing, SabWriter } from "../audio/sabRingBuffer";
+import { probeAudioCapability, type AudioCapability } from "../audio/capabilities";
 
 const FastForwardMute = derived(
     [MuteOnFastForward, FastForwardActive],
     ([mute, active]) => mute && active
 );
 
+export type AudioModeValue = 'pending' | 'worklet' | 'fallback' | 'none';
+
 export const AudioSuspended = writable<boolean>(false);
 export const AudioWorkletActive = writable<boolean>(false);
+export const AudioMode = writable<AudioModeValue>('pending');
 export const AudioUnderrunStats = writable<{ underruns: number; frames: number }>({ underruns: 0, frames: 0 });
 
 const FADE_OUT_S = 0.02;
@@ -42,8 +46,16 @@ const SAB_CAPACITY_FRAMES = 16384;
 // so the worklet always plays at wall-clock pace instead of skipping forward.
 const SAB_TARGET_FRAMES = 4096; // ~93 ms
 
-const WORKLET_MODULE_URL = '/gameboy-audio-processor.js';
+// Fallback path: max seconds of audio we'll queue ahead of currentTime before dropping buffers.
+// Keeps fallback latency bounded and avoids unbounded source-node growth.
+const FALLBACK_MAX_AHEAD_S = 0.2;
+
 const WORKLET_PROCESSOR_NAME = 'svelteboy-audio-processor';
+
+function getWorkletModuleUrl(): string {
+    const base = (import.meta as any).env?.BASE_URL ?? '/';
+    return new URL('gameboy-audio-processor.js', new URL(base, window.location.origin)).toString();
+}
 
 let wasInit = false;
 let audioCtx: AudioContext;
@@ -54,6 +66,8 @@ let destinationNode: AudioNode;
 let workletNode: AudioWorkletNode | null = null;
 let sabWriter: SabWriter | null = null;
 
+let fallbackScheduledTime = 0;
+
 let audioFadedOut = false;
 let pendingSuspendTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -63,13 +77,6 @@ let resamplePhase = 0;
 let resamplePrevL = 0;
 let resamplePrevR = 0;
 let lastAppliedDivisor = 1;
-
-function isWorkletSupported(): boolean {
-    return typeof SharedArrayBuffer === 'function'
-        && typeof (globalThis as any).crossOriginIsolated !== 'undefined'
-        && (globalThis as any).crossOriginIsolated === true
-        && typeof AudioWorkletNode !== 'undefined';
-}
 
 function computeTargetGain(): number {
     if (get(FastForwardMute)) return 0;
@@ -87,7 +94,7 @@ function applyTargetGain(): void {
 }
 
 async function setupWorklet(): Promise<void> {
-    await audioCtx.audioWorklet.addModule(WORKLET_MODULE_URL);
+    await audioCtx.audioWorklet.addModule(getWorkletModuleUrl());
     const sab = SabRing.allocate(SAB_CAPACITY_FRAMES);
     workletNode = new AudioWorkletNode(audioCtx, WORKLET_PROCESSOR_NAME, {
         numberOfInputs: 0,
@@ -104,19 +111,35 @@ async function setupWorklet(): Promise<void> {
     sabWriter = new SabWriter(sab, SAB_CAPACITY_FRAMES);
     workletNode.connect(destinationNode);
     AudioWorkletActive.set(true);
+    addPostRunCallback(postRunAudioWorklet);
+}
+
+function setupFallback(): void {
+    fallbackScheduledTime = 0;
+    addPostRunCallback(postRunAudioFallback);
+}
+
+function setupNoAudio(): void {
+    addPostRunCallback(postRunDrainOnly);
 }
 
 export const Audio = {
     Init: () => {
         if (wasInit) return;
-        if (!isWorkletSupported()) {
-            console.warn('[audio] AudioWorklet path unavailable (need crossOriginIsolated + SharedArrayBuffer). No audio will play.');
-            wasInit = true;
+        wasInit = true;
+
+        const cap: AudioCapability = probeAudioCapability();
+        if (cap === 'none') {
+            console.warn('[audio] No AudioContext available — audio disabled.');
+            AudioMode.set('none');
+            // Still wire the post-run drain so the WASM ring doesn't fill up.
+            wasmRate = getAudioSampleRate();
+            outRate = wasmRate;
+            setupNoAudio();
             return;
         }
 
         // Try to pin context to WASM APU rate; browser may fall back to OS default (often 48 kHz).
-        // Either way, we drive resampling against actual audioCtx.sampleRate.
         wasmRate = getAudioSampleRate();
         try {
             audioCtx = new window.AudioContext({ sampleRate: wasmRate });
@@ -142,7 +165,6 @@ export const Audio = {
         MuteSoundChannel4.subscribe(setMute => { setMuteChannel(4, setMute); });
 
         destinationNode = analyzerNode;
-        addPostRunCallback(postRunAudio);
 
         const updateSuspended = () => AudioSuspended.set(audioCtx.state === 'suspended');
         audioCtx.addEventListener('statechange', updateSuspended);
@@ -153,14 +175,23 @@ export const Audio = {
         document.addEventListener('keydown', resumeOnGesture);
         document.addEventListener('pointerdown', resumeOnGesture);
 
-        setupWorklet().catch(err => {
-            console.error('[audio] Worklet setup failed:', err);
-            workletNode = null;
-            sabWriter = null;
-            AudioWorkletActive.set(false);
-        });
+        if (cap === 'worklet') {
+            setupWorklet().then(() => {
+                AudioMode.set('worklet');
+            }).catch(err => {
+                console.warn('[audio] Worklet setup failed, falling back to AudioBufferSourceNode:', err);
+                workletNode = null;
+                sabWriter = null;
+                AudioWorkletActive.set(false);
+                setupFallback();
+                AudioMode.set('fallback');
+            });
+        } else {
+            console.warn('[audio] crossOriginIsolated/SAB unavailable — using AudioBufferSourceNode fallback (higher latency, may stutter under main-thread load).');
+            setupFallback();
+            AudioMode.set('fallback');
+        }
 
-        wasInit = true;
         onResampleParamsChanged();
     }
 };
@@ -211,7 +242,12 @@ function resampleStereo(left: Float32Array, right: Float32Array, step: number): 
     return { L: outL.subarray(0, n), R: outR.subarray(0, n) };
 }
 
-function postRunAudio(): void {
+function postRunDrainOnly(): void {
+    const numAvailableBuffers = getAudioBuffersToReadCount();
+    if (numAvailableBuffers > 0) markAudioBuffersRead(numAvailableBuffers);
+}
+
+function postRunAudioWorklet(): void {
     const bufferSize = getAudioBuffersSize();
     AudioBufferSize.set(bufferSize);
     const numAvailableBuffers = getAudioBuffersToReadCount();
@@ -226,15 +262,12 @@ function postRunAudio(): void {
 
     const mode = get(AudioResampleMode);
     const speed = getEffectiveSpeed();
-    // step = 1 in 'apu' mode (APU already at outRate); resample only in 'js' mode.
     const step = mode === 'apu' ? 1 : (wasmRate * speed) / outRate;
 
     let buffersToWrite: number;
     if (step >= 1.0) {
-        // Decimation already matches wall-clock pace — write all input buffers, no drops.
         buffersToWrite = numAvailableBuffers;
     } else {
-        // Upsample (e.g. js mode at 48 kHz) grows output; backpressure on SAB target.
         const occupancy = sabWriter.availableRead();
         const headroom = Math.max(0, SAB_TARGET_FRAMES - occupancy);
         const outPerInput = Math.max(1, Math.ceil(bufferSize / step));
@@ -262,6 +295,64 @@ function postRunAudio(): void {
     AudioBufferPointers.set(ptrs);
 }
 
+function postRunAudioFallback(): void {
+    const bufferSize = getAudioBuffersSize();
+    AudioBufferSize.set(bufferSize);
+    const numAvailableBuffers = getAudioBuffersToReadCount();
+    if (numAvailableBuffers === 0) return;
+
+    if (audioCtx.state !== 'running') {
+        markAudioBuffersRead(numAvailableBuffers);
+        return;
+    }
+
+    const now = audioCtx.currentTime;
+    if (fallbackScheduledTime < now) fallbackScheduledTime = now;
+
+    const mode = get(AudioResampleMode);
+    const speed = getEffectiveSpeed();
+    const step = mode === 'apu' ? 1 : (wasmRate * speed) / outRate;
+
+    const ptrs: number[][] = [];
+    for (let i = 0; i < numAvailableBuffers; i++) {
+        // Drop if too far ahead — keeps fallback latency bounded.
+        if (fallbackScheduledTime - now > FALLBACK_MAX_AHEAD_S) {
+            const remaining = numAvailableBuffers - i;
+            markAudioBuffersRead(remaining);
+            break;
+        }
+        const leftPtr = getAudioBufferToReadPointer(0);
+        const rightPtr = getAudioBufferToReadPointer(1);
+        ptrs.push([leftPtr, rightPtr]);
+        const left = getAudioBufferView(leftPtr, bufferSize);
+        const right = getAudioBufferView(rightPtr, bufferSize);
+
+        let outL: Float32Array;
+        let outR: Float32Array;
+        if (step === 1) {
+            outL = new Float32Array(left);
+            outR = new Float32Array(right);
+        } else {
+            const { L, R } = resampleStereo(left, right, step);
+            outL = L;
+            outR = R;
+        }
+        markAudioBuffersRead(1);
+
+        if (outL.length === 0) continue;
+
+        const buf = audioCtx.createBuffer(2, outL.length, outRate);
+        buf.getChannelData(0).set(outL);
+        buf.getChannelData(1).set(outR);
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(destinationNode);
+        src.start(fallbackScheduledTime);
+        fallbackScheduledTime += outL.length / outRate;
+    }
+    AudioBufferPointers.set(ptrs);
+}
+
 export function stopQueuedAudio(): void {
     if (!audioCtx) return;
     audioFadedOut = true;
@@ -277,6 +368,7 @@ export function stopQueuedAudio(): void {
     setTimeout(() => {
         sabWriter?.reset();
         workletNode?.port.postMessage({ type: 'reset' });
+        fallbackScheduledTime = 0;
         resamplePhase = 0;
         resamplePrevL = 0;
         resamplePrevR = 0;

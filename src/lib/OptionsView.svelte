@@ -24,6 +24,8 @@
     import DisabledTooltip from "./DisabledTooltip.svelte";
     import { isCgbMode } from "../emulator/wasmBridge";
     import { EmulatorInitialized, GameFrames } from "stores/playStores";
+    import { AudioMode } from "../emulator/audio";
+    import { get } from "svelte/store";
 
     let advancedOpen = $state(false);
     // Re-evaluate when frames advance or emulator re-initializes.
@@ -40,6 +42,21 @@
         if (!ok) return;
         await clearAllStorage();
         location.reload();
+    }
+
+    function showAudioStatus() {
+        const w = window as any;
+        const sw = navigator.serviceWorker;
+        const lines = [
+            `AudioMode: ${get(AudioMode)}`,
+            `crossOriginIsolated: ${w.crossOriginIsolated === true}`,
+            `SharedArrayBuffer: ${typeof w.SharedArrayBuffer === "function"}`,
+            `AudioWorkletNode: ${typeof w.AudioWorkletNode === "function"}`,
+            `AudioContext: ${typeof w.AudioContext === "function" || typeof w.webkitAudioContext === "function"}`,
+            `ServiceWorker.controller: ${sw && sw.controller ? sw.controller.scriptURL : "none"}`,
+            `userAgent: ${navigator.userAgent}`,
+        ];
+        alert(lines.join("\n"));
     }
 
     function showLatestBanner() {
@@ -205,6 +222,7 @@
         <summary><h3>Advanced</h3></summary>
         <div class="advanced">
             <button onclick={showLatestBanner}>Show latest announcement banner</button>
+            <button onclick={showAudioStatus}>Show audio status</button>
             <button class="danger" onclick={clearAll}>Wipe all ROMs &amp; preferences</button>
         </div>
     </details>

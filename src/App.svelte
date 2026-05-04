@@ -5,6 +5,7 @@
   import ConfirmDialog from "./lib/ConfirmDialog.svelte";
   import Toaster from "./lib/Toaster.svelte";
   import Motd from "./lib/Motd.svelte";
+  import AudioStatusNotice from "./lib/AudioStatusNotice.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
   import {
@@ -58,6 +59,7 @@
   });
 </script>
 
+<AudioStatusNotice />
 <Motd />
 <div class="page-container">
   <main>
