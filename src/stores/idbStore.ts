@@ -141,7 +141,7 @@ export async function clearAllStorage(): Promise<void> {
 }
 
 
-export function MakeIDBStore<T>(key: string, defaultValue: T): Writable<T> {
+export function MakeIDBStore<T>(key: string, defaultValue: T, migrate?: (stored: T) => T): Writable<T> {
     const store = writable<T>(defaultValue);
     let hydrated = false;
 
@@ -149,7 +149,11 @@ export function MakeIDBStore<T>(key: string, defaultValue: T): Writable<T> {
         .then(db => prefGet<T>(db, key))
         .then(stored => {
             hydrated = true;
-            if (stored !== undefined) store.set(stored);
+            if (stored === undefined) return;
+            const migrated = migrate ? migrate(stored) : stored;
+            store.set(migrated);
+            if (migrate && migrated !== stored)
+                openDB().then(db => prefSet(db, key, migrated));
         });
 
     store.subscribe(value => {

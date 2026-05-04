@@ -1,22 +1,5 @@
 <script lang="ts">
-    import { KeyBindingsStore, HideKeyboardWarning } from "stores/optionsStore";
-    import { displayKey } from "../keybindPresets";
     import ControlsView from "./ControlsView.svelte";
-
-    function resetKeybindingDisclaimer() {
-        HideKeyboardWarning.set(false);
-    }
-
-    const gameInputs = $derived([
-        { label: 'D-Pad ↑',   keys: [displayKey($KeyBindingsStore.up)] },
-        { label: 'D-Pad ↓',   keys: [displayKey($KeyBindingsStore.down)] },
-        { label: 'D-Pad ←',   keys: [displayKey($KeyBindingsStore.left)] },
-        { label: 'D-Pad →',   keys: [displayKey($KeyBindingsStore.right)] },
-        { label: 'A',         keys: [displayKey($KeyBindingsStore.a)] },
-        { label: 'B',         keys: [displayKey($KeyBindingsStore.b)] },
-        { label: 'Start',     keys: ['Enter'] },
-        { label: 'Select',    keys: [displayKey($KeyBindingsStore.select)] },
-    ]);
 
     const systemShortcuts = [
         { label: 'Pause / Resume',     keys: ['P'] },
@@ -30,23 +13,7 @@
 </script>
 
 <div class="bindings-view debug-tool-container">
-    <h3>Bindings</h3>
-
     <ControlsView />
-
-    <h4>Game Inputs</h4>
-    <table class="shortcuts">
-        <tbody>
-            {#each gameInputs as row}
-                <tr>
-                    <td class="action">{row.label}</td>
-                    <td class="keys">
-                        {#each row.keys as k}<kbd>{k}</kbd>{/each}
-                    </td>
-                </tr>
-            {/each}
-        </tbody>
-    </table>
 
     <h4>System Shortcuts</h4>
     <table class="shortcuts">
@@ -64,10 +31,6 @@
             {/each}
         </tbody>
     </table>
-
-    <div class="actions">
-        <button onclick={resetKeybindingDisclaimer}>Reset keybinding disclaimer</button>
-    </div>
 </div>
 
 <style>
