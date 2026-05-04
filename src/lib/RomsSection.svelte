@@ -14,6 +14,7 @@
     import { CartType, cartTypeFromCgbFlag } from "../cartType";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
+    import Icon from "./icons/Icon.svelte";
 
     let dragState: DragState = $state(DragState.Idle);
     let dragStatus: string = $state("");
@@ -172,7 +173,7 @@
                 {/each}
             </div>
             <label class="search-label">
-                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <Icon name="magnifying-glass" />
                 <input
                     type="search"
                     placeholder="Search"

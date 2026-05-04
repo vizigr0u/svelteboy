@@ -9,6 +9,7 @@
         saveSlot,
         type SaveStateEntry,
     } from "../saveStateDb";
+    import Icon from "./icons/Icon.svelte";
 
     const SLOT_COUNT = 4;
 
@@ -95,13 +96,13 @@
                         title="Download .svby"
                         onclick={() => onDownload(slot)}
                         disabled={!entry}
-                    ><i class="fa-solid fa-cloud-arrow-down"></i></button>
+                    ><Icon name="cloud-arrow-down" /></button>
                     <label
                         class="upload-btn"
                         title="Upload .svby"
                         class:disabled={!$loadedCartridge}
                     >
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <Icon name="cloud-arrow-up" />
                         <input
                             type="file"
                             accept=".svby,application/octet-stream"

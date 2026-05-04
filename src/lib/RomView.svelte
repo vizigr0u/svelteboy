@@ -10,6 +10,8 @@
     import { CartType, cartTypeFromCgbFlag, cartTypeLabel, type RenderModeOverride } from "../cartType";
     import { GameFrames } from "stores/playStores";
     import { requestConfirm } from "stores/confirmStore";
+    import Icon from "./icons/Icon.svelte";
+    import type { IconName } from "./icons/Icon.svelte";
 
     const FRAMES_SILENT_RESET_THRESHOLD = 600;
 
@@ -83,12 +85,12 @@
         if (!ok) return;
         playRomPromise = Emulator.PlayRom(updated);
     }
-    let kindIcon = $derived(
+    let kindIcon = $derived<IconName>(
         rom.source.kind === "idb"
-            ? "fa-solid fa-hard-drive"
+            ? "hard-drive"
             : rom.source.kind === "uri"
-              ? "fa-solid fa-cloud"
-              : "fa-solid fa-question",
+              ? "cloud"
+              : "question",
     );
     let kindTitle = $derived(
         rom.source.kind === "idb"
@@ -148,12 +150,12 @@
             loading="lazy"
         />
         <span class="kind-badge" title={kindTitle} aria-label={kindTitle}>
-            <i class={kindIcon}></i>
+            <Icon name={kindIcon} />
         </span>
         <div class="over-image-box">
             {#await playRomPromise}
                 <div class="loading-rom-placeholder">
-                    <i class="fas fa-spinner fa-spin"></i>
+                    <Icon name="spinner" />
                 </div>
             {:then}
                 <button
@@ -163,7 +165,7 @@
                     }}
                     disabled={isLoading || isLoaded}
                     aria-label="Play"
-                    ><i class="fa-regular fa-circle-play"></i></button
+                    ><Icon name="circle-play" /></button
                 >
             {/await}
         </div>
@@ -262,19 +264,19 @@
         flex: 1;
     }
 
-    .over-image-box i {
+    .over-image-box :global(.icon) {
         text-align: center;
         vertical-align: middle;
         font-size: 3em;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.8);
         padding: 0.2em;
-        background-color: rgba(0, 0, 0, 0.3);
+        background-color: rgba(0, 0, 0, 0.38);
         border-radius: 50%;
     }
 
-    .rom-play-button:hover > i {
+    .rom-play-button:hover > :global(.icon) {
         color: var(--highlight-color);
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: rgba(0, 0, 0, 0.28);
     }
 
     .rom-info-container {
