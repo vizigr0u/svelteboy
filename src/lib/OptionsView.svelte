@@ -1,6 +1,5 @@
 <script lang="ts">
     import {
-        playerPixelSize,
         showFPS,
         showFrametimeHistogram,
         AutoSaveUriRoms,
@@ -91,15 +90,6 @@
 
     <h4>Display</h4>
     <div class="options">
-        <label for="pixelSize">Pixel size:</label>
-        <input
-            id="pixelSize"
-            type="number"
-            min="1"
-            max="10"
-            bind:value={$playerPixelSize}
-        />
-
         <label for="showfps">Display FPS:</label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />
 

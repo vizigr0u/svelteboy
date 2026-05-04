@@ -104,7 +104,7 @@
         position: relative;
         display: flex;
         justify-content: space-between;
-        padding: 1em 10% 8em 4%;
+        padding: var(--u) 10% calc(8 * var(--u)) 4%;
         width: 100%;
     }
 

@@ -7,18 +7,15 @@
   import { pixelPerfectScale } from "./shaders/pixelPerfect";
 
   const W = 160, H = 144;
-  // Shader always renders into canvas backing at >= RENDER_SCALE resolution.
-  // Windowed display shrinks via CSS (browser bilinear downscale) so subpixel
-  // pattern looks identical regardless of CSS display size.
+  // Backing buffer locked at integer multiple of native — high enough for
+  // shader subpixel pattern detail. CSS scales display to fit parent.
   const RENDER_SCALE = 3;
   let {
-    pixelSize = 4,
     palette = PALETTE_PRESETS[0],
     cgbColor = 'none',
     ghostingStrength = 0,
     pixelPerfect = true,
   }: {
-    pixelSize?: number;
     palette?: GBPalette;
     cgbColor?: CgbColorMode;
     ghostingStrength?: number;
@@ -52,7 +49,6 @@
   let texPrev: WebGLTexture | null = null;
 
   let ready = false;
-  let displayScale = 1;
   let lastIsCgb = false;
   let hasFrame = false;
 
@@ -201,29 +197,26 @@ void main() {
   }
 
   function recomputeDisplaySize() {
-    if (!canvas) return;
-    const inFullscreen = !!document.fullscreenElement;
-    if (!inFullscreen) {
-      displayScale = pixelSize;
+    if (!canvas || !wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const cw = rect.width;
+    const ch = rect.height;
+    if (!cw || !ch) return;
+    let cssW: number, cssH: number;
+    if (pixelPerfect) {
+      const scale = pixelPerfectScale(cw, ch);
+      cssW = W * scale;
+      cssH = H * scale;
     } else {
-      const rect = wrapper?.getBoundingClientRect();
-      const cw = rect?.width || W * pixelSize;
-      const ch = rect?.height || H * pixelSize;
-      displayScale = pixelPerfect
-        ? pixelPerfectScale(cw, ch)
-        : Math.min(cw / W, ch / H);
+      const ratio = W / H;
+      if (cw / ch > ratio) {
+        cssH = ch;
+        cssW = ch * ratio;
+      } else {
+        cssW = cw;
+        cssH = cw / ratio;
+      }
     }
-    const cssW = W * displayScale;
-    const cssH = H * displayScale;
-    const dpr = window.devicePixelRatio || 1;
-    // Backing always >= RENDER_SCALE so shader sampling density stays high
-    // even at small CSS sizes; browser CSS handles the visual downscale.
-    const minBacking = W * RENDER_SCALE;
-    const wantBacking = Math.round(cssW * dpr);
-    const backW = Math.max(minBacking, wantBacking);
-    const backH = Math.round(backW * (H / W));
-    canvas.width = backW;
-    canvas.height = backH;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
     if (ready && hasFrame) composite();
@@ -264,6 +257,8 @@ void main() {
     const a = makeRgbaFbo(); fboCurr = a.fbo; texCurr = a.tex;
     const b = makeRgbaFbo(); fboPrev = b.fbo; texPrev = b.tex;
 
+    canvas.width = W * RENDER_SCALE;
+    canvas.height = H * RENDER_SCALE;
     recomputeDisplaySize();
     const ro = new ResizeObserver(() => recomputeDisplaySize());
     if (wrapper) ro.observe(wrapper);
@@ -287,7 +282,7 @@ void main() {
   });
 
   $effect(() => {
-    pixelPerfect; pixelSize;
+    pixelPerfect;
     if (ready) {
       recomputeDisplaySize();
       composite();
@@ -371,7 +366,6 @@ void main() {
     display: block;
     background-color: rgb(0, 0, 0);
     border: 1px solid black;
-    /* Backing is rendered at high res; CSS shrinks via browser bilinear. */
     image-rendering: auto;
   }
 </style>
