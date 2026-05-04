@@ -45,7 +45,50 @@
 </script>
 
 <div class="options-view debug-tool-container">
-    <h3>Options</h3>
+    <h4>Emulation</h4>
+    <div class="options">
+        <label for="defaultRenderMode">Default emulator mode:</label>
+        <select id="defaultRenderMode" bind:value={$DefaultRenderMode}>
+            <option value="auto">Auto (per cart)</option>
+            <option value="force-gb">Force GB</option>
+            <option value="force-cgb">Force CGB</option>
+        </select>
+
+        <label for="regularspeed">Regular speed:</label>
+        <input
+            id="regularspeed"
+            type="number"
+            min="0.01"
+            max="100"
+            step="0.1"
+            bind:value={$RegularSpeed}
+        />
+
+        <label for="burstspeed">Burst speed (hold Space):</label>
+        <input
+            id="burstspeed"
+            type="number"
+            min="0.01"
+            max="100"
+            step="0.1"
+            bind:value={$BurstSpeed}
+        />
+
+        <label for="muteonfastforward">Mute sound while burst active:</label>
+        <input
+            id="muteonfastforward"
+            type="checkbox"
+            bind:checked={$MuteOnFastForward}
+        />
+
+        <label for="pauseOnVisibilityLost">Pause when tab hidden:</label>
+        <input
+            id="pauseOnVisibilityLost"
+            type="checkbox"
+            bind:checked={$PauseOnVisibilityLost}
+        />
+    </div>
+
     <h4>Display</h4>
     <div class="options">
         <label for="pixelSize">Pixel size:</label>
@@ -56,13 +99,6 @@
             max="10"
             bind:value={$playerPixelSize}
         />
-
-        <label for="defaultRenderMode">Default render mode:</label>
-        <select id="defaultRenderMode" bind:value={$DefaultRenderMode}>
-            <option value="auto">Auto (per cart)</option>
-            <option value="force-gb">Force GB</option>
-            <option value="force-cgb">Force CGB</option>
-        </select>
 
         <label for="showfps">Display FPS:</label>
         <input id="showfps" type="checkbox" bind:checked={$showFPS} />
@@ -114,43 +150,6 @@
                 <option value="subpixel">Original subpixels (LCD effect)</option>
             </select>
         </DisabledTooltip>
-    </div>
-
-    <h4>Emulation</h4>
-    <div class="options">
-        <label for="regularspeed">Regular speed:</label>
-        <input
-            id="regularspeed"
-            type="number"
-            min="0.01"
-            max="100"
-            step="0.1"
-            bind:value={$RegularSpeed}
-        />
-
-        <label for="burstspeed">Burst speed (hold Space):</label>
-        <input
-            id="burstspeed"
-            type="number"
-            min="0.01"
-            max="100"
-            step="0.1"
-            bind:value={$BurstSpeed}
-        />
-
-        <label for="muteonfastforward">Mute sound while burst active:</label>
-        <input
-            id="muteonfastforward"
-            type="checkbox"
-            bind:checked={$MuteOnFastForward}
-        />
-
-        <label for="pauseOnVisibilityLost">Pause when tab hidden:</label>
-        <input
-            id="pauseOnVisibilityLost"
-            type="checkbox"
-            bind:checked={$PauseOnVisibilityLost}
-        />
     </div>
 
     <h4>Audio</h4>
