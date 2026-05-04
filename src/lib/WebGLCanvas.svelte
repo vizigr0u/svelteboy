@@ -7,8 +7,12 @@
   import { pixelPerfectScale } from "./shaders/pixelPerfect";
 
   const W = 160, H = 144;
+  // Shader always renders into canvas backing at >= RENDER_SCALE resolution.
+  // Windowed display shrinks via CSS (browser bilinear downscale) so subpixel
+  // pattern looks identical regardless of CSS display size.
+  const RENDER_SCALE = 3;
   let {
-    pixelSize = 3,
+    pixelSize = 4,
     palette = PALETTE_PRESETS[0],
     cgbColor = 'none',
     ghostingStrength = 0,
@@ -179,14 +183,15 @@ void main() {
     return tex;
   }
 
-  function makeRgbaFbo(): { fbo: WebGLFramebuffer; tex: WebGLTexture } {
+  function makeRgbaFbo(w: number = W, h: number = H, filter: number = 0): { fbo: WebGLFramebuffer; tex: WebGLTexture } {
+    const f = filter || gl!.NEAREST;
     const tex = gl!.createTexture()!;
     gl!.bindTexture(gl!.TEXTURE_2D, tex);
-    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.NEAREST);
-    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.NEAREST);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, f);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, f);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
-    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA8, W, H, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, null);
+    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA8, w, h, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, null);
     const fbo = gl!.createFramebuffer()!;
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, fbo);
     gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0, gl!.TEXTURE_2D, tex, 0);
@@ -197,25 +202,35 @@ void main() {
 
   function recomputeDisplaySize() {
     if (!canvas) return;
-    if (pixelPerfect) {
+    const inFullscreen = !!document.fullscreenElement;
+    if (!inFullscreen) {
+      displayScale = pixelSize;
+    } else {
       const rect = wrapper?.getBoundingClientRect();
       const cw = rect?.width || W * pixelSize;
       const ch = rect?.height || H * pixelSize;
-      displayScale = pixelPerfectScale(cw, ch);
-    } else {
-      displayScale = pixelSize;
+      displayScale = pixelPerfect
+        ? pixelPerfectScale(cw, ch)
+        : Math.min(cw / W, ch / H);
     }
     const cssW = W * displayScale;
     const cssH = H * displayScale;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(cssW * dpr);
-    canvas.height = Math.round(cssH * dpr);
+    // Backing always >= RENDER_SCALE so shader sampling density stays high
+    // even at small CSS sizes; browser CSS handles the visual downscale.
+    const minBacking = W * RENDER_SCALE;
+    const wantBacking = Math.round(cssW * dpr);
+    const backW = Math.max(minBacking, wantBacking);
+    const backH = Math.round(backW * (H / W));
+    canvas.width = backW;
+    canvas.height = backH;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
+    if (ready && hasFrame) composite();
   }
 
   onMount(() => {
-    gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true });
+    gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false });
     if (!gl) return;
 
     const vao = gl.createVertexArray()!;
@@ -272,7 +287,7 @@ void main() {
   });
 
   $effect(() => {
-    pixelSize; pixelPerfect;
+    pixelPerfect; pixelSize;
     if (ready) {
       recomputeDisplaySize();
       composite();
@@ -356,6 +371,7 @@ void main() {
     display: block;
     background-color: rgb(0, 0, 0);
     border: 1px solid black;
-    image-rendering: pixelated;
+    /* Backing is rendered at high res; CSS shrinks via browser bilinear. */
+    image-rendering: auto;
   }
 </style>
