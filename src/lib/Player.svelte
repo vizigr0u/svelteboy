@@ -1,7 +1,7 @@
 <script lang="ts">
     import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
-    import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect, WakeLockEnabled, OrientationLockEnabled } from "stores/optionsStore";
+    import { showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect, WakeLockEnabled, OrientationLockEnabled } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -186,7 +186,6 @@
             >
                 <WebGLCanvas
                     bind:this={webglCanvas}
-                    pixelSize={$playerPixelSize}
                     palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
                     cgbColor={$CgbColor}
                     ghostingStrength={$GhostingStrength}
@@ -249,8 +248,12 @@
 
 <style>
     .console {
+        container-type: size;
+        /* Drives all internal spacing. clamp() bounds the unit; min(cqi,cqb)
+           picks the constraining axis so layout fits both orientations. */
+        --u: clamp(0.25rem, min(1.05cqi, 1.05cqb), 1.4rem);
         position: relative;
-        padding-top: 1em;
+        padding-top: var(--u);
         background-color: #bbb;
         touch-action: none;
         user-select: none;
@@ -260,8 +263,28 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        border-radius: 1em 1em 7em 1em;
+        border-radius: var(--u) var(--u) calc(7 * var(--u)) var(--u);
         border: 4px solid transparent;
+    }
+
+    /* Aspect ratio derived from internal layout in --u multiples:
+       width  ≈ canvas(80) + screen pad(2*5) + screen margin(2*0.5) = 91
+       height ≈ pad-top(1) + canvas(72) + screen pad(2*2) + screen margin(2*0.5)
+                + console-name(~4) + input-viewer(~12)             = 94 */
+    @media (orientation: landscape) {
+        .console {
+            height: 100dvh;
+            width: auto;
+            aspect-ratio: 91 / 94;
+        }
+    }
+    @media (orientation: portrait) {
+        .console {
+            width: 100vw;
+            height: auto;
+            aspect-ratio: 91 / 94;
+            max-height: 100dvh;
+        }
     }
 
     .console:focus,
@@ -273,7 +296,7 @@
         font-family: "Courier New", Courier, monospace;
         color: #12153d;
         font-weight: bold;
-        font-size: 3em;
+        font-size: calc(3 * var(--u));
         margin-left: 5%;
         align-self: flex-start;
         font-style: italic;
@@ -282,10 +305,10 @@
 
     .screen {
         position: relative;
-        padding: 2em 5em;
+        padding: calc(2 * var(--u)) calc(5 * var(--u));
         background-color: #68717a;
-        margin: 0.5em;
-        border-radius: 1em 1em 4em 1em;
+        margin: calc(0.5 * var(--u));
+        border-radius: var(--u) var(--u) calc(4 * var(--u)) var(--u);
     }
 
     .screen:fullscreen {
@@ -294,7 +317,7 @@
         background-color: #000;
         border-radius: 0;
         width: 100vw;
-        height: 100vh;
+        height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -304,8 +327,6 @@
         width: 100%;
         height: 100%;
     }
-
-    /* Canvas sizing handled inline by WebGLCanvas (pixel-perfect or fixed scale). */
 
     .screen.drop-allowed {
         background-color: #608cb8;
@@ -321,14 +342,14 @@
 
     .frametime-wrapper {
         position: absolute;
-        top: 0.4em;
-        left: 0.4em;
+        top: calc(0.4 * var(--u));
+        left: calc(0.4 * var(--u));
         z-index: 5;
     }
 
     .audio-hint {
         position: absolute;
-        bottom: 0.5em;
+        bottom: calc(0.5 * var(--u));
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0,0,0,0.75);
@@ -348,12 +369,12 @@
 
     .burger-btn {
         position: absolute;
-        top: 0.4em;
-        right: 0.4em;
+        top: calc(0.4 * var(--u));
+        right: calc(0.4 * var(--u));
         background: rgba(0,0,0,0.4);
         border: none;
         color: #eee;
-        font-size: 1.2em;
+        font-size: calc(1.2 * var(--u));
         cursor: pointer;
         border-radius: 0.3em;
         padding: 0.1em 0.3em;
@@ -374,6 +395,13 @@
         position: relative;
         display: block;
         line-height: 0;
+        width: calc(80 * var(--u));
+        height: calc(72 * var(--u));
+    }
+
+    .screen:fullscreen .screen-tap {
+        width: 100%;
+        height: 100%;
     }
 
     .pause-overlay {
@@ -386,7 +414,7 @@
         color: rgba(255, 255, 255, 0.7);
         font-family: "Courier New", Courier, monospace;
         font-weight: bold;
-        font-size: 3em;
+        font-size: calc(3 * var(--u));
         letter-spacing: 0.2em;
         text-transform: uppercase;
         pointer-events: none;
