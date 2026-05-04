@@ -7,6 +7,8 @@ import { GB_VIDEO_START, GB_VIDEO_BANK_SIZE } from "../../memory/memoryConstants
 import { Oam } from "../../io/video/oam";
 import { describe, it, assertEquals } from "../framework";
 import { setTestRom } from "../cpuTests";
+import { Cartridge } from "../../cartridge";
+import { CGBMode } from "../../metadata";
 
 const MAP_9800: u32 = GB_VIDEO_START + 0x1800;
 
@@ -23,6 +25,7 @@ const WHITE: u16 = 0x7FFF; // R=31 G=31 B=31
 
 function initCgbPpu(): void {
     setTestRom([0x00]);
+    Cartridge.Data.cgbFlag = CGBMode.CGBOnly as u8;
     CgbState.setIsCGB(true);
     CgbState.setVramBank(0);
     MemoryMap.GBstore<u8>(0xFF40, 0x91); // PPU on, TILE_$8000, BG on, no sprites
