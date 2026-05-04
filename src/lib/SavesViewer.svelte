@@ -6,6 +6,7 @@
     import { loadedCartridge } from "stores/romStores";
     import { DismissSavesWarning } from "stores/optionsStore";
     import QuickSaveControls from "./QuickSaveControls.svelte";
+    import Icon from "./icons/Icon.svelte";
 
     const maxToShow = 50;
 
@@ -94,7 +95,7 @@
         </h3>
         {#if !$DismissSavesWarning && relevantSaves.length > 0}
             <div class="warning">
-                <i class="fa-solid fa-triangle-exclamation"></i><span>
+                <Icon name="triangle-exclamation" /><span>
                     Saves are NOT persistent (yet), they aren't stored! (Also
                     not well tested)<br /> Don't forget to download the save
                     files you want to keep.<br />
@@ -106,7 +107,7 @@
                     aria-label="Dismiss"
                     onclick={() => {
                         $DismissSavesWarning = true;
-                    }}><i class="fa-solid fa-xmark"></i></button
+                    }}><Icon name="xmark" /></button
                 >
             </div>
         {/if}
@@ -120,13 +121,13 @@
                     </div>
                     <button onclick={() => onLoadClick(save)}>Load</button>
                     <button aria-label="Download" onclick={() => onDownloadClick(save)}
-                        ><i class="fa-solid fa-cloud-arrow-down"></i></button
+                        ><Icon name="cloud-arrow-down" /></button
                     >
                     <button
                         class="delete-button"
                         aria-label="Delete"
                         onclick={() => onDeleteClick(save)}
-                        ><i class="fa-solid fa-trash"></i></button
+                        ><Icon name="trash" /></button
                     >
                 </div>
             {/each}
@@ -137,7 +138,7 @@
         {/if}
         {#if relevantSaves.length >= 3}
             <button onclick={onClearAllClick}
-                ><i class="fa-solid fa-trash"></i> Delete All Saves!</button
+                ><Icon name="trash" /> Delete All Saves!</button
             >
         {/if}
     </div>
@@ -174,7 +175,7 @@
         --highlight-color: #6f500b;
     }
 
-    .warning > i {
+    .warning > :global(.icon) {
         font-size: 1.9em;
         border-radius: 50%;
         padding: 0.4em;

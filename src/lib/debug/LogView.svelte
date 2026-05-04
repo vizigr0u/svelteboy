@@ -5,6 +5,7 @@
     import { EmulatorBusy } from "stores/playStores";
     import { loadedCartridge } from "stores/romStores";
     import { humanReadableNumber } from "../../utils";
+    import Icon from "../icons/Icon.svelte";
 
     let maxLines = 500;
 
@@ -87,7 +88,7 @@
         </label>
         <div class="log-category-dropdown">
             <button class="log-category-toggle"
-                ><i class="fa-solid fa-filter"></i>...
+                ><Icon name="filter" />...
             </button>
             <div class="log-category-dropdown-content">
                 {#each LogCategories as cat}
@@ -109,16 +110,16 @@
             aria-label="Clear logs"
             onclick={onClearClick}
             disabled={!$DebugLines || $DebugLines.length == 0}
-            ><i class="fa-solid fa-trash"></i></button
+            ><Icon name="trash" /></button
         >
         <button aria-label="Refresh" onclick={fetchLogs} disabled={$EmulatorBusy}
-            ><i class="fa-solid fa-rotate"></i></button
+            ><Icon name="rotate" /></button
         >
         <button
             aria-label="Download"
             onclick={() => downloadLog([])}
             disabled={!$DebugLines || $DebugLines.length == 0 || $EmulatorBusy}
-            ><i class="fa-solid fa-cloud-arrow-down"></i></button
+            ><Icon name="cloud-arrow-down" /></button
         >
         <button
             onclick={() => downloadLog($MutedCategories)}
