@@ -12,6 +12,10 @@
         AudioMasterVolume,
         AudioResampleMode,
         DefaultRenderMode,
+        CgbColor,
+        GhostingStrength,
+        ScreenshotSize,
+        PixelPerfect,
     } from "stores/optionsStore";
     import { clearAllStorage } from "../stores/idbStore";
     import PalettePicker from "./PalettePicker.svelte";
@@ -70,6 +74,35 @@
 
         <label for="showframetime">Frametime histogram:</label>
         <input id="showframetime" type="checkbox" bind:checked={$showFrametimeHistogram} />
+
+        <label for="pixelPerfect">Pixel-perfect scale:</label>
+        <input id="pixelPerfect" type="checkbox" bind:checked={$PixelPerfect} />
+    </div>
+
+    <h4>Shaders</h4>
+    <div class="options">
+        <label for="cgbColor">CGB color treatment:</label>
+        <select id="cgbColor" bind:value={$CgbColor}>
+            <option value="none">None</option>
+            <option value="lut">Original colors (Gambatte LUT)</option>
+            <option value="subpixel">Original subpixels (LCD effect)</option>
+        </select>
+
+        <label for="ghosting">Ghosting / motion blur:</label>
+        <input
+            id="ghosting"
+            type="range"
+            min="0"
+            max="0.9"
+            step="0.05"
+            bind:value={$GhostingStrength}
+        />
+
+        <label for="screenshotSize">Screenshot size:</label>
+        <select id="screenshotSize" bind:value={$ScreenshotSize}>
+            <option value="gb">GB native (160×144, raw)</option>
+            <option value="canvas">Canvas size (with shaders)</option>
+        </select>
     </div>
 
     <h4>Emulation</h4>
