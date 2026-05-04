@@ -217,7 +217,7 @@
                 <BurgerMenu items={menuItems} />
             {/if}
             {#if $showRomsWindow}
-                <Window title="ROMs" onclose={() => showRomsWindow.set(false)}>
+                <Window title="ROMs Library" onclose={() => showRomsWindow.set(false)}>
                     <RomsSection />
                 </Window>
             {/if}

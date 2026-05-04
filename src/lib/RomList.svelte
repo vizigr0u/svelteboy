@@ -7,12 +7,6 @@
 </script>
 
 <div class="debug-tool-container">
-  <h3 class="roms-list-title">
-    {title}
-    {#if roms.length > 0}
-      ({roms.length})
-    {/if}
-  </h3>
   {#if roms.length > 0}
     <div class="roms-container">
       {#if roms.length > 20}
@@ -33,7 +27,7 @@
     </div>
   {:else}
     <div class="status">
-      <span class="roms-count">(none)</span>
+      <span class="roms-count">(Empty - drag ROMs here)</span>
     </div>
   {/if}
 </div>
