@@ -1,19 +1,56 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { GBPalette } from "../stores/optionsStore";
+  import type { GBPalette, CgbColorMode } from "../stores/optionsStore";
   import { PALETTE_PRESETS } from "../stores/optionsStore";
+  import { CGB_COLOR_CURVE_GLSL } from "./shaders/colorCurve";
+  import { CGB_SUBPIXEL_GLSL } from "./shaders/cgbSubpixel";
+  import { pixelPerfectScale } from "./shaders/pixelPerfect";
 
   const W = 160, H = 144;
-  let { pixelSize = 3, palette = PALETTE_PRESETS[0] }: { pixelSize?: number; palette?: GBPalette } = $props();
+  let {
+    pixelSize = 3,
+    palette = PALETTE_PRESETS[0],
+    cgbColor = 'none',
+    ghostingStrength = 0,
+    pixelPerfect = true,
+  }: {
+    pixelSize?: number;
+    palette?: GBPalette;
+    cgbColor?: CgbColorMode;
+    ghostingStrength?: number;
+    pixelPerfect?: boolean;
+  } = $props();
 
   let canvas: HTMLCanvasElement;
+  let wrapper: HTMLDivElement;
   let gl: WebGL2RenderingContext | null = null;
+
+  // Pass A — frame upload programs
   let dmgProg: WebGLProgram | null = null;
   let cgbProg: WebGLProgram | null = null;
-  let dmgTexture: WebGLTexture | null = null;
-  let cgbTexture: WebGLTexture | null = null;
+  let dmgFrameTex: WebGLTexture | null = null;
+  let cgbFrameTex: WebGLTexture | null = null;
   let paletteLoc: WebGLUniformLocation | null = null;
+
+  // Pass B — composite program + uniforms
+  let compositeProg: WebGLProgram | null = null;
+  let uCurrLoc: WebGLUniformLocation | null = null;
+  let uPrevLoc: WebGLUniformLocation | null = null;
+  let uGridLoc: WebGLUniformLocation | null = null;
+  let uGhostLoc: WebGLUniformLocation | null = null;
+  let uLutLoc: WebGLUniformLocation | null = null;
+  let uModeLoc: WebGLUniformLocation | null = null;
+
+  // Ping-pong FBOs (RGBA8 @ 160×144). currentFbo holds last rendered frame; prevFbo lags by one frame.
+  let fboCurr: WebGLFramebuffer | null = null;
+  let texCurr: WebGLTexture | null = null;
+  let fboPrev: WebGLFramebuffer | null = null;
+  let texPrev: WebGLTexture | null = null;
+
   let ready = false;
+  let displayScale = 1;
+  let lastIsCgb = false;
+  let hasFrame = false;
 
   const vertSrc = `#version 300 es
 const vec2 POS[6] = vec2[6](
@@ -30,6 +67,7 @@ void main() {
   vUV = UV[gl_VertexID];
 }`;
 
+  // Pass A: write palette/RGB555 → RGBA8 FBO (no scaling)
   const dmgFragSrc = `#version 300 es
 precision mediump float;
 uniform highp usampler2D uFrame;
@@ -56,6 +94,57 @@ void main() {
   float g = float((rgb >> 5u) & 31u) / 31.0;
   float b = float((rgb >> 10u) & 31u) / 31.0;
   fragColor = vec4(r, g, b, 1.0);
+}`;
+
+  // Pass B: composite — ghost + (CGB subpixel | DMG RGB stripe) + optional LUT
+  // uMode: 0 = DMG (palette stripe + optional LUT), 1 = CGB (subpixel; LUT implicit)
+  const compositeFragSrc = `#version 300 es
+precision mediump float;
+uniform sampler2D uCurr;
+uniform sampler2D uPrev;
+uniform float uGrid;
+uniform float uGhost;
+uniform float uLut;
+uniform int uMode;
+in vec2 vUV;
+out vec4 fragColor;
+
+${CGB_COLOR_CURVE_GLSL}
+${CGB_SUBPIXEL_GLSL}
+
+void main() {
+  // Pass A wrote into FBOs with the same UV flip that maps the source frame
+  // (top-down byte layout) onto a GL texture (bottom-up). Re-flip Y here
+  // so this sampling matches what direct-to-canvas rendering produced.
+  vec2 fUV = vec2(vUV.x, 1.0 - vUV.y);
+  vec2 srcSize = vec2(${W}.0, ${H}.0);
+  ivec2 ipx = ivec2(fUV * srcSize);
+  vec2 cell = fract(fUV * srcSize);
+
+  vec3 col  = texelFetch(uCurr, ipx, 0).rgb;
+  vec3 prev = texelFetch(uPrev, ipx, 0).rgb;
+  col = mix(col, prev, uGhost);
+
+  if (uMode == 1 && uGrid > 0.0) {
+    // CGB subpixel: physical primaries do colour correction implicitly.
+    vec3 sp = cgbSubpixel(uCurr, fUV, srcSize);
+    col = mix(col, sp, uGrid);
+  } else {
+    if (uLut > 0.5) col = applyCurve(col);
+
+    if (uGrid > 0.0) {
+      // DMG RGB stripe v1: 3 vertical bands per source pixel, weight RGB channels.
+      float band = cell.x * 3.0;
+      vec3 mask = vec3(1.0 - uGrid);
+      if      (band < 1.0) mask.r = 1.0;
+      else if (band < 2.0) mask.g = 1.0;
+      else                 mask.b = 1.0;
+      float gap = 1.0 - smoothstep(1.0 - uGrid * 0.25, 1.0, cell.y);
+      col *= mask * mix(1.0 - uGrid * 0.4, 1.0, gap);
+    }
+  }
+
+  fragColor = vec4(col, 1.0);
 }`;
 
   function compileShader(type: number, src: string): WebGLShader {
@@ -89,7 +178,7 @@ void main() {
     return f;
   }
 
-  function makeTexture(internalFormat: number, type: number): WebGLTexture {
+  function makeIntegerTexture(internalFormat: number, type: number): WebGLTexture {
     const tex = gl!.createTexture()!;
     gl!.bindTexture(gl!.TEXTURE_2D, tex);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.NEAREST);
@@ -100,8 +189,43 @@ void main() {
     return tex;
   }
 
+  function makeRgbaFbo(): { fbo: WebGLFramebuffer; tex: WebGLTexture } {
+    const tex = gl!.createTexture()!;
+    gl!.bindTexture(gl!.TEXTURE_2D, tex);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.NEAREST);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.NEAREST);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
+    gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA8, W, H, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, null);
+    const fbo = gl!.createFramebuffer()!;
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, fbo);
+    gl!.framebufferTexture2D(gl!.FRAMEBUFFER, gl!.COLOR_ATTACHMENT0, gl!.TEXTURE_2D, tex, 0);
+    if (gl!.checkFramebufferStatus(gl!.FRAMEBUFFER) !== gl!.FRAMEBUFFER_COMPLETE)
+      throw new Error("FBO incomplete");
+    return { fbo, tex };
+  }
+
+  function recomputeDisplaySize() {
+    if (!canvas) return;
+    if (pixelPerfect) {
+      const rect = wrapper?.getBoundingClientRect();
+      const cw = rect?.width || W * pixelSize;
+      const ch = rect?.height || H * pixelSize;
+      displayScale = pixelPerfectScale(cw, ch);
+    } else {
+      displayScale = pixelSize;
+    }
+    const cssW = W * displayScale;
+    const cssH = H * displayScale;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width = `${cssW}px`;
+    canvas.style.height = `${cssH}px`;
+  }
+
   onMount(() => {
-    gl = canvas.getContext("webgl2");
+    gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true });
     if (!gl) return;
 
     const vao = gl.createVertexArray()!;
@@ -114,14 +238,40 @@ void main() {
     gl.uniform1i(gl.getUniformLocation(dmgProg, "uFrame"), 0);
     paletteLoc = gl.getUniformLocation(dmgProg, "uPalette");
     gl.uniform4fv(paletteLoc, abgrToFloats(palette));
-    dmgTexture = makeTexture(gl.R8UI, gl.UNSIGNED_BYTE);
+    dmgFrameTex = makeIntegerTexture(gl.R8UI, gl.UNSIGNED_BYTE);
 
     cgbProg = makeProgram(vert, compileShader(gl.FRAGMENT_SHADER, cgbFragSrc));
     gl.useProgram(cgbProg);
     gl.uniform1i(gl.getUniformLocation(cgbProg, "uFrame"), 0);
-    cgbTexture = makeTexture(gl.R16UI, gl.UNSIGNED_SHORT);
+    cgbFrameTex = makeIntegerTexture(gl.R16UI, gl.UNSIGNED_SHORT);
+
+    compositeProg = makeProgram(vert, compileShader(gl.FRAGMENT_SHADER, compositeFragSrc));
+    gl.useProgram(compositeProg);
+    uCurrLoc = gl.getUniformLocation(compositeProg, "uCurr");
+    uPrevLoc = gl.getUniformLocation(compositeProg, "uPrev");
+    uGridLoc = gl.getUniformLocation(compositeProg, "uGrid");
+    uGhostLoc = gl.getUniformLocation(compositeProg, "uGhost");
+    uLutLoc = gl.getUniformLocation(compositeProg, "uLut");
+    uModeLoc = gl.getUniformLocation(compositeProg, "uMode");
+    gl.uniform1i(uCurrLoc, 0);
+    gl.uniform1i(uPrevLoc, 1);
+
+    const a = makeRgbaFbo(); fboCurr = a.fbo; texCurr = a.tex;
+    const b = makeRgbaFbo(); fboPrev = b.fbo; texPrev = b.tex;
+
+    recomputeDisplaySize();
+    const ro = new ResizeObserver(() => recomputeDisplaySize());
+    if (wrapper) ro.observe(wrapper);
+    window.addEventListener("resize", recomputeDisplaySize);
+    document.addEventListener("fullscreenchange", recomputeDisplaySize);
 
     ready = true;
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", recomputeDisplaySize);
+      document.removeEventListener("fullscreenchange", recomputeDisplaySize);
+    };
   });
 
   $effect(() => {
@@ -131,39 +281,91 @@ void main() {
     }
   });
 
+  $effect(() => {
+    pixelSize; pixelPerfect;
+    if (ready) {
+      recomputeDisplaySize();
+      composite();
+    }
+  });
+
+  $effect(() => {
+    cgbColor; ghostingStrength;
+    if (ready) composite();
+  });
+
+  function swapFbos() {
+    const tf = fboCurr, tt = texCurr;
+    fboCurr = fboPrev; texCurr = texPrev;
+    fboPrev = tf; texPrev = tt;
+  }
+
+  function composite(): void {
+    if (!gl || !ready || !hasFrame) return;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.useProgram(compositeProg);
+    gl.uniform1f(uGridLoc, cgbColor === 'subpixel' ? 1 : 0);
+    gl.uniform1f(uGhostLoc, ghostingStrength);
+    gl.uniform1f(uLutLoc, cgbColor === 'lut' ? 1 : 0);
+    gl.uniform1i(uModeLoc, lastIsCgb ? 1 : 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texCurr);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, texPrev);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
   export function draw(frame: Uint8Array | Uint16Array): void {
     if (!gl || !ready) return;
 
+    swapFbos();
+
+    // Pass A — render frame into fboCurr (texture 160×144 RGBA)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fboCurr);
+    gl.viewport(0, 0, W, H);
+
     const isCgb = frame instanceof Uint16Array;
     gl.useProgram(isCgb ? cgbProg : dmgProg);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.bindTexture(gl.TEXTURE_2D, isCgb ? cgbTexture : dmgTexture);
-
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, isCgb ? cgbFrameTex : dmgFrameTex);
     if (isCgb) {
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RED_INTEGER, gl.UNSIGNED_SHORT, frame as Uint16Array);
     } else {
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RED_INTEGER, gl.UNSIGNED_BYTE, frame as Uint8Array);
     }
-
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    lastIsCgb = isCgb;
+    hasFrame = true;
+    composite();
   }
 
   export function isSupported(): boolean {
     return gl !== null;
   }
+
+  export function getCanvas(): HTMLCanvasElement {
+    return canvas;
+  }
 </script>
 
-<canvas
-  bind:this={canvas}
-  width={W * pixelSize}
-  height={H * pixelSize}
-  class="canvas"
-></canvas>
+<div bind:this={wrapper} class="wrapper">
+  <canvas bind:this={canvas} class="canvas"></canvas>
+</div>
 
 <style>
+  .wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
   .canvas {
     display: block;
     background-color: rgb(0, 0, 0);
     border: 1px solid black;
+    image-rendering: pixelated;
   }
 </style>

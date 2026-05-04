@@ -1,9 +1,14 @@
 import { get } from "svelte/store";
 import { Emulator } from "./emulator";
 import { loadedCartridge, loadedBootRom } from "stores/romStores";
-import { PALETTE_PRESETS, SelectedPaletteIndex } from "stores/optionsStore";
+import { PALETTE_PRESETS, SelectedPaletteIndex, ScreenshotSize } from "stores/optionsStore";
 
 const W = 160, H = 144;
+
+let shadedCanvasGetter: (() => HTMLCanvasElement | null) | null = null;
+export function registerShadedCanvas(getter: (() => HTMLCanvasElement | null) | null): void {
+    shadedCanvasGetter = getter;
+}
 
 function frameToImageData(): ImageData | null {
     const data = new Uint8ClampedArray(W * H * 4);
@@ -43,32 +48,38 @@ function timestamp(): string {
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
 }
 
+function downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
 export function takeScreenshot(): void {
     const cart = get(loadedCartridge);
     const boot = get(loadedBootRom);
     if (!cart && !boot) return;
+
+    const baseName = sanitize(cart?.name ?? boot?.name ?? 'screenshot');
+    const filename = `${baseName}_${timestamp()}.png`;
+
+    const shaded = get(ScreenshotSize) === 'canvas' ? shadedCanvasGetter?.() ?? null : null;
+    if (shaded) {
+        shaded.toBlob(blob => { if (blob) downloadBlob(blob, filename); }, 'image/png');
+        return;
+    }
+
     const img = frameToImageData();
     if (!img) return;
-
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.putImageData(img, 0, 0);
-
-    const baseName = sanitize(cart?.name ?? boot?.name ?? 'screenshot');
-    const filename = `${baseName}_${timestamp()}.png`;
-
-    canvas.toBlob(blob => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-    }, 'image/png');
+    canvas.toBlob(blob => { if (blob) downloadBlob(blob, filename); }, 'image/png');
 }

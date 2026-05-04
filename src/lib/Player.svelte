@@ -1,7 +1,7 @@
 <script lang="ts">
     import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
-    import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS } from "stores/optionsStore";
+    import { playerPixelSize, showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -18,11 +18,12 @@
     import DebugSection from "./debug/DebugSection.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
+    import { registerShadedCanvas } from "../screenshot";
     import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow } from "../stores/windowStores";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
-    let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void } | null = $state(null);
+    let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void; getCanvas: () => HTMLCanvasElement } | null = $state(null);
     let menuOpen: boolean = $state(false);
     let screenEl: HTMLDivElement | undefined = $state();
     let screenTapEl: HTMLDivElement | undefined = $state();
@@ -60,6 +61,7 @@
             }
         };
         Emulator.AddRenderCallback(drawCallback);
+        registerShadedCanvas(() => webglCanvas?.getCanvas() ?? null);
 
         const onFullscreenChange = () => {
             isFullscreen = !!document.fullscreenElement;
@@ -68,6 +70,7 @@
 
         return () => {
             Emulator.RemoveRenderCallback(drawCallback);
+            registerShadedCanvas(null);
             document.removeEventListener('fullscreenchange', onFullscreenChange);
         };
     });
@@ -140,6 +143,9 @@
                     bind:this={webglCanvas}
                     pixelSize={$playerPixelSize}
                     palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
+                    cgbColor={$CgbColor}
+                    ghostingStrength={$GhostingStrength}
+                    pixelPerfect={$PixelPerfect}
                 />
                 {#if $EmulatorPaused && hasRom}
                     <div class="pause-overlay">PAUSE</div>
@@ -250,11 +256,7 @@
         height: 100%;
     }
 
-    .screen:fullscreen :global(.canvas) {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
+    /* Canvas sizing handled inline by WebGLCanvas (pixel-perfect or fixed scale). */
 
     .screen.drop-allowed {
         background-color: #608cb8;

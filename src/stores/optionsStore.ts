@@ -41,3 +41,10 @@ export type AudioResampleModeType = 'js' | 'apu';
 export const AudioResampleMode = MakeLocalStore<AudioResampleModeType>('option-audio-resample-mode', 'apu');
 export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings', DEFAULT_KEYBINDINGS);
 export const DefaultRenderMode = MakeLocalStore<RenderModeOverride>('option-default-render-mode', 'auto');
+
+export type CgbColorMode = 'none' | 'lut' | 'subpixel';
+export const CgbColor = MakeLocalStore<CgbColorMode>('option-cgb-color-mode', 'none');
+export const GhostingStrength = MakeLocalStore<number>('option-ghosting-strength', 0);
+export const PixelPerfect = MakeLocalStore<boolean>('option-pixel-perfect', true);
+export type ScreenshotSizeMode = 'gb' | 'canvas';
+export const ScreenshotSize = MakeLocalStore<ScreenshotSizeMode>('option-screenshot-size', 'canvas');
