@@ -34,6 +34,7 @@
         $GameFrames;
         return isCgbMode();
     });
+    let romLoaded = $derived($EmulatorInitialized);
 
     async function clearAll() {
         const ok = confirm(
@@ -149,7 +150,7 @@
     <div class="options">
         <span class="option-label">Palette:</span>
         <DisabledTooltip
-            disabled={cgbActive}
+            disabled={romLoaded && cgbActive}
             message="GB palette is unused in CGB mode."
         >
             <PalettePicker />
@@ -160,7 +161,7 @@
     <div class="options">
         <span class="option-label">Color treatment:</span>
         <DisabledTooltip
-            disabled={!cgbActive}
+            disabled={romLoaded && !cgbActive}
             message="CGB color treatment is unused in GB mode."
         >
             <select id="cgbColor" bind:value={$CgbColor}>
