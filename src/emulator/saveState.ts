@@ -84,5 +84,5 @@ export async function quickLoad(slot: number): Promise<void> {
     if (!ok) {
         showToast('Save state could not be loaded (mode mismatch or corrupt data).', 'error');
     }
-    if (wasRunning && !get(DebuggerAttached)) runUntilBreak();
+    if (wasRunning) runUntilBreak();
 }
