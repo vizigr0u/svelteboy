@@ -41,6 +41,18 @@
         await clearAllStorage();
         location.reload();
     }
+
+    function showLatestBanner() {
+        try {
+            const keys: string[] = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const k = sessionStorage.key(i);
+                if (k && k.startsWith("motd-dismissed-")) keys.push(k);
+            }
+            keys.forEach((k) => sessionStorage.removeItem(k));
+        } catch (_) {}
+        location.reload();
+    }
 </script>
 
 <div class="options-view debug-tool-container">
@@ -192,6 +204,7 @@
     <details bind:open={advancedOpen}>
         <summary><h3>Advanced</h3></summary>
         <div class="advanced">
+            <button onclick={showLatestBanner}>Show latest announcement banner</button>
             <button class="danger" onclick={clearAll}>Wipe all ROMs &amp; preferences</button>
         </div>
     </details>

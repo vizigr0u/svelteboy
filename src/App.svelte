@@ -4,6 +4,7 @@
   import Player from "./lib/Player.svelte";
   import ConfirmDialog from "./lib/ConfirmDialog.svelte";
   import Toaster from "./lib/Toaster.svelte";
+  import Motd from "./lib/Motd.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
   import {
@@ -57,6 +58,7 @@
   });
 </script>
 
+<Motd />
 <div class="page-container">
   <main>
     <Player />

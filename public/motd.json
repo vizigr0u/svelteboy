@@ -1,0 +1,8 @@
+[
+  {
+    "_comment": "To clear banner: replace this array with [] (or delete this entry). To expire automatically: add \"until\": \"2026-06-01T00:00:00Z\". Severity: info | warn | error.",
+    "id": "2026-05-04-audio-broken",
+    "message": "2026-05-04 - broke Audio by \"fixing it\", will fix soon 🙂",
+    "severity": "warn"
+  }
+]
