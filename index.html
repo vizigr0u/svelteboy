@@ -14,6 +14,17 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 
+  <script>
+    // Configure coi-serviceworker before it loads. Credentialless mode keeps cross-origin
+    // assets (FontAwesome, etc.) loadable without CORP headers under COEP. Reload-on-activate
+    // is required because COOP/COEP only apply once the SW controls the page.
+    window.coi = {
+      coepCredentialless: () => true,
+      coepDegrade: () => true,
+      doReload: () => window.location.reload(),
+    };
+  </script>
+  <script src="./coi-serviceworker.js"></script>
   <script src="https://kit.fontawesome.com/96623f4b91.js" crossorigin="anonymous"></script>
   <title>SvelteBoy</title>
 </head>
