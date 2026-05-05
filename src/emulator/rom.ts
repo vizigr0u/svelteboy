@@ -9,6 +9,7 @@ import { humanReadableSize } from "../utils";
 import { isZipUri, extractRomFromZip } from "../zipRom";
 import { CartType, cartTypeFromCgbFlag, resolveRenderMode, type ResolvedRenderMode } from "../cartType";
 import { requestConfirm } from "stores/confirmStore";
+import { showRomsWindow } from "stores/windowStores";
 import type { LibraryRom, SaveGameData } from "../types";
 
 function renderModeToBackend(mode: ResolvedRenderMode): number {
@@ -71,6 +72,7 @@ export async function playRom(rom: LibraryRom): Promise<void> {
     } else {
         setForcedRenderMode(renderModeToBackend(resolved));
     }
+    showRomsWindow.set(false);
     pauseEmulator();
     resetEmulator();
     loadedCartridge.set(activeRom);
