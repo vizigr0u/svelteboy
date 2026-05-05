@@ -9,13 +9,16 @@
     import Debugger from "./Debugger.svelte";
     import ForceInputControl from "./ForceInputControl.svelte";
     import CpuDebugInfo from "./CpuDebugInfo.svelte";
+    import CheatsControl from "./CheatsControl.svelte";
+    import ValueMapsEditor from "./ValueMapsEditor.svelte";
     import { GameFrames } from "stores/playStores";
     import { Debug } from "../../emulator";
     import AudioDebug from "./AudioDebug.svelte";
     import { debugPanels } from "../../stores/windowStores";
 
     const { debugger: showDebugger, cpu: showCpu, logs: showLogs, hexDump: showHexDump,
-            audio: showAudio, oam: showOam, bgCanvas: showBgCanvas, benchmark: showBenchmark } = debugPanels;
+            audio: showAudio, oam: showOam, bgCanvas: showBgCanvas, benchmark: showBenchmark,
+            cheats: showCheats } = debugPanels;
 
     let pixelSize = $state(2);
     let autodraw: boolean = $state(true);
@@ -55,6 +58,7 @@
                 <button class="panel-menu-item" class:active={$showOam}      onclick={() => showOam.update(v => !v)}>OAM View</button>
                 <button class="panel-menu-item" class:active={$showBgCanvas} onclick={() => showBgCanvas.update(v => !v)}>BG/Tiles</button>
                 <button class="panel-menu-item" class:active={$showBenchmark} onclick={() => showBenchmark.update(v => !v)}>Benchmark</button>
+                <button class="panel-menu-item" class:active={$showCheats}    onclick={() => showCheats.update(v => !v)}>Cheats</button>
             </div>
         {/if}
     </div>
@@ -111,6 +115,13 @@
     {#if $showBenchmark}
         <BenchmarkControl />
         <ForceInputControl />
+    {/if}
+    {#if $showCheats}
+        <div class="debug-tool-container">
+            <h3>Cheats</h3>
+            <CheatsControl />
+            <ValueMapsEditor />
+        </div>
     {/if}
 </div>
 

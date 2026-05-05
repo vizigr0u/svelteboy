@@ -1,6 +1,7 @@
 import { writable } from "svelte/store";
-import { DebugStopReason, MemoryRegion, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference } from "../types";
+import { DebugStopReason, MemoryRegion, type CheatWatch, type DisassembledCode, type GbDebugInfo, type ProgramLine, type RomReference, type ValueMap } from "../types";
 import { MakeIDBStore as MakeLocalStore } from "./idbStore";
+import { DEFAULT_VALUE_MAPS } from "../lib/debug/defaultValueMaps";
 
 export const disassembledRomsStore = writable<DisassembledCode | undefined>(undefined);
 
@@ -28,6 +29,9 @@ export const MuteSoundChannel3 = writable<boolean>(false);
 export const MuteSoundChannel4 = writable<boolean>(false);
 
 export const GbDebugInfoStore = writable<GbDebugInfo>(undefined);
+
+export const Cheats = MakeLocalStore<CheatWatch[]>("DebugCheats", []);
+export const ValueMaps = MakeLocalStore<ValueMap[]>("DebugValueMaps", DEFAULT_VALUE_MAPS);
 
 export const DebugLines = writable<Array<string>>(new Array<string>());
 

@@ -15,4 +15,5 @@ export const debugPanels = {
     oam:       MakeIDBStore('dbg_oam', false),
     bgCanvas:  MakeIDBStore('dbg_bg', false),
     benchmark: MakeIDBStore('dbg_bench', false),
+    cheats:    MakeIDBStore('dbg_cheats', false),
 };

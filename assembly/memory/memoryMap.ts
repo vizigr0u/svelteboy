@@ -265,3 +265,10 @@ export function hexDump(from: u16, count: u16): Uint8Array {
     MemoryMap.useBootRom = oldUseBoot;
     return result;
 }
+
+export function writeMemory(addr: u16, value: u8): void {
+    const oldUseBoot = MemoryMap.useBootRom;
+    MemoryMap.useBootRom = false;
+    store<u8>(MemoryMap.GBToMemory(addr), value);
+    MemoryMap.useBootRom = oldUseBoot;
+}

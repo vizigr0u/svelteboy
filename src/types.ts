@@ -134,6 +134,20 @@ export type MemArea = {
     name: string;
 };
 
+export type CheatWatch = {
+    name: string;
+    address: number;
+    size: number; // bytes, 1-4
+    freeze?: boolean;
+    freezeValue?: number;
+    valueMapName?: string;
+};
+
+export type ValueMap = {
+    name: string;
+    entries: Record<string, string>; // key = decimal value as string (JSON-safe)
+};
+
 export enum InputType {
     Right = 1 << 0,
     Left = 1 << 1,

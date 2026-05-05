@@ -22,7 +22,7 @@ export { serialEnableLog } from "./io/serial";
 
 export { extractMetadata } from "./metadata";
 
-export { loadBootRom, hexDump } from './memory/memoryMap';
+export { loadBootRom, hexDump, writeMemory } from './memory/memoryMap';
 export { TOTAL_MEMORY_SIZE } from './memory/memoryConstants';
 
 export { loadCartridgeRom } from './cartridge';
