@@ -10,6 +10,7 @@ import {
 } from "./wasmBridge";
 import { stopQueuedAudio } from "./audio";
 import { pauseEmulator, runUntilBreak } from "./lifecycle";
+import { postRun } from "./loop";
 import { saveSlot, loadSlot } from "../saveStateDb";
 import { PALETTE_PRESETS, SelectedPaletteIndex, type GBPalette } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
@@ -85,4 +86,5 @@ export async function quickLoad(slot: number): Promise<void> {
         showToast('Save state could not be loaded (mode mismatch or corrupt data).', 'error');
     }
     if (wasRunning) runUntilBreak();
+    else if (get(DebuggerAttached)) postRun();
 }
