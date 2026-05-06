@@ -72,8 +72,10 @@
     .input-viewer {
         position: relative;
         display: flex;
+        --base-size: 7cqmin;
+        height: calc(var(--base-size) * 3 + 14cqmin);
         justify-content: space-between;
-        padding: var(--u) 10% calc(8 * var(--u)) 4%;
+        padding: 1cqmin 4% 6cqmin 4%;
         width: 100%;
     }
 
@@ -86,7 +88,7 @@
         font-family: "Courier New", Courier, monospace;
         color: #12153d;
         font-weight: bold;
-        font-size: 1em;
+        font-size: 2.5cqmin;
         text-transform: uppercase;
         text-align: center;
         content: attr(data-input);
@@ -94,12 +96,12 @@
     }
 
     .dir-viewer {
-        --size: 2.3em;
+        --size: var(--base-size);
         align-self: flex-start;
         display: grid;
         background-color: #b2b2b2;
         border-radius: 50%;
-        padding: 0.5em;
+        padding: 0.8cqmin;
         grid-template-columns: repeat(3, var(--size));
         grid-template-areas:
             ". U ."
@@ -141,50 +143,49 @@
     .special-key-viewer {
         display: flex;
         align-self: flex-end;
-        gap: 2em;
-        margin-top: 8em;
+        gap: 5cqmin;
     }
 
     .special-key-viewer > button {
         position: relative;
-        --size: 3em;
-        width: var(--size);
-        height: 0.8em;
+        width: 9cqmin;
+        height: 2.2cqmin;
         background-color: #555;
-        border-radius: 8px;
+        border-radius: 2cqmin;
         transform: rotate(-20deg);
     }
 
     .special-key-viewer > button::after {
-        top: 0.7em;
-        width: var(--size);
+        top: 2.5cqmin;
+        width: 5cqmin;
+        font-size: 2.5cqmin;
+        letter-spacing: 0.3cqmin;
     }
 
     .action-key-viewer {
         display: flex;
-        gap: 1.3em;
-        margin-top: 1.5em;
+        gap: 3cqmin;
+        margin-top: 4cqmin;
         align-self: flex-start;
-        background-color: #aaa;
-        border-radius: 2em;
-        padding: 0.45em;
-        font-size: 1.1em;
+        background-color: #afafaf;
+        border-radius: 5cqmin;
+        padding: 1.5cqmin;
         transform: rotate(-20deg);
     }
 
     .action-key-viewer > button {
-        --size: 2.5em;
+        --size: 9cqmin;
         position: relative;
         width: var(--size);
         height: var(--size);
         border-radius: 50%;
-        background-color: #5a1b36;
+        background-color: #64213e;
     }
 
     .action-key-viewer > button::after {
-        font-size: 1.1em;
-        top: calc(var(--size) + 0.3em);
-        width: calc(var(--size) + 0.3em);
+        font-size: 4.5cqmin;
+        top: calc(var(--size) + 1.5cqmin);
+        width: calc(var(--size) + 1.5cqmin);
     }
 
     :global(.input-viewer button.pressed) {

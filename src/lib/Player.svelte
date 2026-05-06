@@ -171,89 +171,89 @@
     onkeydown={gameInputKeydownHandler}
     onkeyup={gameInputKeyupHandler}
 >
-    <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
-        <div
-            class="screen"
-            class:drop-allowed={dragState == DragState.Accept}
-            class:drop-disallowed={dragState == DragState.Reject}
-            bind:this={screenEl}
-        >
+    <div>
+        <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
             <div
-                class="screen-tap"
-                ondblclick={toggleFullscreen}
-                role="presentation"
-                bind:this={screenTapEl}
+                class="screen"
+                class:drop-allowed={dragState == DragState.Accept}
+                class:drop-disallowed={dragState == DragState.Reject}
+                bind:this={screenEl}
             >
-                <WebGLCanvas
-                    bind:this={webglCanvas}
-                    palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
-                    cgbColor={$CgbColor}
-                    ghostingStrength={$GhostingStrength}
-                    pixelPerfect={$PixelPerfect}
-                />
-                {#if $EmulatorPaused && hasRom}
-                    <div class="pause-overlay">PAUSE</div>
+                <div
+                    class="screen-tap"
+                    ondblclick={toggleFullscreen}
+                    role="presentation"
+                    bind:this={screenTapEl}
+                >
+                    <WebGLCanvas
+                        bind:this={webglCanvas}
+                        palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
+                        cgbColor={$CgbColor}
+                        ghostingStrength={$GhostingStrength}
+                        pixelPerfect={$PixelPerfect}
+                    />
+                    {#if $EmulatorPaused && hasRom}
+                        <div class="pause-overlay">PAUSE</div>
+                    {/if}
+                </div>
+                {#if $showFPS}
+                    <div class="fps-wrapper">
+                        <FpsCounter />
+                    </div>
+                {/if}
+                {#if $showFrametimeHistogram}
+                    <div class="frametime-wrapper">
+                        <FrametimeHistogram />
+                    </div>
+                {/if}
+                {#if $AudioSuspended && !$EmulatorPaused}
+                    <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
+                        🔇 Click to enable sound
+                    </button>
+                {/if}
+                {#if $showRomsWindow}
+                    <Window title="ROMs Library" onclose={() => showRomsWindow.set(false)}>
+                        <RomsSection />
+                    </Window>
+                {/if}
+                {#if $showSavesWindow}
+                    <Window title="Saves" onclose={() => showSavesWindow.set(false)}>
+                        <SavesViewer />
+                    </Window>
+                {/if}
+                {#if $showOptionsWindow}
+                    <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
+                        <OptionsView />
+                    </Window>
+                {/if}
+                {#if $showBindingsWindow}
+                    <Window title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
+                        <BindingsView />
+                    </Window>
+                {/if}
+                {#if $showDebugWindow}
+                    <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
+                        <DebugSection />
+                    </Window>
                 {/if}
             </div>
-            {#if $showFPS}
-                <div class="fps-wrapper">
-                    <FpsCounter />
-                </div>
-            {/if}
-            {#if $showFrametimeHistogram}
-                <div class="frametime-wrapper">
-                    <FrametimeHistogram />
-                </div>
-            {/if}
-            {#if $AudioSuspended && !$EmulatorPaused}
-                <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
-                    🔇 Click to enable sound
-                </button>
-            {/if}
-            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
+        </RomDropZone>
+        <div class="menu-bar">
+            <span class="console-name">Svelte BOY</span>
             {#if menuOpen}
                 <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
                 <BurgerMenu items={menuItems} />
             {/if}
-            {#if $showRomsWindow}
-                <Window title="ROMs Library" onclose={() => showRomsWindow.set(false)}>
-                    <RomsSection />
-                </Window>
-            {/if}
-            {#if $showSavesWindow}
-                <Window title="Saves" onclose={() => showSavesWindow.set(false)}>
-                    <SavesViewer />
-                </Window>
-            {/if}
-            {#if $showOptionsWindow}
-                <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
-                    <OptionsView />
-                </Window>
-            {/if}
-            {#if $showBindingsWindow}
-                <Window title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
-                    <BindingsView />
-                </Window>
-            {/if}
-            {#if $showDebugWindow}
-                <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
-                    <DebugSection />
-                </Window>
-            {/if}
+            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
         </div>
-    </RomDropZone>
-    <span class="console-name">Svelte BOY</span>
+    </div>
     <LocalInputViewer />
 </div>
 
 <style>
     .console {
         container-type: size;
-        /* Drives all internal spacing. clamp() bounds the unit; min(cqi,cqb)
-           picks the constraining axis so layout fits both orientations. */
-        --u: clamp(0.25rem, min(1.05cqi, 1.05cqb), 1.4rem);
-        position: relative;
-        padding-top: var(--u);
+        aspect-ratio: 9 / 13;
         background-color: #bbb;
         touch-action: none;
         user-select: none;
@@ -261,33 +261,27 @@
         -webkit-tap-highlight-color: transparent;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
-        border-radius: var(--u) var(--u) calc(7 * var(--u)) var(--u);
+        border-radius: 2% 2% 9% 2%;
         border: 4px solid transparent;
+        gap: 10cqmin;
+        padding: 8cqmin 0 0 0;
     }
 
-    /* Aspect ratio derived from internal layout in --u multiples:
-       width  ≈ canvas(80) + screen pad(2*5) + screen margin(2*0.5) = 91
-       height ≈ pad-top(1) + canvas(72) + screen pad(2*2) + screen margin(2*0.5)
-                + console-name(~4) + input-viewer(~12)             = 94 */
     @media (orientation: landscape) {
         .console {
             height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
             width: auto;
-            aspect-ratio: 91 / 94;
-            margin-top: var(--safe-top);
-            margin-bottom: var(--safe-bottom);
+            /* aspect-ratio: 9 / 13; */
         }
     }
     @media (orientation: portrait) {
         .console {
             width: 100vw;
             height: auto;
-            aspect-ratio: 91 / 94;
-            max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-            margin-top: var(--safe-top);
-            margin-bottom: var(--safe-bottom);
+            max-height: 100dvh;
+            /* aspect-ratio: 9 / 13; */
         }
     }
 
@@ -296,23 +290,11 @@
         border-color: var(--highlight-color);
     }
 
-    .console-name {
-        font-family: "Courier New", Courier, monospace;
-        color: #12153d;
-        font-weight: bold;
-        font-size: calc(3 * var(--u));
-        margin-left: 5%;
-        align-self: flex-start;
-        font-style: italic;
-        text-transform: uppercase;
-    }
-
     .screen {
         position: relative;
-        padding: calc(2 * var(--u)) calc(5 * var(--u));
+        padding: 2cqmin 5cqmin;
         background-color: #68717a;
-        margin: calc(0.5 * var(--u));
-        border-radius: var(--u) var(--u) calc(4 * var(--u)) var(--u);
+        border-radius: 1% 1% 4% 1%;
     }
 
     .screen:fullscreen {
@@ -346,14 +328,14 @@
 
     .frametime-wrapper {
         position: absolute;
-        top: calc(0.4 * var(--u));
-        left: calc(0.4 * var(--u));
+        top: 0.05cqmin;
+        left: 0.05cqmin;
         z-index: 5;
     }
 
     .audio-hint {
         position: absolute;
-        bottom: calc(0.5 * var(--u));
+        bottom: 0.05cqmin;
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0,0,0,0.75);
@@ -371,17 +353,37 @@
         background: rgba(0,0,0,0.9);
     }
 
-    .burger-btn {
-        position: absolute;
-        top: calc(0.4 * var(--u));
-        right: calc(0.4 * var(--u));
+    .menu-bar {
+        display: flex;
+        width: 100%;
+        /* align-items: center; */
+        padding: 0.2em 0.5em;
+        margin-top: 0.5cqmin;
+        gap: 0.5em;
+    }
+
+    .console-name {
+        font-family: "Courier New", Courier, monospace;
+        color: #12153d;
+        font-weight: bold;
+        font-size: 6cqi;
+        margin: 0 3% 0 5%;
+        align-self: flex-start;
+        font-style: italic;
+        text-transform: uppercase;
+    }
+
+    .burger-btn {         margin-left: auto;
+        width: 6cqmin;
+        height: 6cqmin;
+        line-height: 1;
         background: rgba(0,0,0,0.4);
         border: none;
         color: #eee;
-        font-size: calc(1.2 * var(--u));
+        font-size: 4cqmin;
         cursor: pointer;
-        border-radius: 0.3em;
-        padding: 0.1em 0.3em;
+        border-radius: 0.2em;
+        padding: 0 0.3em;
         line-height: 1;
     }
 
@@ -399,8 +401,8 @@
         position: relative;
         display: block;
         line-height: 0;
-        width: calc(80 * var(--u));
-        height: calc(72 * var(--u));
+        width: 80cqmin;
+        height: 72cqmin;
     }
 
     .screen:fullscreen .screen-tap {
@@ -414,11 +416,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(0, 0, 0, 0.45);
-        color: rgba(255, 255, 255, 0.7);
+        background: rgba(0, 0, 0, 0.4);
+        color: rgba(255, 255, 255, 0.4);
         font-family: "Courier New", Courier, monospace;
         font-weight: bold;
-        font-size: calc(3 * var(--u));
+        font-size: 15cqmin;
         letter-spacing: 0.2em;
         text-transform: uppercase;
         pointer-events: none;
