@@ -9,8 +9,7 @@
     import Debugger from "./Debugger.svelte";
     import ForceInputControl from "./ForceInputControl.svelte";
     import CpuDebugInfo from "./CpuDebugInfo.svelte";
-    import CheatsControl from "./CheatsControl.svelte";
-    import ValueMapsEditor from "./ValueMapsEditor.svelte";
+    import CheatsPanel from "../cheats/CheatsPanel.svelte";
     import { GameFrames } from "stores/playStores";
     import { Debug } from "../../emulator";
     import AudioDebug from "./AudioDebug.svelte";
@@ -119,8 +118,7 @@
     {#if $showCheats}
         <div class="debug-tool-container">
             <h3>Cheats</h3>
-            <CheatsControl />
-            <ValueMapsEditor />
+            <CheatsPanel />
         </div>
     {/if}
 </div>
