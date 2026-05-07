@@ -242,9 +242,13 @@
             <span class="console-name">Svelte BOY</span>
             {#if menuOpen}
                 <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
-                <BurgerMenu items={menuItems} />
             {/if}
-            <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
+            <div class="burger-wrap">
+                {#if menuOpen}
+                    <BurgerMenu items={menuItems} />
+                {/if}
+                <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
+            </div>
         </div>
     </div>
     <LocalInputViewer />
@@ -373,7 +377,14 @@
         text-transform: uppercase;
     }
 
-    .burger-btn {         margin-left: auto;
+    .burger-wrap {
+        position: relative;
+        margin-left: auto;
+        align-self: flex-start;
+        display: flex;
+    }
+
+    .burger-btn {
         width: 6cqmin;
         height: 6cqmin;
         line-height: 1;
