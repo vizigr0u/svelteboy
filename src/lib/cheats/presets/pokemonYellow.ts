@@ -1,4 +1,4 @@
-import type { ValueMap } from "../../types";
+import type { CheatCollection } from "../types";
 
 const POKE_GEN1_ITEMS: Record<string, string> = {
     "1": "Master Ball",
@@ -131,6 +131,50 @@ const POKE_GEN1_ITEMS: Record<string, string> = {
     "250": "TM50 - Substitute",
 };
 
-export const DEFAULT_VALUE_MAPS: ValueMap[] = [
-    { name: "poke-gen1-item", entries: POKE_GEN1_ITEMS },
-];
+export const POKEMON_YELLOW: CheatCollection = {
+    id: "pokemon-yellow",
+    name: "Pokemon Yellow",
+    description: "Inventory + items for Pokemon Yellow (Gen1)",
+    valueMaps: [
+        { name: "poke-gen1-item", entries: POKE_GEN1_ITEMS },
+    ],
+    schemas: [
+        {
+            id: "poke-gen1-item",
+            description: "Pokemon Gen1 inventory item (id + qty)",
+            fields: [
+                { name: "id", offset: 0, type: { kind: "enum", bytes: 1, mapName: "poke-gen1-item" } },
+                { name: "qty", offset: 1, type: { kind: "u8" } },
+            ],
+        },
+        {
+            id: "poke-gen1-inventory",
+            description: "Pokemon Gen1 bag: count + 20 items + terminator",
+            fields: [
+                { name: "count", offset: 0, type: { kind: "u8" } },
+                { name: "items", offset: 1, type: { kind: "array", count: 20, of: { kind: "ref", schemaId: "poke-gen1-item" } } },
+            ],
+        },
+        {
+            id: "poke-gen1-money",
+            description: "Pokemon Gen1 money: 3-byte BCD big-endian (max 999999)",
+            fields: [
+                { name: "money", offset: 0, type: { kind: "bcd", length: 3, bigEndian: true } },
+            ],
+        },
+    ],
+    watches: [
+        {
+            name: "Inventory",
+            address: 0xd31c,
+            size: 1,
+            schemaId: "poke-gen1-inventory",
+        },
+        {
+            name: "money",
+            address: 0xd346,
+            size: 1,
+            schemaId: "poke-gen1-money",
+        },
+    ],
+};
