@@ -21,6 +21,7 @@
     } from "stores/optionsStore";
     import { clearAllStorage } from "../stores/idbStore";
     import PalettePicker from "./PalettePicker.svelte";
+    import ConsoleThemePicker from "./ConsoleThemePicker.svelte";
     import DisabledTooltip from "./DisabledTooltip.svelte";
     import { isCgbMode } from "../emulator/wasmBridge";
     import { EmulatorInitialized, GameFrames } from "stores/playStores";
@@ -116,6 +117,12 @@
             type="checkbox"
             bind:checked={$PauseOnVisibilityLost}
         />
+    </div>
+
+    <h4>Console</h4>
+    <div class="options">
+        <span class="option-label">Theme:</span>
+        <ConsoleThemePicker />
     </div>
 
     <h4>Display</h4>

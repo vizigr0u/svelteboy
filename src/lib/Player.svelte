@@ -22,6 +22,7 @@
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
     import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow, showAboutWindow } from "../stores/windowStores";
+    import { ResolvedTheme } from "../stores/consoleThemeStore";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
@@ -177,6 +178,8 @@
     class="console"
     role="main"
     tabindex="0"
+    style={$ResolvedTheme.style}
+    data-family={$ResolvedTheme.family.id}
     onkeydown={gameInputKeydownHandler}
     onkeyup={gameInputKeyupHandler}
 >
@@ -257,7 +260,7 @@
             </div>
         </RomDropZone>
         <div class="menu-bar">
-            <span class="console-name">Svelte BOY</span>
+            <span class="console-name">{$ResolvedTheme.family.shellName}</span>
             {#if menuOpen}
                 <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
             {/if}
@@ -274,9 +277,27 @@
 
 <style>
     .console {
+        /* Theme variables (defaults = DMG-01 Original) */
+        --shell-bg: #bbb;
+        --shell-radius: 2% 2% 9% 2%;
+        --bezel-bg: #68717a;
+        --bezel-radius: 1% 1% 4% 1%;
+        --name-color: #12153d;
+        --name-font: "Courier New", Courier, monospace;
+        --name-style: italic;
+        --button-label: #12153d;
+        --dpad-plate-bg: #b2b2b2;
+        --dpad-button: #000;
+        --ss-button: #555;
+        --ss-button-label: var(--button-label);
+        --ab-plate-bg: #afafaf;
+        --ab-button: #64213e;
+        --ab-button-shape: 50%;
+        --ab-button-label: var(--button-label);
+
         container-type: size;
         aspect-ratio: 9 / 13;
-        background-color: #bbb;
+        background-color: var(--shell-bg);
         touch-action: none;
         user-select: none;
         -webkit-user-select: none;
@@ -285,7 +306,7 @@
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
-        border-radius: 2% 2% 9% 2%;
+        border-radius: var(--shell-radius);
         border: 4px solid transparent;
         gap: 10cqmin;
         padding: 8cqmin 0 0 0;
@@ -315,8 +336,8 @@
     .screen {
         position: relative;
         padding: 2cqmin 5cqmin;
-        background-color: #68717a;
-        border-radius: 1% 1% 4% 1%;
+        background-color: var(--bezel-bg);
+        border-radius: var(--bezel-radius);
     }
 
     .screen:fullscreen {
@@ -385,13 +406,13 @@
     }
 
     .console-name {
-        font-family: "Courier New", Courier, monospace;
-        color: #12153d;
+        font-family: var(--name-font);
+        color: var(--name-color);
         font-weight: bold;
         font-size: 6cqi;
         margin: 0 3% 0 5%;
         align-self: flex-start;
-        font-style: italic;
+        font-style: var(--name-style);
         text-transform: uppercase;
     }
 

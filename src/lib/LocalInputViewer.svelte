@@ -86,7 +86,7 @@
     .input-viewer button::after {
         position: absolute;
         font-family: "Courier New", Courier, monospace;
-        color: #12153d;
+        color: var(--button-label, #12153d);
         font-weight: bold;
         font-size: 2.5cqmin;
         text-transform: uppercase;
@@ -99,7 +99,7 @@
         --size: var(--base-size);
         align-self: flex-start;
         display: grid;
-        background-color: #b2b2b2;
+        background-color: var(--dpad-plate-bg, #b2b2b2);
         border-radius: 50%;
         padding: 0.8cqmin;
         grid-template-columns: repeat(3, var(--size));
@@ -117,7 +117,7 @@
     .dir-viewer > .center {
         width: var(--size);
         height: var(--size);
-        background-color: black;
+        background-color: var(--dpad-button, black);
     }
 
     button[data-input="Up"] {
@@ -150,12 +150,13 @@
         position: relative;
         width: 9cqmin;
         height: 2.2cqmin;
-        background-color: #555;
+        background-color: var(--ss-button, #555);
         border-radius: 2cqmin;
         transform: rotate(-20deg);
     }
 
     .special-key-viewer > button::after {
+        color: var(--ss-button-label, var(--button-label, #12153d));
         top: 2.5cqmin;
         width: 5cqmin;
         font-size: 2.5cqmin;
@@ -167,7 +168,7 @@
         gap: 3cqmin;
         margin-top: 4cqmin;
         align-self: flex-start;
-        background-color: #afafaf;
+        background-color: var(--ab-plate-bg, #afafaf);
         border-radius: 5cqmin;
         padding: 1.5cqmin;
         transform: rotate(-20deg);
@@ -178,11 +179,12 @@
         position: relative;
         width: var(--size);
         height: var(--size);
-        border-radius: 50%;
-        background-color: #64213e;
+        border-radius: var(--ab-button-shape, 50%);
+        background-color: var(--ab-button, #64213e);
     }
 
     .action-key-viewer > button::after {
+        color: var(--ab-button-label, var(--button-label, #12153d));
         font-size: 4.5cqmin;
         top: calc(var(--size) + 1.5cqmin);
         width: calc(var(--size) + 1.5cqmin);
