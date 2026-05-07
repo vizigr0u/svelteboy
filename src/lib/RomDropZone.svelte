@@ -9,6 +9,7 @@
     progress = $bindable<{ done: number; total: number } | undefined>(undefined),
     onRomReceived = (_: LibraryRom) => {},
     onImportComplete = (_: ImportReport) => {},
+    extraClass = "",
     children,
   } = $props<{
     dragState?: DragState;
@@ -16,6 +17,7 @@
     progress?: { done: number; total: number } | undefined;
     onRomReceived?: (rom: LibraryRom) => void;
     onImportComplete?: (report: ImportReport) => void;
+    extraClass?: string;
     children: Snippet;
   }>();
 
@@ -92,7 +94,7 @@
 
 <div
   role="none"
-  class="dragZone text"
+  class={`dragZone text ${extraClass}`}
   ondrop={onDrop}
   ondragover={onDragOver}
   ondragleave={onDragLeave}

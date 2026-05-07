@@ -1,36 +1,43 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
 
+    type WindowMode = 'modal' | 'docked';
+
     interface Props {
         title: string;
         onclose: () => void;
         children: Snippet;
         wide?: boolean;
+        mode?: WindowMode;
     }
 
-    let { title, onclose, children, wide = false }: Props = $props();
+    let { title, onclose, children, wide = false, mode = 'modal' }: Props = $props();
 
     function stopProp(e: Event) {
         e.stopPropagation();
     }
 </script>
 
-<div
-    class="backdrop"
-    onclick={onclose}
-    ondrop={stopProp}
-    ondragover={stopProp}
-    ondragenter={stopProp}
-    ondragleave={stopProp}
-    onkeydown={stopProp}
-    onkeyup={stopProp}
-    role="presentation"
-    aria-hidden="true"
-></div>
+{#if mode === 'modal'}
+    <div
+        class="backdrop"
+        onclick={onclose}
+        ondrop={stopProp}
+        ondragover={stopProp}
+        ondragenter={stopProp}
+        ondragleave={stopProp}
+        onkeydown={stopProp}
+        onkeyup={stopProp}
+        role="presentation"
+        aria-hidden="true"
+    ></div>
+{/if}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     class="window"
     class:wide
+    class:modal={mode === 'modal'}
+    class:docked={mode === 'docked'}
     ondrop={stopProp}
     ondragover={stopProp}
     ondragenter={stopProp}
@@ -56,27 +63,38 @@
     }
 
     .window {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 100;
         background: #1e1e2e;
         color: #cdd6f4;
         border: 1px solid #45475a;
         border-radius: 0.5em;
         display: flex;
         flex-direction: column;
-        max-height: 80vh;
-        width: clamp(280px, 90vw, 500px);
         box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     }
 
-    .window.wide {
+    .window.modal {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 100;
+        max-height: 80vh;
+        width: clamp(280px, 90vw, 500px);
+    }
+
+    .window.modal.wide {
         width: clamp(280px, 95vw, 1400px);
     }
 
+    .window.docked {
+        position: relative;
+        width: 100%;
+        max-height: 100%;
+        min-height: 0;
+        flex: 1 1 auto;
+    }
+
     @media (max-width: 600px) {
-        .window, .window.wide {
+        .window.modal, .window.modal.wide {
             position: fixed;
             inset: 0;
             top: 0;

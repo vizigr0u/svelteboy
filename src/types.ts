@@ -167,6 +167,9 @@ export enum AudioChannel {
     Right = 1
 }
 
+export type LayoutId = 'console' | 'compact' | 'debug' | 'immersive';
+export type ControlsPlacement = 'overlay' | 'shrink' | 'bleed';
+
 export type KeyBindings = {
     a: string;
     b: string;

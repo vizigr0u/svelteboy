@@ -2,14 +2,12 @@
     import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
     import { showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect, WakeLockEnabled, OrientationLockEnabled } from "stores/optionsStore";
-    import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
-    import { onMount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import { AudioSuspended, Emulator } from "../emulator";
     import { EmulatorPaused, QuickSaveFlyer } from "stores/playStores";
     import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
-    import BurgerMenu from "./BurgerMenu.svelte";
     import Window from "./Window.svelte";
     import RomsSection from "./RomsSection.svelte";
     import SavesViewer from "./SavesViewer.svelte";
@@ -17,43 +15,58 @@
     import BindingsView from "./BindingsView.svelte";
     import AboutView from "./AboutView.svelte";
     import WindowSkeleton from "./WindowSkeleton.svelte";
+    import CheatsPanel from "./cheats/CheatsPanel.svelte";
     let DebugSection: any = $state(null);
-    import { DragState } from "../types";
+    import { DragState, type LayoutId } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
-    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow, showAboutWindow } from "../stores/windowStores";
+    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showCheatsWindow, showAboutWindow } from "../stores/windowStores";
+    import { SelectedLayout } from "../stores/layoutStore";
+    import Layout from "./layouts/Layout.svelte";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void; getCanvas: () => HTMLCanvasElement } | null = $state(null);
     let menuOpen: boolean = $state(false);
-    let screenEl: HTMLDivElement | undefined = $state();
     let screenTapEl: HTMLDivElement | undefined = $state();
-    let burgerBtnEl: HTMLButtonElement | undefined = $state();
+    let burgerBtnEl: HTMLButtonElement | null = $state(null);
+    let fullscreenTargetEl: HTMLElement | null = $state(null);
     let isFullscreen: boolean = $state(false);
     let isCoarsePointer: boolean = $state(false);
+    let savedLayout: LayoutId | null = null;
 
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
+    const layout = $derived($SelectedLayout);
+    const showInlineDebug = $derived(layout === 'debug');
 
     function toggleWindow(store: Writable<boolean>) {
         store.update(v => !v);
         menuOpen = false;
     }
 
+    function setLayout(id: LayoutId) {
+        SelectedLayout.set(id);
+        menuOpen = false;
+    }
+
     function toggleFullscreen() {
         menuOpen = false;
-        if (!document.fullscreenElement) screenEl?.requestFullscreen();
+        if (!document.fullscreenElement) fullscreenTargetEl?.requestFullscreen();
         else document.exitFullscreen();
     }
 
     const menuItems = $derived([
         { label: 'ROMs',       active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
         { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow), disabled: !hasRom },
+        { label: 'Cheats',     active: $showCheatsWindow,  toggle: () => toggleWindow(showCheatsWindow), disabled: !hasRom },
         { label: 'Options',    active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
-        { label: 'Keyboard Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
-        { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
+        { label: 'Keyboard Bindings', active: $showBindingsWindow, toggle: () => toggleWindow(showBindingsWindow) },
         { label: 'Fullscreen', active: isFullscreen,       toggle: toggleFullscreen },
         { label: 'About',      active: $showAboutWindow,   toggle: () => toggleWindow(showAboutWindow) },
+        { header: 'Layout', label: 'Console',   active: layout === 'console',   toggle: () => setLayout('console') },
+        { label: 'Compact',   active: layout === 'compact',   toggle: () => setLayout('compact') },
+        { label: 'Debug',     active: layout === 'debug',     toggle: () => setLayout('debug') },
+        { label: 'Immersive', active: layout === 'immersive', toggle: () => setLayout('immersive') },
     ]);
 
     onMount(() => {
@@ -86,7 +99,7 @@
     });
 
     $effect(() => {
-        if ($showDebugWindow && !DebugSection) {
+        if (showInlineDebug && !DebugSection) {
             import("./debug/DebugSection.svelte").then(m => DebugSection = m.default);
         }
     });
@@ -140,6 +153,17 @@
     });
 
     $effect(() => {
+        if (isFullscreen && isCoarsePointer && layout !== 'immersive') {
+            untrack(() => { savedLayout = layout; });
+            SelectedLayout.set('immersive');
+        } else if (!isFullscreen && savedLayout && layout === 'immersive') {
+            const restore = savedLayout;
+            savedLayout = null;
+            SelectedLayout.set(restore);
+        }
+    });
+
+    $effect(() => {
         const data = $QuickSaveFlyer;
         if (!data || !screenTapEl || !burgerBtnEl) return;
         const from = screenTapEl.getBoundingClientRect();
@@ -174,267 +198,141 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-    class="console"
+    class="player-root"
     role="main"
     tabindex="0"
     onkeydown={gameInputKeydownHandler}
     onkeyup={gameInputKeyupHandler}
 >
-    <div>
-        <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
-            <div
-                class="screen"
-                class:drop-allowed={dragState == DragState.Accept}
-                class:drop-disallowed={dragState == DragState.Reject}
-                bind:this={screenEl}
-            >
-                <div
-                    class="screen-tap"
-                    ondblclick={toggleFullscreen}
-                    role="presentation"
-                    bind:this={screenTapEl}
-                >
-                    <WebGLCanvas
-                        bind:this={webglCanvas}
-                        palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
-                        cgbColor={$CgbColor}
-                        ghostingStrength={$GhostingStrength}
-                        pixelPerfect={$PixelPerfect}
-                    />
-                    {#if $EmulatorPaused && hasRom}
-                        <div class="pause-overlay">PAUSE</div>
-                    {/if}
-                </div>
-                {#if $showFPS}
-                    <div class="fps-wrapper">
-                        <FpsCounter />
-                    </div>
-                {/if}
-                {#if $showFrametimeHistogram}
-                    <div class="frametime-wrapper">
-                        <FrametimeHistogram />
-                    </div>
-                {/if}
-                {#if $AudioSuspended && !$EmulatorPaused}
-                    <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
-                        🔇 Click to enable sound
-                    </button>
-                {/if}
-                {#if $showRomsWindow}
-                    <Window title="ROMs Library" onclose={() => showRomsWindow.set(false)}>
-                        <RomsSection />
-                    </Window>
-                {/if}
-                {#if $showSavesWindow}
-                    <Window title="Saves" onclose={() => showSavesWindow.set(false)}>
-                        <SavesViewer />
-                    </Window>
-                {/if}
-                {#if $showOptionsWindow}
-                    <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
-                        <OptionsView />
-                    </Window>
-                {/if}
-                {#if $showBindingsWindow}
-                    <Window title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
-                        <BindingsView />
-                    </Window>
-                {/if}
-                {#if $showAboutWindow}
-                    <Window title="About SvelteBoy" onclose={() => showAboutWindow.set(false)}>
-                        <AboutView />
-                    </Window>
-                {/if}
-                {#if $showDebugWindow}
-                    <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
-                        {#if DebugSection}
-                            <DebugSection />
-                        {:else}
-                            <WindowSkeleton label="Loading debug tools…" />
-                        {/if}
-                    </Window>
-                {/if}
-            </div>
-        </RomDropZone>
-        <div class="menu-bar">
-            <span class="console-name">Svelte BOY</span>
-            {#if menuOpen}
-                <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
-            {/if}
-            <div class="burger-wrap">
-                {#if menuOpen}
-                    <BurgerMenu items={menuItems} />
-                {/if}
-                <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
-            </div>
-        </div>
-    </div>
-    <LocalInputViewer />
+    <Layout
+        {layout}
+        {menuItems}
+        {menuOpen}
+        onMenuToggle={() => menuOpen = !menuOpen}
+        onMenuClose={() => menuOpen = false}
+        burgerRef={(el) => burgerBtnEl = el}
+        fullscreenTargetRef={(el) => fullscreenTargetEl = el}
+        {screen}
+        {windows}
+        debugInline={showInlineDebug ? debugInline : undefined}
+    />
 </div>
 
+{#snippet screen()}
+    <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState extraClass="screen-fill">
+        <div
+            class="screen-content"
+            class:drop-allowed={dragState == DragState.Accept}
+            class:drop-disallowed={dragState == DragState.Reject}
+        >
+            <div
+                class="screen-tap"
+                ondblclick={toggleFullscreen}
+                role="presentation"
+                bind:this={screenTapEl}
+            >
+                <WebGLCanvas
+                    bind:this={webglCanvas}
+                    palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
+                    cgbColor={$CgbColor}
+                    ghostingStrength={$GhostingStrength}
+                    pixelPerfect={$PixelPerfect}
+                />
+                {#if $EmulatorPaused && hasRom}
+                    <div class="pause-overlay">PAUSE</div>
+                {/if}
+            </div>
+            {#if $showFPS}
+                <div class="fps-wrapper">
+                    <FpsCounter />
+                </div>
+            {/if}
+            {#if $showFrametimeHistogram}
+                <div class="frametime-wrapper">
+                    <FrametimeHistogram />
+                </div>
+            {/if}
+            {#if $AudioSuspended && !$EmulatorPaused}
+                <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
+                    🔇 Click to enable sound
+                </button>
+            {/if}
+        </div>
+    </RomDropZone>
+{/snippet}
+
+{#snippet windows(mode: 'modal' | 'docked')}
+    {#if $showRomsWindow}
+        <Window {mode} title="ROMs Library" onclose={() => showRomsWindow.set(false)}>
+            <RomsSection />
+        </Window>
+    {/if}
+    {#if $showSavesWindow}
+        <Window {mode} title="Saves" onclose={() => showSavesWindow.set(false)}>
+            <SavesViewer />
+        </Window>
+    {/if}
+    {#if $showCheatsWindow}
+        <Window {mode} title="Cheats" onclose={() => showCheatsWindow.set(false)}>
+            <CheatsPanel />
+        </Window>
+    {/if}
+    {#if $showOptionsWindow}
+        <Window {mode} title="Options" onclose={() => showOptionsWindow.set(false)}>
+            <OptionsView />
+        </Window>
+    {/if}
+    {#if $showBindingsWindow}
+        <Window {mode} title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
+            <BindingsView />
+        </Window>
+    {/if}
+    {#if $showAboutWindow}
+        <Window title="About SvelteBoy" onclose={() => showAboutWindow.set(false)}>
+            <AboutView />
+        </Window>
+    {/if}
+{/snippet}
+
+{#snippet debugInline()}
+    {#if DebugSection}
+        <DebugSection />
+    {:else}
+        <WindowSkeleton label="Loading debug tools…" />
+    {/if}
+{/snippet}
+
 <style>
-    .console {
-        container-type: size;
-        aspect-ratio: 9 / 13;
-        background-color: #bbb;
-        touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-tap-highlight-color: transparent;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: center;
-        border-radius: 2% 2% 9% 2%;
-        border: 4px solid transparent;
-        gap: 10cqmin;
-        padding: 8cqmin 0 0 0;
+    .player-root {
+        outline: none;
     }
 
-    @media (orientation: landscape) {
-        .console {
-            height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-            width: auto;
-            /* aspect-ratio: 9 / 13; */
-        }
-    }
-    @media (orientation: portrait) {
-        .console {
-            width: 100vw;
-            height: auto;
-            max-height: 100dvh;
-            /* aspect-ratio: 9 / 13; */
-        }
+    :global(.screen-fill) {
+        width: 100%;
+        height: 100%;
     }
 
-    .console:focus,
-    .console:focus-within {
-        border-color: var(--highlight-color);
-    }
-
-    .screen {
+    .screen-content {
         position: relative;
-        padding: 2cqmin 5cqmin;
-        background-color: #68717a;
-        border-radius: 1% 1% 4% 1%;
-    }
-
-    .screen:fullscreen {
-        padding: 0;
-        margin: 0;
-        background-color: #000;
-        border-radius: 0;
-        width: 100vw;
-        height: 100dvh;
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    .screen:fullscreen .screen-tap {
-        width: 100%;
-        height: 100%;
-    }
-
-    .screen.drop-allowed {
+    .screen-content.drop-allowed {
         background-color: #608cb8;
     }
 
-    .screen.drop-disallowed {
+    .screen-content.drop-disallowed {
         background-color: #7a6b68;
-    }
-
-    .fps-wrapper {
-        position: absolute;
-    }
-
-    .frametime-wrapper {
-        position: absolute;
-        top: 0.05cqmin;
-        left: 0.05cqmin;
-        z-index: 5;
-    }
-
-    .audio-hint {
-        position: absolute;
-        bottom: 0.05cqmin;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.75);
-        border: none;
-        color: #fff;
-        font-size: 0.85em;
-        cursor: pointer;
-        border-radius: 0.4em;
-        padding: 0.3em 0.7em;
-        white-space: nowrap;
-        z-index: 10;
-    }
-
-    .audio-hint:hover {
-        background: rgba(0,0,0,0.9);
-    }
-
-    .menu-bar {
-        display: flex;
-        width: 100%;
-        /* align-items: center; */
-        padding: 0.2em 0.5em;
-        margin-top: 0.5cqmin;
-        gap: 0.5em;
-    }
-
-    .console-name {
-        font-family: "Courier New", Courier, monospace;
-        color: #12153d;
-        font-weight: bold;
-        font-size: 6cqi;
-        margin: 0 3% 0 5%;
-        align-self: flex-start;
-        font-style: italic;
-        text-transform: uppercase;
-    }
-
-    .burger-wrap {
-        position: relative;
-        margin-left: auto;
-        align-self: flex-start;
-        display: flex;
-    }
-
-    .burger-btn {
-        width: 6cqmin;
-        height: 6cqmin;
-        line-height: 1;
-        background: rgba(0,0,0,0.4);
-        border: none;
-        color: #eee;
-        font-size: 4cqmin;
-        cursor: pointer;
-        border-radius: 0.2em;
-        padding: 0 0.3em;
-        line-height: 1;
-    }
-
-    .burger-btn:hover {
-        background: rgba(0,0,0,0.7);
-    }
-
-    .menu-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 199;
     }
 
     .screen-tap {
         position: relative;
         display: block;
         line-height: 0;
-        width: 80cqmin;
-        height: 72cqmin;
-    }
-
-    .screen:fullscreen .screen-tap {
         width: 100%;
         height: 100%;
     }
@@ -454,5 +352,38 @@
         text-transform: uppercase;
         pointer-events: none;
         user-select: none;
+    }
+
+    .fps-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .frametime-wrapper {
+        position: absolute;
+        top: 0.05cqmin;
+        left: 0.05cqmin;
+        z-index: 5;
+    }
+
+    .audio-hint {
+        position: absolute;
+        bottom: 0.5em;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.75);
+        border: none;
+        color: #fff;
+        font-size: 0.85em;
+        cursor: pointer;
+        border-radius: 0.4em;
+        padding: 0.3em 0.7em;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+    .audio-hint:hover {
+        background: rgba(0,0,0,0.9);
     }
 </style>
