@@ -15,7 +15,8 @@
     import SavesViewer from "./SavesViewer.svelte";
     import OptionsView from "./OptionsView.svelte";
     import BindingsView from "./BindingsView.svelte";
-    import DebugSection from "./debug/DebugSection.svelte";
+    import WindowSkeleton from "./WindowSkeleton.svelte";
+    let DebugSection: any = $state(null);
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
@@ -80,6 +81,12 @@
             document.removeEventListener('fullscreenchange', onFullscreenChange);
             coarseMql.removeEventListener('change', updateCoarse);
         };
+    });
+
+    $effect(() => {
+        if ($showDebugWindow && !DebugSection) {
+            import("./debug/DebugSection.svelte").then(m => DebugSection = m.default);
+        }
     });
 
     $effect(() => {
@@ -233,7 +240,11 @@
                 {/if}
                 {#if $showDebugWindow}
                     <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
-                        <DebugSection />
+                        {#if DebugSection}
+                            <DebugSection />
+                        {:else}
+                            <WindowSkeleton label="Loading debug tools…" />
+                        {/if}
                     </Window>
                 {/if}
             </div>
