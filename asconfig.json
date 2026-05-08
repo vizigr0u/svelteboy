@@ -1,14 +1,14 @@
 {
   "targets": {
     "debug": {
-      "outFile": "build/backend.wasm",
-      "textFile": "build/backend.wat",
+      "outFile": "build/backend.debug.wasm",
+      "textFile": "build/backend.debug.wat",
       "sourceMap": true,
       "debug": true
     },
     "debugrelease": {
-      "outFile": "build/backend.wasm",
-      "textFile": "build/backend.wat",
+      "outFile": "build/backend.debug.wasm",
+      "textFile": "build/backend.debug.wat",
       "sourceMap": true,
       "optimizeLevel": 3,
       "shrinkLevel": 0,

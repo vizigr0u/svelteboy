@@ -7,7 +7,7 @@ import {
     loadCartridgeRom,
     getDebugInfo,
     serialEnableLog,
-} from "../build/backend.js";
+} from "../build/backend.debug.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
