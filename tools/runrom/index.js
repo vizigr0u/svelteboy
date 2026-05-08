@@ -1,9 +1,3 @@
-import {
-    loadCartridgeRom,
-    loadBootRom, runFrames, initEmulator, setVerbose, instrumentedDiag,
-    // serialEnableLog, dumpLogToConsole
-} from "../../build/backend.js";
-
 import { open, writeFile } from 'node:fs/promises';
 import { Session } from 'node:inspector/promises';
 
@@ -16,6 +10,14 @@ const tty = process.stdout.isTTY;
 const benchmark = args.includes('--benchmark');
 const profile = args.includes('--profile');
 const withInstrumentations = args.includes('--instrumented');
+
+const backendPath = withInstrumentations
+    ? '../../build/backend.debug.js'
+    : '../../build/backend.js';
+const {
+    loadCartridgeRom,
+    loadBootRom, runFrames, initEmulator, setVerbose, instrumentedDiag,
+} = await import(backendPath);
 const profileFnIndex = args.indexOf('--profile-function');
 const profileFn = profileFnIndex >= 0 ? args[profileFnIndex + 1] : null;
 
