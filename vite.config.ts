@@ -1,9 +1,75 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import path from 'path';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+function git(cmd: string, fallback = ''): string {
+  try {
+    return execSync(`git ${cmd}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return fallback;
+  }
+}
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
+
+function detectBranch(): string {
+  const envBranch =
+    process.env.GITHUB_REF_NAME ||
+    process.env.WORKERS_CI_BRANCH ||
+    process.env.CF_PAGES_BRANCH ||
+    process.env.VERCEL_GIT_COMMIT_REF ||
+    process.env.BRANCH ||
+    '';
+  if (envBranch) return envBranch;
+
+  // Attached HEAD: normal case.
+  const head = git('rev-parse --abbrev-ref HEAD');
+  if (head && head !== 'HEAD') return head;
+
+  // Detached HEAD: look for refs that point at the current commit.
+  // Cloudflare Pages and similar CIs leave HEAD detached but keep remote-tracking
+  // refs around — e.g. "origin/dev". Strip the "origin/" prefix when present.
+  const refs = git("for-each-ref --points-at HEAD --format=%(refname:short)")
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s && s !== 'HEAD');
+  const remote = refs.find(r => r.startsWith('origin/'));
+  if (remote) return remote.slice('origin/'.length);
+  if (refs.length > 0) return refs[0];
+  return '';
+}
+
+const sha =
+  process.env.GITHUB_SHA ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  git('rev-parse HEAD');
+const inCI = !!(
+  process.env.GITHUB_SHA ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.CI
+);
+const buildInfo = {
+  version: pkg.version,
+  sha,
+  shortSha: sha.slice(0, 7),
+  branch: detectBranch(),
+  dirty: !inCI && git('status --porcelain') !== '',
+  commitDate: git('log -1 --format=%cI'),
+  buildDate: new Date().toISOString(),
+  runId: process.env.GITHUB_RUN_ID || process.env.WORKERS_CI_BUILD_UUID || '',
+};
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_INFO__: JSON.stringify(buildInfo),
+  },
   build: {
     target: 'esnext',
   },

@@ -5,6 +5,7 @@ export const showSavesWindow    = MakeIDBStore('showSaves', false);
 export const showOptionsWindow  = MakeIDBStore('showOptions', false);
 export const showBindingsWindow = MakeIDBStore('showBindings', false);
 export const showDebugWindow    = MakeIDBStore('showDebug', false);
+export const showAboutWindow    = MakeIDBStore('showAbout', false);
 
 export const debugPanels = {
     debugger:  MakeIDBStore('dbg_debugger', true),
