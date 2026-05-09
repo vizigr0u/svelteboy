@@ -65,16 +65,6 @@ const buildInfo = {
   runId: process.env.GITHUB_RUN_ID || process.env.WORKERS_CI_BUILD_UUID || '',
 };
 
-console.log('[buildInfo]', JSON.stringify(buildInfo));
-console.log('[buildInfo][envProbe]', JSON.stringify({
-  GITHUB_REF_NAME: process.env.GITHUB_REF_NAME ?? null,
-  WORKERS_CI_BRANCH: process.env.WORKERS_CI_BRANCH ?? null,
-  WORKERS_CI_COMMIT_SHA: process.env.WORKERS_CI_COMMIT_SHA ?? null,
-  CF_PAGES: process.env.CF_PAGES ?? null,
-  CF_PAGES_BRANCH: process.env.CF_PAGES_BRANCH ?? null,
-  CI: process.env.CI ?? null,
-}));
-
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
