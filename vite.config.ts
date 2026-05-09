@@ -13,13 +13,37 @@ function git(cmd: string, fallback = ''): string {
 }
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
-const sha = process.env.GITHUB_SHA || git('rev-parse HEAD');
+
+function detectBranch(): string {
+  const envBranch =
+    process.env.GITHUB_REF_NAME ||
+    process.env.CF_PAGES_BRANCH ||
+    process.env.VERCEL_GIT_COMMIT_REF ||
+    process.env.BRANCH ||
+    '';
+  if (envBranch) return envBranch;
+  // Detached HEAD (common on CI shallow checkouts) returns the literal "HEAD" — drop it.
+  const b = git('rev-parse --abbrev-ref HEAD');
+  return b === 'HEAD' ? '' : b;
+}
+
+const sha =
+  process.env.GITHUB_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  git('rev-parse HEAD');
+const inCI = !!(
+  process.env.GITHUB_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.CI
+);
 const buildInfo = {
   version: pkg.version,
   sha,
   shortSha: sha.slice(0, 7),
-  branch: process.env.GITHUB_REF_NAME || git('rev-parse --abbrev-ref HEAD'),
-  dirty: !process.env.GITHUB_SHA && git('status --porcelain') !== '',
+  branch: detectBranch(),
+  dirty: !inCI && git('status --porcelain') !== '',
   commitDate: git('log -1 --format=%cI'),
   buildDate: new Date().toISOString(),
   runId: process.env.GITHUB_RUN_ID || '',

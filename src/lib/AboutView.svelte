@@ -55,6 +55,9 @@
         gap: 0.3em;
         font-size: 0.9em;
         color: #cdd6f4;
+        user-select: text;
+        -webkit-user-select: text;
+        cursor: text;
     }
     .about-row {
         display: grid;
