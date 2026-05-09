@@ -15,12 +15,13 @@
     import SavesViewer from "./SavesViewer.svelte";
     import OptionsView from "./OptionsView.svelte";
     import BindingsView from "./BindingsView.svelte";
+    import AboutView from "./AboutView.svelte";
     import WindowSkeleton from "./WindowSkeleton.svelte";
     let DebugSection: any = $state(null);
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
-    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow } from "../stores/windowStores";
+    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow, showAboutWindow } from "../stores/windowStores";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
@@ -52,6 +53,7 @@
         { label: 'Keyboard Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
         { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
         { label: 'Fullscreen', active: isFullscreen,       toggle: toggleFullscreen },
+        { label: 'About',      active: $showAboutWindow,   toggle: () => toggleWindow(showAboutWindow) },
     ]);
 
     onMount(() => {
@@ -236,6 +238,11 @@
                 {#if $showBindingsWindow}
                     <Window title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
                         <BindingsView />
+                    </Window>
+                {/if}
+                {#if $showAboutWindow}
+                    <Window title="About SvelteBoy" onclose={() => showAboutWindow.set(false)}>
+                        <AboutView />
                     </Window>
                 {/if}
                 {#if $showDebugWindow}

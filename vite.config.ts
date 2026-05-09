@@ -1,9 +1,35 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import path from 'path';
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+function git(cmd: string, fallback = ''): string {
+  try {
+    return execSync(`git ${cmd}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return fallback;
+  }
+}
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
+const sha = process.env.GITHUB_SHA || git('rev-parse HEAD');
+const buildInfo = {
+  version: pkg.version,
+  sha,
+  shortSha: sha.slice(0, 7),
+  branch: process.env.GITHUB_REF_NAME || git('rev-parse --abbrev-ref HEAD'),
+  dirty: !process.env.GITHUB_SHA && git('status --porcelain') !== '',
+  commitDate: git('log -1 --format=%cI'),
+  buildDate: new Date().toISOString(),
+  runId: process.env.GITHUB_RUN_ID || '',
+};
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_INFO__: JSON.stringify(buildInfo),
+  },
   build: {
     target: 'esnext',
   },
