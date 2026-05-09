@@ -62,6 +62,8 @@ const buildInfo = {
   runId: process.env.GITHUB_RUN_ID || '',
 };
 
+console.log('[buildInfo]', JSON.stringify(buildInfo));
+
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
