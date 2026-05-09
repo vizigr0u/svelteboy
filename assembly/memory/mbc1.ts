@@ -1,6 +1,7 @@
 import { Cartridge } from "../cartridge";
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
+import { MBC } from "./mbc";
 import { enableRam, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
@@ -9,10 +10,6 @@ export class MBC1 {
     static LowRegister: u8 = 1;
     static HighRegister: u8 = 0;
     static advancedMode: boolean = false;
-
-    // private static rom0Base: u32 = 0;
-    // private static rom1Base: u32 = 0;
-    // private static ramBase: u32 = 0;
 
     static romBankMask: u8 = 0xFF;
     static rom0Bank: u8 = 0;
@@ -25,9 +22,6 @@ export class MBC1 {
         MBC1.advancedMode = false;
         MBC1.LowRegister = 1;
         MBC1.HighRegister = 0;
-        // MBC1.rom0Base = CARTRIDGE_ROM_START;
-        // MBC1.rom1Base = CARTRIDGE_ROM_START + ROM_BANK_SIZE;
-        // MBC1.ramBase = GB_EXT_RAM_START + (MBC1.advancedMode ? (MBC1.HighRegister << 13) : 0);
 
         MBC1.rom0Bank = 0;
         MBC1.rom1Bank = 1;
@@ -35,6 +29,8 @@ export class MBC1 {
         assert(Cartridge.Data.RomBankCount <= 128, 'Unexpectedly large number for ROM banks for MBC1 ROM');
         MBC1.romBankMask = <u8>(Cartridge.Data.RomBankCount - 1)
         enableRam(false);
+        MBC.extRamMask = 0x1FFF;
+        MBC1.Recache();
     }
 
     static HandleWrite(gbAddress: u16, value: u8): void {
@@ -43,6 +39,7 @@ export class MBC1 {
             case 0x0:
             case 0x1:
                 enableRam((value & 0xF) == 0xA);
+                MBC1.Recache();
                 return;
             case 0x2:
             case 0x3:
@@ -65,12 +62,6 @@ export class MBC1 {
                 break;
         }
 
-        // const bank1Number: u32 = <u32>MBC1.HighRegister << 19;
-        // const rom0hi: u32 = MBC1.advancedMode ? rom1hi : 0;
-        // const rom1bank: u32 = <u32>MBC1.LowRegister << 14;
-        // MBC1.rom0Base = CARTRIDGE_ROM_START + rom0hi;
-        // MBC1.rom1Base = CARTRIDGE_ROM_START + (rom1hi | rom1bank);
-        // MBC1.ramBase = GB_EXT_RAM_START + (MBC1.advancedMode ? (MBC1.HighRegister << 13) : 0);
         const oldRom0 = MBC1.rom0Bank;
         const oldRom1 = MBC1.rom1Bank;
         const oldRam = MBC1.ramBank;
@@ -86,16 +77,13 @@ export class MBC1 {
         if (oldRom0 != MBC1.rom0Bank && Logger.verbose >= 2) {
             log(`Switching Rom bank 0 from ${oldRom0} to ${MBC1.rom0Bank} ([${uToHex<u16>(gbAddress)}] <- ${value})`)
         }
+        MBC1.Recache();
     }
 
-    static MapRom(gbAddress: u16): u32 {
-        if (gbAddress < 0x4000)
-            return CARTRIDGE_ROM_START + gbAddress + MBC1.rom0Bank * ROM_BANK_SIZE;
-        return CARTRIDGE_ROM_START + gbAddress - 0x4000 + MBC1.rom1Bank * ROM_BANK_SIZE;
-    }
-
-    static MapRam(gbAddress: u16): u32 {
-        return GB_EXT_RAM_START + gbAddress - 0xA000 + MBC1.ramBank * GB_EXT_RAM_BANK_SIZE;
+    @inline
+    static Recache(): void {
+        MBC.rom0Base = CARTRIDGE_ROM_START + <u32>MBC1.rom0Bank * ROM_BANK_SIZE;
+        MBC.rom1Base = CARTRIDGE_ROM_START + <u32>MBC1.rom1Bank * ROM_BANK_SIZE;
+        MBC.extRamBase = GB_EXT_RAM_START + <u32>MBC1.ramBank * GB_EXT_RAM_BANK_SIZE;
     }
 }
-
