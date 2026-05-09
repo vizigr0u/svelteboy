@@ -1,6 +1,6 @@
 import { Logger } from "../debug/logger";
-import { uToHex } from "../utils/stringUtils";
-import { enableRam, isRamEnabled, log } from "./mbcTypes";
+import { MBC } from "./mbc";
+import { enableRam, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
 @final
@@ -12,6 +12,8 @@ export class MBC2 {
             log('Initializing MBC2');
         MBC2.romBank = 1;
         enableRam(false);
+        MBC.extRamMask = 0x01FF; // 512×4-bit RAM mirrors every 512 bytes within $A000-$BFFF
+        MBC2.Recache();
     }
 
     static HandleWrite(gbAddress: u16, value: u8): void {
@@ -24,16 +26,13 @@ export class MBC2 {
                 log(`Switching ROM bank(1) from #${MBC2.romBank} to ${newRomBank}`)
             MBC2.romBank = newRomBank;
         }
+        MBC2.Recache();
     }
 
-    static MapRom(gbAddress: u16): u32 {
-        return gbAddress < 0x4000 ?
-            CARTRIDGE_ROM_START + gbAddress
-            : CARTRIDGE_ROM_START + gbAddress - 0x4000 + ROM_BANK_SIZE * MBC2.romBank;
-    }
-
-    static MapRam(gbAddress: u16): u32 {
-        return GB_EXT_RAM_START + ((gbAddress - 0xA000) & 0x01FF);
+    @inline
+    static Recache(): void {
+        MBC.rom0Base = CARTRIDGE_ROM_START;
+        MBC.rom1Base = CARTRIDGE_ROM_START + MBC2.romBank * ROM_BANK_SIZE;
+        MBC.extRamBase = GB_EXT_RAM_START;
     }
 }
-

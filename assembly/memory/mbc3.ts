@@ -1,5 +1,6 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
+import { MBC } from "./mbc";
 import { enableRam, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
@@ -17,6 +18,8 @@ export class MBC3 {
         MBC3.romBank = 1;
         MBC3.ramBank = 0;
         enableRam(false);
+        MBC.extRamMask = 0x1FFF;
+        MBC3.Recache();
     }
 
     static HandleWrite(gbAddress: u16, value: u8): void {
@@ -25,6 +28,7 @@ export class MBC3 {
             case 0x0:
             case 0x1:
                 enableRam((value & 0xF) == 0xA);
+                MBC3.Recache();
                 return;
             case 0x2:
             case 0x3:
@@ -32,6 +36,7 @@ export class MBC3 {
                 if (newRomBank != MBC3.romBank && Logger.verbose >= 2)
                     log(`Switching ROM bank(1) from #${MBC3.romBank} to ${newRomBank}`)
                 MBC3.romBank = newRomBank;
+                MBC3.Recache();
                 return;
             case 0x4:
             case 0x5:
@@ -46,6 +51,7 @@ export class MBC3 {
                 } else if (Logger.verbose >= 2) {
                     log('Ignoring unhandled value write to ' + uToHex<u16>(gbAddress))
                 }
+                MBC3.Recache();
                 return;
             case 0x6:
             case 0x7:
@@ -60,14 +66,10 @@ export class MBC3 {
         }
     }
 
-    static MapRom(gbAddress: u16): u32 {
-        return gbAddress < 0x4000 ?
-            CARTRIDGE_ROM_START + gbAddress
-            : CARTRIDGE_ROM_START + gbAddress - 0x4000 + ROM_BANK_SIZE * MBC3.romBank;
-    }
-
-    static MapRam(gbAddress: u16): u32 {
-        return GB_EXT_RAM_START + gbAddress - 0xA000 + MBC3.ramBank * GB_EXT_RAM_BANK_SIZE;
+    @inline
+    static Recache(): void {
+        MBC.rom0Base = CARTRIDGE_ROM_START;
+        MBC.rom1Base = CARTRIDGE_ROM_START + MBC3.romBank * ROM_BANK_SIZE;
+        MBC.extRamBase = GB_EXT_RAM_START + <u32>MBC3.ramBank * GB_EXT_RAM_BANK_SIZE;
     }
 }
-
