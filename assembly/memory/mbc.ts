@@ -1,10 +1,10 @@
 import { Cartridge } from "../cartridge";
 import { CartridgeType } from "../metadata";
+import { GB_EXT_RAM_START } from "./memoryConstants";
 import { MBC1 } from "./mbc1";
 import { MBC2 } from "./mbc2";
 import { MBC3 } from "./mbc3";
 import { MBC5 } from "./mbc5";
-import { log } from "./mbcTypes";
 import { NoMBC } from "./noMbc";
 
 const enum MBCType {
@@ -55,6 +55,8 @@ export class MBC {
     private static type: i32 = MBCType.None;
     static rom0Base: u32 = 0;
     static rom1Base: u32 = 0;
+    static extRamBase: u32 = GB_EXT_RAM_START;
+    static extRamMask: u32 = 0x1FFF;
 
     static Init(): void {
         assert(Cartridge.Data.romSizeByte <= 8, 'Unexpected Header ROM Size value: ' + Cartridge.Data.romSizeByte.toString());
@@ -68,8 +70,7 @@ export class MBC {
             case MBCType.MBC5: MBC5.Init(); break;
             default: MBC1.Init(); break;
         }
-        MBC.rom0Base = MBC.MapRom(0);
-        MBC.rom1Base = MBC.MapRom(0x4000);
+        // Each MBC.Init() above sets MBC.extRamMask and calls Recache().
     }
 
     @inline
@@ -82,31 +83,29 @@ export class MBC {
             case MBCType.MBC5: MBC5.HandleWrite(gbAddress, value); break;
             default: MBC1.HandleWrite(gbAddress, value); break;
         }
-        MBC.rom0Base = MBC.MapRom(0);
-        MBC.rom1Base = MBC.MapRom(0x4000);
+        // Each MBC.HandleWrite above calls its own Recache() at the end.
+    }
+
+    static Recache(): void {
+        switch (MBC.type) {
+            case MBCType.None: NoMBC.Recache(); break;
+            case MBCType.MBC1: MBC1.Recache(); break;
+            case MBCType.MBC2: MBC2.Recache(); break;
+            case MBCType.MBC3: MBC3.Recache(); break;
+            case MBCType.MBC5: MBC5.Recache(); break;
+            default: MBC1.Recache(); break;
+        }
     }
 
     @inline
     static MapRom(gbAddress: u16): u32 {
-        switch (MBC.type) {
-            case MBCType.None: return NoMBC.MapRom(gbAddress);
-            case MBCType.MBC1: return MBC1.MapRom(gbAddress);
-            case MBCType.MBC2: return MBC2.MapRom(gbAddress);
-            case MBCType.MBC3: return MBC3.MapRom(gbAddress);
-            case MBCType.MBC5: return MBC5.MapRom(gbAddress);
-            default: return MBC1.MapRom(gbAddress);
-        }
+        return gbAddress < 0x4000
+            ? MBC.rom0Base + <u32>gbAddress
+            : MBC.rom1Base + (<u32>gbAddress - 0x4000);
     }
 
     @inline
     static MapRam(gbAddress: u16): u32 {
-        switch (MBC.type) {
-            case MBCType.None: return NoMBC.MapRam(gbAddress);
-            case MBCType.MBC1: return MBC1.MapRam(gbAddress);
-            case MBCType.MBC2: return MBC2.MapRam(gbAddress);
-            case MBCType.MBC3: return MBC3.MapRam(gbAddress);
-            case MBCType.MBC5: return MBC5.MapRam(gbAddress);
-            default: return MBC1.MapRam(gbAddress);
-        }
+        return MBC.extRamBase + ((<u32>gbAddress - 0xA000) & MBC.extRamMask);
     }
 }

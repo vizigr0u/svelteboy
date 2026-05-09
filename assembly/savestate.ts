@@ -247,9 +247,8 @@ export function loadSaveState(data: Uint8Array): bool {
     // MBC
     setRamEnabledRaw(load<u8>(p + OFF_RAM_ENABLED) != 0);
     loadMbcBanks(p);
-    // Refresh fast-path ROM base cache (used by MemoryMap.GBload for opcode fetches)
-    MBC.rom0Base = MBC.MapRom(0);
-    MBC.rom1Base = MBC.MapRom(0x4000);
+    // Refresh fast-path base cache (rom0Base/rom1Base/extRamBase) after restoring bank registers.
+    MBC.Recache();
 
     // LCD window state
     Lcd.WindowLyInternal = load<u8>(p + OFF_LCD_WINDOW_LY);

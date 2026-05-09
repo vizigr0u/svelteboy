@@ -13,7 +13,6 @@ import {
 } from './idbStore';
 import type { LibraryRom, RemoteRomsList } from '../types';
 import type { RenderModeOverride } from '../cartType';
-import { extractMetadata } from '../emulator/wasmBridge';
 
 export const libraryStore: Writable<LibraryRom[]> = writable<LibraryRom[]>([]);
 export const libraryHydrated: Writable<boolean> = writable(false);
@@ -37,14 +36,7 @@ function readCgbFlagFromBuffer(buffer: ArrayBuffer): number | undefined {
 
 export function ensureCgbFlag(rom: LibraryRom, buffer: ArrayBuffer): LibraryRom {
     if (rom.cgbFlag !== undefined) return rom;
-    let cgbFlag: number | undefined;
-    try {
-        const md = extractMetadata(buffer);
-        cgbFlag = (md as unknown as { cgbFlag?: number }).cgbFlag;
-    } catch (e) {
-        console.warn('extractMetadata failed, falling back to byte read:', e);
-    }
-    if (cgbFlag === undefined) cgbFlag = readCgbFlagFromBuffer(buffer);
+    const cgbFlag = readCgbFlagFromBuffer(buffer);
     if (cgbFlag === undefined) return rom;
     return { ...rom, cgbFlag };
 }

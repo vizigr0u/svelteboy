@@ -17,6 +17,8 @@ import {
     GB_VIDEO_START,
     GB_IO_START,
     GB_HIGH_RAM_START,
+    GB_EXT_RAM_START,
+    GB_EXT_RAM_BANK_SIZE,
     CARTRIDGE_ROM_START,
     ROM_BANK_SIZE
 } from "../memory/memoryConstants";
@@ -34,6 +36,9 @@ import { describe, it, assertEquals } from "./framework";
 function setupClean(): void {
     memory.fill(CARTRIDGE_ROM_START, 0x00, 0x8000);
     MemoryMap.loadedCartridgeRomSize = 0x8000;
+    Cartridge.Data.cartridgeType = CartridgeType.ROM_ONLY;
+    Cartridge.Data.romSizeByte = 0;
+    Cartridge.Data.ramSizeByte = 0;
     Emulator.Init(false);
     // Place PPU at frame boundary so createSaveState succeeds by default.
     Ppu.currentMode = PpuMode.VBlank;
@@ -525,6 +530,54 @@ function testMbcRomBaseCacheRestored(): void {
     });
 }
 
+function setupMbc1WithRam(): void {
+    // 32 banks ROM × 16KiB + 4 banks RAM × 8KiB. Advanced mode toggle allowed
+    // because RamBankCount > 1 (see MBC1.HandleWrite gating at $6000-$7FFF).
+    memory.fill(CARTRIDGE_ROM_START, 0x00, 32 * <i32>ROM_BANK_SIZE);
+    memory.fill(GB_EXT_RAM_START, 0x00, 4 * <i32>GB_EXT_RAM_BANK_SIZE);
+    MemoryMap.loadedCartridgeRomSize = 32 * ROM_BANK_SIZE;
+    Cartridge.Data.cartridgeType = CartridgeType.MBC1_RAM;
+    Cartridge.Data.romSizeByte = 4;
+    Cartridge.Data.ramSizeByte = 3;
+    Emulator.Init(false);
+    Ppu.currentMode = PpuMode.VBlank;
+    Lcd.data.lY = 144;
+}
+
+function testMbcExtRamBaseCacheRestored(): void {
+    it("MBC.extRamBase refreshed after load (regression: cached RAM base stale)", () => {
+        setupMbc1WithRam();
+        // Enter advanced mode so HighRegister selects RAM bank.
+        MBC.HandleWrite(0x6000, 1); // advancedMode = true
+        MBC.HandleWrite(0x4000, 2); // HighRegister = 2 → ramBank = 2
+        assertEquals<u8>(MBC1.ramBank, 2, "pre-save ramBank");
+        const expectedBase: u32 = GB_EXT_RAM_START + 2 * GB_EXT_RAM_BANK_SIZE;
+        assertEquals<u32>(MBC.extRamBase, expectedBase, "pre-save extRamBase");
+        const state = createSaveState();
+        // Drift to bank 3.
+        MBC.HandleWrite(0x4000, 3);
+        assertEquals<u32>(MBC.extRamBase, GB_EXT_RAM_START + 3 * GB_EXT_RAM_BANK_SIZE, "drifted extRamBase");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(MBC1.ramBank, 2, "ramBank restored");
+        assertEquals<u32>(MBC.extRamBase, expectedBase, "extRamBase re-cached after load");
+    });
+    it("ext RAM read from $A000 reads saved bank after load", () => {
+        setupMbc1WithRam();
+        // Plant markers in RAM banks 2 and 3 at offset 0.
+        store<u8>(GB_EXT_RAM_START + 2 * GB_EXT_RAM_BANK_SIZE, 0x55);
+        store<u8>(GB_EXT_RAM_START + 3 * GB_EXT_RAM_BANK_SIZE, 0xAA);
+        MBC.HandleWrite(0x0000, 0x0A); // RAM enable
+        MBC.HandleWrite(0x6000, 1);    // advanced mode
+        MBC.HandleWrite(0x4000, 2);    // ramBank = 2
+        assertEquals<u8>(MemoryMap.GBload<u8>(0xA000), 0x55, "pre-save fetch RAM bank 2");
+        const state = createSaveState();
+        MBC.HandleWrite(0x4000, 3);    // ramBank = 3
+        assertEquals<u8>(MemoryMap.GBload<u8>(0xA000), 0xAA, "fetch RAM bank 3 before load");
+        assert(loadSaveState(state), "load failed");
+        assertEquals<u8>(MemoryMap.GBload<u8>(0xA000), 0x55, "fetch RAM bank 2 after load");
+    });
+}
+
 function testFrameBoundaryVBlank(): void {
     it("createSaveState succeeds in VBlank", () => {
         setupClean();
@@ -815,6 +868,7 @@ export function testSaveState(): boolean {
     });
     describe("SaveState - MBC cache", () => {
         testMbcRomBaseCacheRestored();
+        testMbcExtRamBaseCacheRestored();
     });
     describe("SaveState - Frame boundary", () => {
         testIsAtFrameBoundary();

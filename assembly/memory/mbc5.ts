@@ -1,5 +1,6 @@
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
+import { MBC } from "./mbc";
 import { enableRam, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
@@ -16,6 +17,8 @@ export class MBC5 {
         MBC5.romBankHigh = 0;
         MBC5.ramBank = 0;
         enableRam(false);
+        MBC.extRamMask = 0x1FFF;
+        MBC5.Recache();
     }
 
     static HandleWrite(gbAddress: u16, value: u8): void {
@@ -37,17 +40,14 @@ export class MBC5 {
                 log(`Switching RAM bank from ${MBC5.ramBank} to ${newRamBank}`);
             MBC5.ramBank = newRamBank;
         }
+        MBC5.Recache();
     }
 
-    static MapRom(gbAddress: u16): u32 {
-        if (gbAddress < 0x4000)
-            return CARTRIDGE_ROM_START + gbAddress;
-        const romBank: u16 = (<u16>MBC5.romBankHigh << 8) | MBC5.romBankLow;
-        return CARTRIDGE_ROM_START + gbAddress - 0x4000 + <u32>romBank * ROM_BANK_SIZE;
-    }
-
-    static MapRam(gbAddress: u16): u32 {
-        return GB_EXT_RAM_START + gbAddress - 0xA000 + <u32>MBC5.ramBank * GB_EXT_RAM_BANK_SIZE;
+    @inline
+    static Recache(): void {
+        const romBank: u32 = (<u32>MBC5.romBankHigh << 8) | MBC5.romBankLow;
+        MBC.rom0Base = CARTRIDGE_ROM_START;
+        MBC.rom1Base = CARTRIDGE_ROM_START + romBank * ROM_BANK_SIZE;
+        MBC.extRamBase = GB_EXT_RAM_START + <u32>MBC5.ramBank * GB_EXT_RAM_BANK_SIZE;
     }
 }
-
