@@ -22,9 +22,22 @@ function detectBranch(): string {
     process.env.BRANCH ||
     '';
   if (envBranch) return envBranch;
-  // Detached HEAD (common on CI shallow checkouts) returns the literal "HEAD" — drop it.
-  const b = git('rev-parse --abbrev-ref HEAD');
-  return b === 'HEAD' ? '' : b;
+
+  // Attached HEAD: normal case.
+  const head = git('rev-parse --abbrev-ref HEAD');
+  if (head && head !== 'HEAD') return head;
+
+  // Detached HEAD: look for refs that point at the current commit.
+  // Cloudflare Pages and similar CIs leave HEAD detached but keep remote-tracking
+  // refs around — e.g. "origin/dev". Strip the "origin/" prefix when present.
+  const refs = git("for-each-ref --points-at HEAD --format=%(refname:short)")
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s && s !== 'HEAD');
+  const remote = refs.find(r => r.startsWith('origin/'));
+  if (remote) return remote.slice('origin/'.length);
+  if (refs.length > 0) return refs[0];
+  return '';
 }
 
 const sha =
