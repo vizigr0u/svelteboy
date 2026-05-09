@@ -17,6 +17,7 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: str
 function detectBranch(): string {
   const envBranch =
     process.env.GITHUB_REF_NAME ||
+    process.env.WORKERS_CI_BRANCH ||
     process.env.CF_PAGES_BRANCH ||
     process.env.VERCEL_GIT_COMMIT_REF ||
     process.env.BRANCH ||
@@ -42,11 +43,13 @@ function detectBranch(): string {
 
 const sha =
   process.env.GITHUB_SHA ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
   process.env.CF_PAGES_COMMIT_SHA ||
   process.env.VERCEL_GIT_COMMIT_SHA ||
   git('rev-parse HEAD');
 const inCI = !!(
   process.env.GITHUB_SHA ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
   process.env.CF_PAGES_COMMIT_SHA ||
   process.env.VERCEL_GIT_COMMIT_SHA ||
   process.env.CI
@@ -59,10 +62,18 @@ const buildInfo = {
   dirty: !inCI && git('status --porcelain') !== '',
   commitDate: git('log -1 --format=%cI'),
   buildDate: new Date().toISOString(),
-  runId: process.env.GITHUB_RUN_ID || '',
+  runId: process.env.GITHUB_RUN_ID || process.env.WORKERS_CI_BUILD_UUID || '',
 };
 
 console.log('[buildInfo]', JSON.stringify(buildInfo));
+console.log('[buildInfo][envProbe]', JSON.stringify({
+  GITHUB_REF_NAME: process.env.GITHUB_REF_NAME ?? null,
+  WORKERS_CI_BRANCH: process.env.WORKERS_CI_BRANCH ?? null,
+  WORKERS_CI_COMMIT_SHA: process.env.WORKERS_CI_COMMIT_SHA ?? null,
+  CF_PAGES: process.env.CF_PAGES ?? null,
+  CF_PAGES_BRANCH: process.env.CF_PAGES_BRANCH ?? null,
+  CI: process.env.CI ?? null,
+}));
 
 // https://vitejs.dev/config/
 export default defineConfig({
