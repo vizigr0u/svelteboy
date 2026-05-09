@@ -50,4 +50,5 @@ export function printTotals() {
         console.log(`  ${failString} ${totalFailed} failed`);
     }
     console.log('-------------------------------');
+    if (totalFailed > 0) process.exit(1);
 }

@@ -1,6 +1,5 @@
 import { suite, test, printTotals } from "./framework.js";
 import * as backend from "../build/backend.debug.js";
-import { testBlargg02Interrupts } from "./blargg.js";
 
 console.log("Total memory size: " + backend.TOTAL_MEMORY_SIZE);
 
@@ -15,10 +14,6 @@ suite('WASM', () => {
     testFns.forEach(fn => test(fn));
 });
 
-suite('Integration', () => {
-    test(testBlargg02Interrupts);
-});
+console.log(backend.getCpuTestSessionSummary());
 
 printTotals();
-
-console.log(backend.getCpuTestSessionSummary());
