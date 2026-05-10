@@ -76,15 +76,12 @@
         border: 4px solid transparent;
         gap: 10cqmin;
         padding: 8cqmin 0 0 0;
+        height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+        width: auto;
+        margin-left: auto;
     }
 
-    @media (orientation: landscape) {
-        .console {
-            height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-            width: auto;
-        }
-    }
-    @media (orientation: portrait) {
+    @media (max-aspect-ratio: 9/13) {
         .console {
             width: 100vw;
             height: auto;
