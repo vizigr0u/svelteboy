@@ -19,9 +19,27 @@
 
     let isLoaded = $derived($loadedCartridge?.sha1 === rom.sha1);
     let lastPlayed = $derived(rom.lastPlayedAt ? new Date(rom.lastPlayedAt).toLocaleString() : 'Never');
+    let busy = $state(false);
 
-    function play() {
-        Emulator.PlayRom(rom);
+    async function resume() {
+        if (busy) return;
+        busy = true;
+        try {
+            await Emulator.PlayRom(rom);
+            if (latestThumb) await Emulator.QuickLoad(1);
+        } finally {
+            busy = false;
+        }
+    }
+
+    async function playFromBoot() {
+        if (busy) return;
+        busy = true;
+        try {
+            await Emulator.PlayRom(rom);
+        } finally {
+            busy = false;
+        }
     }
 </script>
 
@@ -34,9 +52,14 @@
             <div class="thumb-empty">No quick saves yet</div>
         {/if}
     </div>
-    <button class="play-button" onclick={play} disabled={isLoaded}>
-        {isLoaded ? 'Running' : (latestThumb ? 'Play / Resume' : 'Play')}
+    <button class="play-button" onclick={resume} disabled={isLoaded || busy}>
+        {isLoaded ? 'Running' : (latestThumb ? 'Resume from slot 1' : 'Play')}
     </button>
+    {#if latestThumb}
+        <button class="secondary-button" onclick={playFromBoot} disabled={isLoaded || busy}>
+            Reset and play from boot
+        </button>
+    {/if}
     <dl class="play-meta">
         <dt>Last played</dt><dd>{lastPlayed}</dd>
     </dl>
@@ -81,6 +104,22 @@
         cursor: pointer;
     }
     .play-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .secondary-button {
+        padding: 0.4em 1em;
+        font-size: 0.85em;
+        background: transparent;
+        color: #cdd6f4;
+        border: 1px solid #45475a;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .secondary-button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.04);
+    }
+    .secondary-button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
     }
