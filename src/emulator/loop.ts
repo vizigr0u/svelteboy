@@ -8,6 +8,7 @@ import {
     initEmulator,
     getLastSave,
     getLastSaveFrame,
+    setRealTimeMs,
 } from "./wasmBridge";
 import { fetchLogs } from "../debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "stores/debugStores";
@@ -133,6 +134,9 @@ function stepTick(): void {
 
 function preRun(): void {
     EmulatorBusy.set(true);
+    // Prime RTC wall-clock before any potential MBC3RTC.Init triggered by initEmulator,
+    // so baseEpoch anchors to real time.
+    setRealTimeMs(Date.now());
     if (!get(EmulatorInitialized)) {
         initEmulator(get(useBoot));
         EmulatorInitialized.set(true);

@@ -98,6 +98,18 @@ export class MBC {
     }
 
     @inline
+    static HandleRamRead(gbAddress: u16): i32 {
+        if (MBC.type == MBCType.MBC3) return MBC3.HandleRamRead(gbAddress);
+        return -1;
+    }
+
+    @inline
+    static HandleRamWrite(gbAddress: u16, value: u8): bool {
+        if (MBC.type == MBCType.MBC3) return MBC3.HandleRamWrite(gbAddress, value);
+        return false;
+    }
+
+    @inline
     static MapRom(gbAddress: u16): u32 {
         return gbAddress < 0x4000
             ? MBC.rom0Base + <u32>gbAddress

@@ -69,6 +69,15 @@ function getRamBankCount(headerRamSizeValue: u8): u16 {
     }
 }
 
+function cartridgeHasRTC(t: CartridgeType): boolean {
+    switch (t) {
+        case CartridgeType.MBC3_TIMER_BATTERY:
+        case CartridgeType.MBC3_TIMER_RAM_BATTERY_2:
+            return true;
+    }
+    return false;
+}
+
 function cartridgeHasBattery(t: CartridgeType): boolean {
     switch (t) {
         case CartridgeType.MBC1_RAM_BATTERY:
@@ -104,6 +113,7 @@ export class Metadata {
     get RomBankCount(): u16 { return getRomBankCount(this.romSizeByte) }
     get RamBankCount(): u16 { return getRamBankCount(this.ramSizeByte) }
     get HasBattery(): boolean { return cartridgeHasBattery(this.cartridgeType); }
+    get HasRTC(): boolean { return cartridgeHasRTC(this.cartridgeType); }
 
     getCGBMode(): CGBMode { return (this.cgbFlag == CGBMode.CGBOnly || this.cgbFlag == CGBMode.PartialCGB) ? this.cgbFlag : CGBMode.NonCGB };
 

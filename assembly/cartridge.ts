@@ -8,7 +8,7 @@ import { uToHex } from "./utils/stringUtils";
 const supportedTypes: CartridgeType[] = [CartridgeType.ROM_ONLY,
 CartridgeType.MBC1, CartridgeType.MBC1_RAM, /*CartridgeType.MBC1_RAM_BATTERY,*/
 CartridgeType.MBC2, /* CartridgeType.MBC2_BATTERY, */
-CartridgeType.MBC3, CartridgeType.MBC3_RAM_2, /*CartridgeType.MBC3_RAM_BATTERY_2, CartridgeType.MBC3_TIMER_BATTERY, CartridgeType.MBC3_TIMER_RAM_BATTERY_2,*/
+CartridgeType.MBC3, CartridgeType.MBC3_RAM_2, CartridgeType.MBC3_RAM_BATTERY_2, CartridgeType.MBC3_TIMER_BATTERY, CartridgeType.MBC3_TIMER_RAM_BATTERY_2,
 CartridgeType.MBC5, CartridgeType.MBC5_RAM, CartridgeType.MBC5_RAM_BATTERY, /*CartridgeType.MBC5_RUMBLE, CartridgeType.MBC5_RUMBLE_RAM, CartridgeType.MBC5_RUMBLE_RAM_BATTERY,*/
 ];
 

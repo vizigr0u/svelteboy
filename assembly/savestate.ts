@@ -10,6 +10,7 @@ import { MBC } from "./memory/mbc";
 import { MBC1 } from "./memory/mbc1";
 import { MBC2 } from "./memory/mbc2";
 import { MBC3 } from "./memory/mbc3";
+import { MBC3RTC, RTC_BLOB_SIZE } from "./memory/mbc3rtc";
 import { MBC5 } from "./memory/mbc5";
 import { Lcd } from "./io/video/lcd";
 import { PixelFifo } from "./io/video/pixelFifo";
@@ -41,7 +42,11 @@ export const CGB_STATE_SIZE: u32 = CGB_STATE_SERIALIZED_SIZE
 
 export const SAVESTATE_MAGIC: u32 = 0x59425653; // "SVBY" (little-endian: bytes 'S','V','B','Y')
 // v5 adds render-mode byte at offset 33 (was padding) — used to reject mismatched-mode loads.
-export const SAVESTATE_VERSION: u16 = 5;
+// v6 appends a 48-byte BGB-format RTC block + 2-byte MBC3 tail (rtcSelect, latchPrev)
+// after the CGB block when the cart has RTC.
+export const SAVESTATE_VERSION: u16 = 6;
+const MBC3_RTC_TAIL_SIZE: u32 = 2;
+const RTC_BLOCK_TOTAL: u32 = <u32>RTC_BLOB_SIZE + MBC3_RTC_TAIL_SIZE;
 export { APU_STATE_SIZE };
 
 export function isAtFrameBoundary(): bool {
@@ -107,7 +112,8 @@ export const SAVESTATE_FIXED_SIZE: u32 = OFF_EXT_RAM;
 export function createSaveState(): Uint8Array {
     if (!isAtFrameBoundary()) return new Uint8Array(0);
     const extRamSize: u32 = <u32>Cartridge.Data.RamBankCount * GB_EXT_RAM_BANK_SIZE;
-    const totalSize: u32 = SAVESTATE_FIXED_SIZE + extRamSize + APU_STATE_SIZE + CGB_STATE_SIZE;
+    const rtcSize: u32 = Cartridge.Data.HasRTC ? RTC_BLOCK_TOTAL : 0;
+    const totalSize: u32 = SAVESTATE_FIXED_SIZE + extRamSize + APU_STATE_SIZE + CGB_STATE_SIZE + rtcSize;
     const buf = new Uint8Array(totalSize);
     const p: usize = buf.dataStart;
 
@@ -182,6 +188,13 @@ export function createSaveState(): Uint8Array {
     cgbPtr = Dma.SerializeHdma(cgbPtr);
     memory.copy(cgbPtr, GB_CGB_PALETTE_RAM_START, GB_CGB_PALETTE_RAM_SIZE);
 
+    if (rtcSize > 0) {
+        const rtcOffset: u32 = totalSize - rtcSize;
+        MBC3RTC.SerializeTo(buf, <i32>rtcOffset);
+        store<i8>(p + rtcOffset + <u32>RTC_BLOB_SIZE, <i8>MBC3.rtcSelect);
+        store<u8>(p + rtcOffset + <u32>RTC_BLOB_SIZE + 1, MBC3.latchPrev);
+    }
+
     return buf;
 }
 
@@ -194,7 +207,7 @@ export function loadSaveState(data: Uint8Array): bool {
     if (load<u32>(p + OFF_MAGIC) != SAVESTATE_MAGIC) return false;
     const version: u16 = load<u16>(p + OFF_VERSION);
     // v2: no APU block. v3: APU block. v4: APU + CGB state block. v5: + render-mode byte.
-    if (version < 2 || version > 5) return false;
+    if (version < 2 || version > 6) return false;
 
     // v5+: reject mismatched render mode (DMG-mode save on CGB-mode cart, or vice versa).
     if (version >= 5) {
@@ -205,7 +218,8 @@ export function loadSaveState(data: Uint8Array): bool {
     const extRamSize: u32 = load<u32>(p + OFF_EXT_RAM_SIZE);
     const apuSize: u32 = version >= 3 ? APU_STATE_SIZE : 0;
     const cgbSize: u32 = version >= 4 ? CGB_STATE_SIZE : 0;
-    if (<u32>data.byteLength < SAVESTATE_FIXED_SIZE + extRamSize + apuSize + cgbSize) return false;
+    const rtcSize: u32 = (version >= 6 && Cartridge.Data.HasRTC) ? RTC_BLOCK_TOTAL : 0;
+    if (<u32>data.byteLength < SAVESTATE_FIXED_SIZE + extRamSize + apuSize + cgbSize + rtcSize) return false;
 
     // CPU
     Cpu.AF = load<u16>(p + OFF_AF);
@@ -291,6 +305,13 @@ export function loadSaveState(data: Uint8Array): bool {
         Lcd.ResetCgbPaletteState();
         CgbIoRegs.Init();
         Dma.ResetHdma();
+    }
+
+    if (rtcSize > 0) {
+        const rtcOffset: u32 = <u32>data.byteLength - rtcSize;
+        MBC3RTC.DeserializeFrom(data, <i32>rtcOffset, RTC_BLOB_SIZE);
+        MBC3.rtcSelect = <i32>load<i8>(p + rtcOffset + <u32>RTC_BLOB_SIZE);
+        MBC3.latchPrev = load<u8>(p + rtcOffset + <u32>RTC_BLOB_SIZE + 1);
     }
 
     return true;

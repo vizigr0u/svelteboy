@@ -47,6 +47,7 @@ export {
 export { setJoypad } from "./io/joypad";
 
 export { loadSaveGame, getLastSave, getLastSaveFrame } from './memory/savegame'
+export { setRealTimeMs } from './memory/mbc3rtc'
 
 export { createSaveState, loadSaveState, isAtFrameBoundary } from './savestate'
 
