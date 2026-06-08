@@ -36,8 +36,8 @@ function setupDmg(): void {
 }
 
 function testVersionIsFour(): void {
-    it("SAVESTATE_VERSION bumped to 5", () => {
-        assertEquals<u16>(SAVESTATE_VERSION, 5, "version=5");
+    it("SAVESTATE_VERSION bumped to 6", () => {
+        assertEquals<u16>(SAVESTATE_VERSION, 6, "version=6");
     });
 }
 

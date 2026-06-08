@@ -144,6 +144,8 @@ export class MemoryMap {
                         logRamDisabled(gbAddress);
                     // return <T>-1;
                 }
+                const hook = MBC.HandleRamRead(gbAddress);
+                if (hook >= 0) return <T>hook;
                 if (Logger.verbose >= 2)
                     logExtRam();
             }
@@ -193,6 +195,7 @@ export class MemoryMap {
                 setRamAltered();
                 if (Logger.verbose >= 2)
                     log('Writing to EXT RAM ' + Cpu.GetTrace())
+                if (MBC.HandleRamWrite(gbAddress, <u8>value)) return;
             }
             store<T>(MemoryMap.GBToMemory(gbAddress), value);
             if (gbAddress < 0x9800 && CgbState.vramBank == 0) {

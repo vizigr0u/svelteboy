@@ -2,6 +2,7 @@ import { Cartridge } from "../cartridge";
 import { Metadata, CartridgeType } from "../metadata";
 import { MBC } from "../memory/mbc";
 import { MemoryMap } from "../memory/memoryMap";
+import { SaveGame } from "../memory/savegame";
 import {
     CARTRIDGE_ROM_START,
     ROM_BANK_SIZE,
@@ -69,4 +70,15 @@ export function readRam(): u8 {
 /** Send a bank-switch write to the MBC via the memory bus (goes through MemoryMap). */
 export function mbcWrite(gbAddress: u16, value: u8): void {
     MemoryMap.GBstore<u8>(gbAddress, value);
+}
+
+/**
+ * Snapshot the current SaveGame buffer into a fresh ArrayBuffer.
+ *
+ * `SaveGame.GetBuffer()` returns a view over a static singleton buffer; passing
+ * that view to a later `SaveGame.LoadSave` would alias the destination. Tests
+ * that save+reload (or compare two saves) must copy first.
+ */
+export function snapshotSaveBuffer(): Uint8Array {
+    return SaveGame.GetBuffer().slice(0);
 }
