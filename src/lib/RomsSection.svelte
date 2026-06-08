@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { bulkImportFromManifest, libraryStore } from "@/stores/libraryStore";
+    import { bulkImportFromManifest, libraryHydrated, libraryStore } from "@/stores/libraryStore";
     import {
+        DismissBadgeHint,
         LibraryImportSourceUri,
         LibrarySort,
         LibrarySource,
@@ -26,7 +27,14 @@
         { value: "lastPlayed", label: "Last played" },
         { value: "added", label: "Added (newest)" },
         { value: "name", label: "Name" },
+        { value: "size", label: "Size" },
+        { value: "mbc", label: "MBC type" },
     ];
+
+    const MBC_ORDER: Record<string, number> = { 'none': 0, 'mbc1': 1, 'mbc2': 2, 'mbc3': 3, 'mbc5': 4 };
+    function mbcOrder(r: LibraryRom): number {
+        return r.mbcKind ? (MBC_ORDER[r.mbcKind] ?? 99) : 100;
+    }
 
     const sourceOptions: { value: LibrarySourceFilter; label: string }[] = [
         { value: "all", label: "All" },
@@ -73,8 +81,19 @@
                 if ($LibrarySort === "name") return a.name.localeCompare(b.name);
                 if ($LibrarySort === "lastPlayed")
                     return (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0);
+                if ($LibrarySort === "size")
+                    return (b.fileSize ?? 0) - (a.fileSize ?? 0);
+                if ($LibrarySort === "mbc") {
+                    const d = mbcOrder(a) - mbcOrder(b);
+                    return d !== 0 ? d : a.name.localeCompare(b.name);
+                }
                 return (b.addedAt ?? 0) - (a.addedAt ?? 0);
             }),
+    );
+    let isEmpty = $derived($libraryHydrated && $libraryStore.length === 0);
+    let hasOnlyRemote = $derived(
+        $libraryStore.length > 0 &&
+        $libraryStore.every((r) => r.source.kind !== "idb"),
     );
 
     function onImportComplete(r: ImportReport) {
@@ -149,6 +168,28 @@
                         Skipped {report.skippedSav.length} .sav files (saves not persistent)
                     </div>
                 {/if}
+            </div>
+        {/if}
+        {#if isEmpty}
+            <div class="empty-library">
+                <Icon name="cloud-arrow-down" />
+                <h3>Your library is empty</h3>
+                <p>Drop a <code>.gb</code> or <code>.gbc</code> ROM file here to add it.<br />Zipped roms supported.</p>
+                <p class="or">— or —</p>
+                <button class="browse-btn" onclick={addSpecialSource} disabled={importing}>
+                    Browse homebrews…
+                </button>
+            </div>
+        {/if}
+        {#if !isEmpty && !$DismissBadgeHint && hasOnlyRemote}
+            <div class="badge-hint">
+                <span>
+                    Remote ROMs are dimmed. Click <em>Save locally</em> in their details to install them.
+                </span>
+                <button
+                    aria-label="Dismiss hint"
+                    onclick={() => DismissBadgeHint.set(true)}
+                ><Icon name="xmark" /></button>
             </div>
         {/if}
         <div class="library-controls">
@@ -307,5 +348,75 @@
         line-height: 1;
         cursor: pointer;
         padding: 0 0.2em;
+    }
+
+    .empty-library {
+        text-align: center;
+        padding: 2em 1em;
+        color: #cdd6f4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5em;
+    }
+    .empty-library :global(.icon) {
+        font-size: 2.5em;
+        color: var(--highlight-color, #89b4fa);
+        opacity: 0.7;
+    }
+    .empty-library h3 {
+        margin: 0;
+        font-size: 1.1em;
+    }
+    .empty-library p {
+        margin: 0;
+        color: #aaa;
+        font-size: 0.9em;
+    }
+    .empty-library .or {
+        color: #666;
+        margin: 0.4em 0;
+    }
+    .empty-library code {
+        background: #313244;
+        padding: 0.05em 0.3em;
+        border-radius: 0.2em;
+        font-size: 0.9em;
+    }
+    .browse-btn {
+        padding: 0.4em 1em;
+        background: var(--highlight-color, #89b4fa);
+        color: #1e1e2e;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+    .browse-btn:disabled {
+        opacity: 0.5;
+        cursor: wait;
+    }
+
+    .badge-hint {
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+        background: #313244;
+        border-left: 3px solid var(--highlight-color, #89b4fa);
+        padding: 0.4em 0.6em;
+        margin: 0.3em 0;
+        font-size: 0.85em;
+        color: #cdd6f4;
+    }
+    .badge-hint span { flex: 1; }
+    .badge-hint button {
+        background: transparent;
+        border: none;
+        color: #888;
+        cursor: pointer;
+        padding: 0.2em;
+    }
+    .badge-hint button:hover {
+        color: #f38ba8;
     }
 </style>

@@ -12,7 +12,7 @@ import {
     normalizeSha1ForUri,
 } from './idbStore';
 import type { LibraryRom, RemoteRomsList } from '../types';
-import type { RenderModeOverride } from '../cartType';
+import { parseCartMeta, type RenderModeOverride } from '../cartType';
 
 export const libraryStore: Writable<LibraryRom[]> = writable<LibraryRom[]>([]);
 export const libraryHydrated: Writable<boolean> = writable(false);
@@ -39,6 +39,13 @@ export function ensureCgbFlag(rom: LibraryRom, buffer: ArrayBuffer): LibraryRom 
     const cgbFlag = readCgbFlagFromBuffer(buffer);
     if (cgbFlag === undefined) return rom;
     return { ...rom, cgbFlag };
+}
+
+export function ensureCartMeta(rom: LibraryRom, buffer: ArrayBuffer): LibraryRom {
+    if (rom.cartridgeType !== undefined) return rom;
+    const meta = parseCartMeta(buffer);
+    if (!meta) return rom;
+    return { ...rom, ...meta };
 }
 
 export async function persistRomFields(rom: LibraryRom): Promise<void> {
@@ -98,12 +105,15 @@ export async function addLibraryRomFromBuffer(name: string, buffer: ArrayBuffer)
         return { status: 'duplicate', rom: existing };
     }
 
+    const meta = parseCartMeta(buffer) ?? {};
     const row: LibraryRom = {
         name,
         sha1,
         source: { kind: 'idb' },
         fileSize: buffer.byteLength,
         addedAt: Date.now(),
+        cgbFlag: readCgbFlagFromBuffer(buffer),
+        ...meta,
     };
     await txAddIdbRom(db, row, buffer);
     upsertLocal(row);

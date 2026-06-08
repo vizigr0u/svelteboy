@@ -12,7 +12,10 @@
         | "trash"
         | "rotate"
         | "triangle-exclamation"
-        | "xmark";
+        | "xmark"
+        | "clock"
+        | "battery"
+        | "bookmark";
 
     let { name, spin = false } = $props<{
         name: IconName;
@@ -88,6 +91,16 @@
         {:else if name === "xmark"}
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
+        {:else if name === "clock"}
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+        {:else if name === "battery"}
+            <rect x="1" y="6" width="18" height="12" rx="2" ry="2" />
+            <line x1="23" y1="13" x2="23" y2="11" />
+            <line x1="6" y1="10" x2="6" y2="14" />
+            <line x1="10" y1="10" x2="10" y2="14" />
+        {:else if name === "bookmark"}
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
         {/if}
     </svg>
 </i>

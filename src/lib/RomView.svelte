@@ -1,19 +1,16 @@
 <script lang="ts">
-    import { get } from "svelte/store";
     import type { LibraryRom } from "../types";
     import { loadedCartridge } from "stores/romStores";
-    import { deleteLibraryRom, promoteUriToIdb, setRenderModeForRom } from "stores/libraryStore";
+    import { promoteUriToIdb } from "stores/libraryStore";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
     import { onMount } from "svelte";
-    import { CartType, cartTypeFromCgbFlag, cartTypeLabel, type RenderModeOverride } from "../cartType";
-    import { GameFrames } from "stores/playStores";
-    import { requestConfirm } from "stores/confirmStore";
+    import { CartType, cartTypeFromCgbFlag, cartTypeLabel } from "../cartType";
+    import { SaveGames } from "stores/playStores";
+    import { selectedRomSha1 } from "stores/windowStores";
     import Icon from "./icons/Icon.svelte";
     import type { IconName } from "./icons/Icon.svelte";
-
-    const FRAMES_SILENT_RESET_THRESHOLD = 600;
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
@@ -61,30 +58,30 @@
               ? "badge-mixed"
               : "badge-gb",
     );
-    let currentMode = $derived<RenderModeOverride>(rom.renderMode ?? "auto");
+    let mbcLabel = $derived(
+        rom.mbcKind && rom.mbcKind !== "none"
+            ? rom.mbcKind.toUpperCase()
+            : undefined,
+    );
+    let savesForRom = $derived(
+        $SaveGames.filter((s) => s.gameSha1 === rom.sha1).length,
+    );
+    let sizeLabel = $derived(
+        rom.fileSize !== undefined ? humanReadableSize(rom.fileSize) : undefined,
+    );
+    let isRemoteOnly = $derived(rom.source.kind === "uri");
 
-    async function changeRenderMode(mode: RenderModeOverride) {
-        if (mode === currentMode) return;
-        await setRenderModeForRom(rom.sha1, mode).catch((err) =>
-            console.error("setRenderModeForRom failed:", err),
-        );
-        if (!isLoaded) return;
-        const updated: LibraryRom = { ...rom, renderMode: mode };
-        const frames = get(GameFrames);
-        if (frames < FRAMES_SILENT_RESET_THRESHOLD) {
-            playRomPromise = Emulator.PlayRom(updated);
-            return;
-        }
-        const ok = await requestConfirm({
-            title: "Reset required",
-            message:
-                "Switching render mode requires a reset. Unsaved progress will be lost.",
-            confirmLabel: "Reset now",
-            cancelLabel: "Cancel",
-        });
-        if (!ok) return;
-        playRomPromise = Emulator.PlayRom(updated);
+    function openDrawer(e: MouseEvent) {
+        if ((e.target as HTMLElement).closest('button, input, label, a')) return;
+        selectedRomSha1.set(rom.sha1);
     }
+    function onKey(e: KeyboardEvent) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectedRomSha1.set(rom.sha1);
+        }
+    }
+
     let kindIcon = $derived<IconName>(
         rom.source.kind === "idb"
             ? "hard-drive"
@@ -113,14 +110,8 @@
         return { src, alt };
     }
 
-    async function deleteRom() {
-        await deleteLibraryRom(rom.sha1);
-        if (isLoaded) $loadedCartridge = undefined;
-    }
-
     function getRomDescription(rom: LibraryRom): string {
         if (rom.source.kind === "uri") return rom.source.uri;
-        if (rom.fileSize !== undefined) return humanReadableSize(rom.fileSize);
         return "";
     }
 
@@ -140,7 +131,16 @@
     }
 </script>
 
-<div class="rom-container" class:rom-loaded={isLoaded}>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
+    class="rom-container"
+    class:rom-loaded={isLoaded}
+    class:rom-remote-only={isRemoteOnly}
+    onclick={openDrawer}
+    onkeydown={onKey}
+    role="button"
+    tabindex="0"
+    aria-label="Open details for {rom.name}">
     <div class="image-wrapper">
         <img
             class="rom-thumbnail"
@@ -176,19 +176,28 @@
             <span class="cart-badge {cartBadgeClass}" title="Cart type: {cartLabel}">{cartLabel}</span>
         </div>
         <div class="rom-description">{romDescription}</div>
-        <div class="render-mode-row" role="radiogroup" aria-label="Render mode">
-            {#each [["auto", "Auto"], ["force-gb", "GB"], ["force-cgb", "CGB"]] as [value, label]}
-                <label class="render-mode-radio" class:active={currentMode === value}>
-                    <input
-                        type="radio"
-                        name="render-mode-{rom.sha1}"
-                        value={value}
-                        checked={currentMode === value}
-                        onchange={() => changeRenderMode(value as RenderModeOverride)}
-                    />
-                    {label}
-                </label>
-            {/each}
+        <div class="meta-badge-row" aria-label="Cartridge features">
+            {#if mbcLabel}
+                <span class="meta-chip mbc-chip" title="Bank controller: {mbcLabel}">{mbcLabel}</span>
+            {/if}
+            {#if rom.hasRtc}
+                <span class="meta-chip" title="Real-time clock">
+                    <Icon name="clock" /> RTC
+                </span>
+            {/if}
+            {#if rom.hasBattery}
+                <span class="meta-chip" title="Battery-backed save">
+                    <Icon name="battery" /> BATT
+                </span>
+            {/if}
+            {#if sizeLabel}
+                <span class="meta-chip size-chip" title="ROM size">{sizeLabel}</span>
+            {/if}
+            {#if savesForRom > 0}
+                <span class="meta-chip has-save" title="{savesForRom} save{savesForRom === 1 ? '' : 's'} on this ROM">
+                    <Icon name="bookmark" /> {savesForRom}
+                </span>
+            {/if}
         </div>
         <div class="rom-action-buttons">
             {#if rom.source.kind === "uri"}
@@ -208,9 +217,8 @@
             {/if}
             <button
                 class="rom-action-button"
-                onclick={deleteRom}
-                disabled={isLoading}>Delete</button
-            >
+                onclick={() => selectedRomSha1.set(rom.sha1)}
+            >Details…</button>
         </div>
     </div>
 </div>
@@ -224,6 +232,14 @@
         display: flex;
         flex-direction: row;
         justify-content: space-between;
+        cursor: pointer;
+    }
+    .rom-container:hover {
+        border-color: var(--highlight-color, #89b4fa);
+    }
+    .rom-container:focus-visible {
+        outline: 2px solid var(--highlight-color, #89b4fa);
+        outline-offset: 1px;
     }
     .image-wrapper {
         position: relative;
@@ -344,32 +360,6 @@
         background: #d65f5f;
         color: #fff;
     }
-    .render-mode-row {
-        display: flex;
-        gap: 0.25em;
-        margin: 0.25em 0;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    .render-mode-radio {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.2em;
-        font-size: 0.8em;
-        padding: 0.1em 0.4em;
-        border-radius: 0.2em;
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.04);
-    }
-    .render-mode-radio.active {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
-    }
-    .render-mode-radio input {
-        accent-color: var(--highlight-color, #89b4fa);
-        margin: 0;
-    }
-
     .rom-loaded {
         background-color: #27312a;
     }
@@ -378,5 +368,49 @@
         .rom-loaded {
             background-color: #a6bdad;
         }
+    }
+
+    .rom-remote-only {
+        opacity: 0.78;
+    }
+    .rom-remote-only:hover {
+        opacity: 1;
+    }
+
+    .meta-badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25em;
+        justify-content: center;
+        margin: 0.15em 0;
+    }
+    .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2em;
+        padding: 0.05em 0.4em;
+        font-size: 0.7em;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        background: rgba(255, 255, 255, 0.07);
+        color: #cfd8dc;
+        border-radius: 0.2em;
+        line-height: 1.3;
+    }
+    .meta-chip :global(.icon) {
+        font-size: 0.9em;
+    }
+    .meta-chip.mbc-chip {
+        background: #2c3e50;
+        color: #ecf0f1;
+        font-family: ui-monospace, monospace;
+    }
+    .meta-chip.size-chip {
+        background: rgba(255, 255, 255, 0.04);
+        color: #aaa;
+    }
+    .meta-chip.has-save {
+        background: #2d5a4f;
+        color: #b8e6d2;
     }
 </style>

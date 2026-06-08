@@ -91,6 +91,79 @@ describe('Phase 3 — drop atomicity', () => {
     });
 });
 
+describe('ROM Library — cart metadata persistence', () => {
+    function buildRomBuffer({
+        cartridgeType,
+        romSizeByte = 0x00,
+        ramSizeByte = 0x00,
+        cgbFlag = 0x00,
+        size = 0x200,
+    }: {
+        cartridgeType: number;
+        romSizeByte?: number;
+        ramSizeByte?: number;
+        cgbFlag?: number;
+        size?: number;
+    }): ArrayBuffer {
+        const buf = new ArrayBuffer(size);
+        const v = new Uint8Array(buf);
+        v[0x143] = cgbFlag;
+        v[0x147] = cartridgeType;
+        v[0x148] = romSizeByte;
+        v[0x149] = ramSizeByte;
+        return buf;
+    }
+
+    it('persists MBC3+RTC metadata on add', async () => {
+        const { idb, lib } = await freshImport();
+        const buffer = buildRomBuffer({
+            cartridgeType: 0x10,
+            romSizeByte: 0x06,
+            ramSizeByte: 0x03,
+            cgbFlag: 0xC0,
+        });
+        const file = new File([new Uint8Array(buffer)], 'PokemonCrystal.gbc');
+        const row = await lib.addLibraryRomFromDrop(file);
+        expect(row).toBeDefined();
+        expect(row!.mbcKind).toBe('mbc3');
+        expect(row!.hasRtc).toBe(true);
+        expect(row!.hasBattery).toBe(true);
+        expect(row!.hasRumble).toBe(false);
+        expect(row!.cartridgeType).toBe(0x10);
+        expect(row!.romBankCount).toBe(128);
+        expect(row!.ramBankCount).toBe(4);
+
+        const db = await idb.openDB();
+        const stored = await idb.libraryGet(db, row!.sha1);
+        expect(stored!.mbcKind).toBe('mbc3');
+        expect(stored!.hasRtc).toBe(true);
+        db.close();
+    });
+
+    it('ensureCartMeta lazy-fills meta on existing rows missing it', async () => {
+        const { lib } = await freshImport();
+        const buffer = buildRomBuffer({ cartridgeType: 0x1E, romSizeByte: 0x05, ramSizeByte: 0x02 });
+        const file = new File([new Uint8Array(buffer)], 'Pinball.gbc');
+        const row = await lib.addLibraryRomFromDrop(file);
+        expect(row).toBeDefined();
+        const stripped: any = { ...row };
+        delete stripped.mbcKind;
+        delete stripped.hasBattery;
+        delete stripped.hasRtc;
+        delete stripped.hasRumble;
+        delete stripped.cartridgeType;
+        delete stripped.romBankCount;
+        delete stripped.ramBankCount;
+        delete stripped.romSize;
+        delete stripped.ramSize;
+
+        const filled = lib.ensureCartMeta(stripped, buffer);
+        expect(filled.mbcKind).toBe('mbc5');
+        expect(filled.hasRumble).toBe(true);
+        expect(filled.hasBattery).toBe(true);
+    });
+});
+
 describe('Phase 5 — dedupe', () => {
     it('skips drop with existing sha1', async () => {
         const { idb, lib } = await freshImport();

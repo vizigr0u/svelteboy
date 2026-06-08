@@ -1,13 +1,14 @@
 import { get } from "svelte/store";
 import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode } from "./wasmBridge";
 import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
-import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, persistRomFields } from "stores/libraryStore";
+import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, ensureCartMeta, persistRomFields } from "stores/libraryStore";
 import { AutoSaveUriRoms, DefaultRenderMode } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebuggerAttached } from "stores/debugStores";
 import { humanReadableSize } from "../utils";
 import { isZipUri, extractRomFromZip } from "../zipRom";
 import { CartType, cartTypeFromCgbFlag, resolveRenderMode, type ResolvedRenderMode } from "../cartType";
+import { loadBattery } from "../batterySaveDb";
 import { requestConfirm } from "stores/confirmStore";
 import { showRomsWindow } from "stores/windowStores";
 import type { LibraryRom, SaveGameData } from "../types";
@@ -48,13 +49,15 @@ export async function playRom(rom: LibraryRom): Promise<void> {
         console.log(`Error loading rom`);
         return;
     }
-    let activeRom: LibraryRom = ensureCgbFlag(rom, buffer);
+    const battery = await loadBattery(rom.sha1).catch(() => undefined);
+    if (battery) backendLoadSave(battery.bytes);
+    let activeRom: LibraryRom = ensureCartMeta(ensureCgbFlag(rom, buffer), buffer);
     if (activeRom !== rom) {
         persistRomFields({ ...activeRom }).catch(err => console.error('persistRomFields failed:', err));
     }
     if (rom.sha1.startsWith('uri:')) {
         const reconciled = await reconcileSha1OnFirstPlay(rom.sha1, buffer, get(AutoSaveUriRoms));
-        if (reconciled) activeRom = ensureCgbFlag(reconciled, buffer);
+        if (reconciled) activeRom = ensureCartMeta(ensureCgbFlag(reconciled, buffer), buffer);
     } else if (rom.source.kind === 'uri' && get(AutoSaveUriRoms)) {
         promoteUriToIdb(rom.sha1, buffer).catch(err => console.error('promoteUriToIdb failed:', err));
     }

@@ -24,7 +24,21 @@ export type RomSource =
     | { kind: 'uri'; uri: string }
     | { kind: 'cloud'; provider: string; ref: string };
 
-export interface LibraryRom extends RomReference {
+export type MbcKind = 'none' | 'mbc1' | 'mbc2' | 'mbc3' | 'mbc5';
+
+export interface LibraryRomMeta {
+    cartridgeType?: number;
+    hasBattery?: boolean;
+    hasRtc?: boolean;
+    hasRumble?: boolean;
+    mbcKind?: MbcKind;
+    romBankCount?: number;
+    ramBankCount?: number;
+    romSize?: number;
+    ramSize?: number;
+}
+
+export interface LibraryRom extends RomReference, LibraryRomMeta {
     source: RomSource;
     fileSize?: number;
     addedAt: number;

@@ -16,6 +16,7 @@ import { BurstSpeed, RegularSpeed, useBoot } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
 import { DebugStopReason, type GbDebugInfo } from "../types";
 import { pauseEmulator } from "./lifecycle";
+import { saveBattery } from "../batterySaveDb";
 
 export const FRAME_TIMES_LEN = 240;
 export const FrameStats = {
@@ -153,11 +154,15 @@ export function postRun(): void {
     if (latestSaveFrame > lastSaveFrame) {
         const currentGame = get(loadedCartridge) as { sha1: string };
         const timeStamp = new Date().toISOString();
+        const buffer = getLastSave();
         AutoSave.set({
-            buffer: getLastSave(),
+            buffer,
             name: `autosave-${timeStamp}`,
             gameSha1: currentGame.sha1
         });
+        saveBattery(currentGame.sha1, buffer).catch(err =>
+            console.error('battery save persist failed:', err)
+        );
         lastSaveFrame = latestSaveFrame;
     }
     for (let i = 0; i < postRunCallbacks.length; i++) {
