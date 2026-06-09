@@ -12,6 +12,7 @@ export type PerRomPrefs = {
     mutedChannels?: number[];
     notes?: string;
     quickSaveSlotCount?: number;
+    rtcOffsetSec?: number;
 };
 
 export const perRomPrefs = MakeIDBStore<Record<string, PerRomPrefs>>('perRomPrefs', {});

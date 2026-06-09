@@ -14,7 +14,7 @@ import { fetchLogs } from "../debug";
 import { DebuggerAttached, GbDebugInfoStore, LastStopReason } from "stores/debugStores";
 import { AutoSave, EmulatorBusy, EmulatorInitialized, EmulatorPaused, FastForwardActive, GameFrames, KeyPressMap } from "stores/playStores";
 import { BurstSpeed, RegularSpeed, useBoot } from "stores/optionsStore";
-import { loadedCartridge } from "stores/romStores";
+import { getPrefsFor, loadedCartridge } from "stores/romStores";
 import { DebugStopReason, type GbDebugInfo } from "../types";
 import { pauseEmulator } from "./lifecycle";
 import { saveBattery } from "../batterySaveDb";
@@ -137,7 +137,9 @@ function preRun(): void {
     EmulatorBusy.set(true);
     // Prime RTC wall-clock before any potential MBC3RTC.Init triggered by initEmulator,
     // so baseEpoch anchors to real time.
-    setRealTimeMs(Date.now());
+    const cart = get(loadedCartridge);
+    const rtcOffsetMs = cart ? (getPrefsFor(cart.sha1).rtcOffsetSec ?? 0) * 1000 : 0;
+    setRealTimeMs(Date.now() + rtcOffsetMs);
     if (!get(EmulatorInitialized)) {
         initEmulator(get(useBoot));
         EmulatorInitialized.set(true);

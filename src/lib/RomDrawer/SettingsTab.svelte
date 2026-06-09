@@ -11,6 +11,53 @@
     let mutedChannels = $derived($prefs.mutedChannels ?? []);
     let skipBootRom = $derived($prefs.skipBootRom ?? false);
     let slotCount = $derived($prefs.quickSaveSlotCount ?? 4);
+    let rtcOffsetSec = $derived($prefs.rtcOffsetSec ?? 0);
+    let rtcDays = $derived(Math.floor(rtcOffsetSec / 86400));
+    let rtcHours = $derived(Math.floor((rtcOffsetSec % 86400) / 3600));
+    let rtcMins = $derived(Math.floor((rtcOffsetSec % 3600) / 60));
+    let rtcPreviewRelative = $derived(formatRelative(rtcOffsetSec));
+    let rtcPreviewAbsolute = $derived(formatAbsolute(rtcOffsetSec));
+
+    function formatRelative(sec: number): string {
+        if (sec <= 0) return 'no offset';
+        const d = Math.floor(sec / 86400);
+        const h = Math.floor((sec % 86400) / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const parts: string[] = [];
+        if (d) parts.push(`${d}d`);
+        if (h) parts.push(`${h}h`);
+        if (m) parts.push(`${m}m`);
+        return '+' + (parts.join(' ') || '0m');
+    }
+
+    function formatAbsolute(sec: number): string {
+        const d = new Date(Date.now() + sec * 1000);
+        return d.toLocaleString(undefined, {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+        });
+    }
+
+    function setRtcOffset(days: number, hours: number, mins: number) {
+        const clamp = (v: number, max: number) => Math.max(0, Math.min(max, Math.floor(v || 0)));
+        const total = clamp(days, 9999) * 86400 + clamp(hours, 23) * 3600 + clamp(mins, 59) * 60;
+        setPrefsFor(rom.sha1, { rtcOffsetSec: total });
+        showToast('Saved RTC offset.', 'info');
+    }
+
+    function changeRtcDays(e: Event) {
+        setRtcOffset(Number((e.target as HTMLInputElement).value), rtcHours, rtcMins);
+    }
+    function changeRtcHours(e: Event) {
+        setRtcOffset(rtcDays, Number((e.target as HTMLInputElement).value), rtcMins);
+    }
+    function changeRtcMins(e: Event) {
+        setRtcOffset(rtcDays, rtcHours, Number((e.target as HTMLInputElement).value));
+    }
+    function resetRtc() {
+        setPrefsFor(rom.sha1, { rtcOffsetSec: 0 });
+        showToast('Reset RTC offset.', 'info');
+    }
 
     async function changeRenderMode(mode: RenderModeOverride) {
         if (mode === currentMode) return;
@@ -88,6 +135,31 @@
             <input type="number" min="1" max="20" value={slotCount} onchange={changeSlotCount} />
         </label>
     </section>
+    {#if rom.hasRtc}
+        <section>
+            <h3>RTC offset</h3>
+            <div class="rtc-row">
+                <label>
+                    <input type="number" min="0" value={rtcDays} onchange={changeRtcDays} />
+                    d
+                </label>
+                <label>
+                    <input type="number" min="0" max="23" value={rtcHours} onchange={changeRtcHours} />
+                    h
+                </label>
+                <label>
+                    <input type="number" min="0" max="59" value={rtcMins} onchange={changeRtcMins} />
+                    m
+                </label>
+                <button type="button" class="reset-btn" onclick={resetRtc}>Reset</button>
+            </div>
+            <p class="rtc-preview">
+                {rtcPreviewRelative}
+                <span class="rtc-preview-abs">({rtcPreviewAbsolute})</span>
+            </p>
+            <p class="hint">Forward-only. Reducing freezes RTC until real time catches up.</p>
+        </section>
+    {/if}
 </div>
 
 <style>
@@ -131,4 +203,41 @@
         width: 4em;
     }
     .hint { font-size: 0.8em; color: #888; margin: 0; }
+    .rtc-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4em;
+        flex-wrap: wrap;
+    }
+    .rtc-row label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2em;
+        font-size: 0.85em;
+    }
+    .rtc-row input[type="number"] {
+        width: 4em;
+    }
+    .reset-btn {
+        font-size: 0.8em;
+        padding: 0.2em 0.6em;
+        border-radius: 0.2em;
+        background: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+    }
+    .reset-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .rtc-preview {
+        font-size: 0.85em;
+        margin: 0;
+        color: #cdd6f4;
+    }
+    .rtc-preview-abs {
+        font-size: 0.75em;
+        color: #888;
+        margin-left: 0.4em;
+    }
 </style>
