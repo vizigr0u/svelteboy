@@ -2,7 +2,7 @@
     import type { LibraryRom } from "../../types";
     import { prefsForRom } from "stores/romStores";
     import SaveSlotGrid from "./SaveSlotGrid.svelte";
-    import BatterySaveCard from "./BatterySaveCard.svelte";
+    import BatterySaveBanks from "./BatterySaveBanks.svelte";
 
     let { rom } = $props<{ rom: LibraryRom }>();
     let prefs = $derived(prefsForRom(rom.sha1));
@@ -15,7 +15,7 @@
         <SaveSlotGrid sha1={rom.sha1} name={rom.name} {slotCount} />
     </section>
     <section>
-        <BatterySaveCard sha1={rom.sha1} name={rom.name} />
+        <BatterySaveBanks sha1={rom.sha1} name={rom.name} />
     </section>
 </div>
 

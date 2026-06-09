@@ -17,7 +17,8 @@ import { BurstSpeed, RegularSpeed, useBoot } from "stores/optionsStore";
 import { getPrefsFor, loadedCartridge } from "stores/romStores";
 import { DebugStopReason, type GbDebugInfo } from "../types";
 import { pauseEmulator } from "./lifecycle";
-import { saveBattery } from "../batterySaveDb";
+import { writeBank, pushRing } from "../batterySaveDb";
+import { getActiveBankCache } from "../activeBankCache";
 
 export const FRAME_TIMES_LEN = 240;
 export const FrameStats = {
@@ -56,6 +57,9 @@ export function removeRenderCallback(cb: () => void): void {
 
 export function resetTiming(): void { lastTime = -1; accumulator = 0; }
 export function cancelLoop(): void { window.cancelAnimationFrame(runningAnimationFrameHandle); }
+// Resets the cross-session autosave watermark. Call when loading a new ROM or switching
+// the active bank, so a stale value can't suppress (or wrongly trigger) the next autosave.
+export function resetSaveTracking(): void { lastSaveFrame = 0; }
 
 export function requestRunLoop(): void {
     cancelLoop();
@@ -166,8 +170,13 @@ export function postRun(): void {
             name: `autosave-${timeStamp}`,
             gameSha1: currentGame.sha1
         });
-        saveBattery(currentGame.sha1, buffer).catch(err =>
-            console.error('battery save persist failed:', err)
+        const sha1 = currentGame.sha1;
+        const activeBank = getActiveBankCache(sha1) ?? 'default';
+        writeBank(sha1, activeBank, buffer).catch((err: unknown) =>
+            console.error('battery bank write failed:', err)
+        );
+        pushRing(sha1, buffer, activeBank).catch((err: unknown) =>
+            console.error('battery ring push failed:', err)
         );
         lastSaveFrame = latestSaveFrame;
     }

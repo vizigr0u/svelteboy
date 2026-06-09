@@ -13,6 +13,15 @@ type Action = (e: KeyboardEvent) => void;
 let bindings: Bindings | null = null;
 KeybindingsStore.subscribe(b => { bindings = b; });
 
+function isEditableTarget(e: Event): boolean {
+    const t = e.target as HTMLElement | null;
+    if (!t) return false;
+    const tag = t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    if (t.isContentEditable) return true;
+    return false;
+}
+
 function hasRom(): boolean {
     return !!get(loadedCartridge) || !!get(loadedBootRom);
 }
@@ -48,6 +57,7 @@ const downActions: Record<BindingId, Action | null> = {
 
 window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.defaultPrevented || !bindings) return;
+    if (isEditableTarget(e)) return;
 
     const save = slotFromCode(e, DEFAULT_SLOT_RANGES.quickSave);
     if (save !== null) { e.preventDefault(); Emulator.QuickSave(save); return; }
@@ -63,6 +73,7 @@ window.addEventListener('keydown', (e: KeyboardEvent) => {
 
 window.addEventListener('keyup', (e: KeyboardEvent) => {
     if (e.defaultPrevented || !bindings) return;
+    if (isEditableTarget(e)) return;
     if (e.code === bindings.fastForward.code) {
         e.preventDefault();
         FastForwardActive.set(false);
