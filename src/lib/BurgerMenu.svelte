@@ -30,8 +30,8 @@
     .burger-menu {
         position: absolute;
         z-index: 200;
-        bottom: 0;
-        right: calc(100% + 0.3em);
+        top: calc(100% + 0.3em);
+        right: 0;
         background: #1e1e2e;
         border: 1px solid #45475a;
         border-radius: 0.4em;
