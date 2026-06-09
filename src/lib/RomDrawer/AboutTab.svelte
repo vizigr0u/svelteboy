@@ -45,6 +45,10 @@
         {/if}
         <dt>Added</dt><dd>{fmtDate(rom.addedAt)}</dd>
         <dt>Last played</dt><dd>{fmtDate(rom.lastPlayedAt)}</dd>
+        <dt>Cart type byte</dt><dd class="mono">{rom.cartridgeType !== undefined ? '0x' + rom.cartridgeType.toString(16).padStart(2, '0') : '—'}</dd>
+        <dt>hasBattery</dt><dd>{String(rom.hasBattery)}</dd>
+        <dt>hasRtc</dt><dd>{String(rom.hasRtc)}</dd>
+        <dt>hasRumble</dt><dd>{String(rom.hasRumble)}</dd>
     </dl>
 
     <section>

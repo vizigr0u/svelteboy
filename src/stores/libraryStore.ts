@@ -42,9 +42,19 @@ export function ensureCgbFlag(rom: LibraryRom, buffer: ArrayBuffer): LibraryRom 
 }
 
 export function ensureCartMeta(rom: LibraryRom, buffer: ArrayBuffer): LibraryRom {
-    if (rom.cartridgeType !== undefined) return rom;
     const meta = parseCartMeta(buffer);
     if (!meta) return rom;
+    const needsFill =
+        rom.cartridgeType === undefined ||
+        rom.hasBattery === undefined ||
+        rom.hasRtc === undefined ||
+        rom.hasRumble === undefined ||
+        rom.mbcKind === undefined ||
+        rom.romBankCount === undefined ||
+        rom.ramBankCount === undefined ||
+        rom.romSize === undefined ||
+        rom.ramSize === undefined;
+    if (!needsFill) return rom;
     return { ...rom, ...meta };
 }
 

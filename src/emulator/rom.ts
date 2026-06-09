@@ -52,9 +52,9 @@ export async function playRom(rom: LibraryRom): Promise<void> {
     const battery = await loadBattery(rom.sha1).catch(() => undefined);
     if (battery) backendLoadSave(battery.bytes);
     let activeRom: LibraryRom = ensureCartMeta(ensureCgbFlag(rom, buffer), buffer);
-    if (activeRom !== rom) {
-        persistRomFields({ ...activeRom }).catch(err => console.error('persistRomFields failed:', err));
-    }
+    const metaPersist: Promise<void> = activeRom !== rom
+        ? persistRomFields({ ...activeRom }).catch(err => { console.error('persistRomFields failed:', err); })
+        : Promise.resolve();
     if (rom.sha1.startsWith('uri:')) {
         const reconciled = await reconcileSha1OnFirstPlay(rom.sha1, buffer, get(AutoSaveUriRoms));
         if (reconciled) activeRom = ensureCartMeta(ensureCgbFlag(reconciled, buffer), buffer);
@@ -79,7 +79,9 @@ export async function playRom(rom: LibraryRom): Promise<void> {
     pauseEmulator();
     resetEmulator();
     loadedCartridge.set(activeRom);
-    markLibraryRomPlayed(activeRom.sha1).catch(err => console.error('markLibraryRomPlayed failed:', err));
+    metaPersist
+        .then(() => markLibraryRomPlayed(activeRom.sha1))
+        .catch(err => console.error('markLibraryRomPlayed failed:', err));
     if (!get(DebuggerAttached))
         runUntilBreak();
 }
