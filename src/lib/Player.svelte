@@ -1,7 +1,17 @@
 <script lang="ts">
     import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
-    import { showFPS, showFrametimeHistogram, SelectedPaletteIndex, PALETTE_PRESETS, CgbColor, GhostingStrength, PixelPerfect, WakeLockEnabled, OrientationLockEnabled } from "stores/optionsStore";
+    import {
+        showFPS,
+        showFrametimeHistogram,
+        SelectedPaletteIndex,
+        PALETTE_PRESETS,
+        CgbColor,
+        GhostingStrength,
+        PixelPerfect,
+        WakeLockEnabled,
+        OrientationLockEnabled,
+    } from "stores/optionsStore";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -10,18 +20,17 @@
     import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
-    import Window from "./Window.svelte";
-    import RomsSection from "./RomsSection.svelte";
-    import SavesViewer from "./SavesViewer.svelte";
-    import OptionsView from "./OptionsView.svelte";
-    import BindingsView from "./BindingsView.svelte";
-    import AboutView from "./AboutView.svelte";
-    import WindowSkeleton from "./WindowSkeleton.svelte";
-    let DebugSection: any = $state(null);
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
-    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow, showAboutWindow } from "../stores/windowStores";
+    import {
+        showSavesWindow,
+        showOptionsWindow,
+        showBindingsWindow,
+        showDebugWindow,
+        showAboutWindow,
+    } from "stores/windowStores";
+    import { goToHome } from "stores/viewStore";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
@@ -46,11 +55,16 @@
         else document.exitFullscreen();
     }
 
+    function back() {
+        menuOpen = false;
+        goToHome();
+    }
+
     const menuItems = $derived([
-        { label: 'ROMs',       active: $showRomsWindow,    toggle: () => toggleWindow(showRomsWindow) },
+        { label: 'Library',    active: false,              toggle: back },
         { label: 'Saves',      active: $showSavesWindow,   toggle: () => toggleWindow(showSavesWindow), disabled: !hasRom },
         { label: 'Options',    active: $showOptionsWindow, toggle: () => toggleWindow(showOptionsWindow) },
-        { label: 'Keyboard Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
+        { label: 'Bindings',   active: $showBindingsWindow,toggle: () => toggleWindow(showBindingsWindow) },
         { label: 'Debug',      active: $showDebugWindow,   toggle: () => toggleWindow(showDebugWindow) },
         { label: 'Fullscreen', active: isFullscreen,       toggle: toggleFullscreen },
         { label: 'About',      active: $showAboutWindow,   toggle: () => toggleWindow(showAboutWindow) },
@@ -83,12 +97,6 @@
             document.removeEventListener('fullscreenchange', onFullscreenChange);
             coarseMql.removeEventListener('change', updateCoarse);
         };
-    });
-
-    $effect(() => {
-        if ($showDebugWindow && !DebugSection) {
-            import("./debug/DebugSection.svelte").then(m => DebugSection = m.default);
-        }
     });
 
     $effect(() => {
@@ -174,178 +182,199 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-    class="console"
+    class="play-shell"
     role="main"
     tabindex="0"
     onkeydown={gameInputKeydownHandler}
     onkeyup={gameInputKeyupHandler}
 >
-    <div>
-        <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
-            <div
-                class="screen"
-                class:drop-allowed={dragState == DragState.Accept}
-                class:drop-disallowed={dragState == DragState.Reject}
-                bind:this={screenEl}
-            >
-                <div
-                    class="screen-tap"
-                    ondblclick={toggleFullscreen}
-                    role="presentation"
-                    bind:this={screenTapEl}
-                >
-                    <WebGLCanvas
-                        bind:this={webglCanvas}
-                        palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
-                        cgbColor={$CgbColor}
-                        ghostingStrength={$GhostingStrength}
-                        pixelPerfect={$PixelPerfect}
-                    />
-                    {#if $EmulatorPaused && hasRom}
-                        <div class="pause-overlay">PAUSE</div>
-                    {/if}
-                </div>
-                {#if $showFPS}
-                    <div class="fps-wrapper">
-                        <FpsCounter />
-                    </div>
-                {/if}
-                {#if $showFrametimeHistogram}
-                    <div class="frametime-wrapper">
-                        <FrametimeHistogram />
-                    </div>
-                {/if}
-                {#if $AudioSuspended && !$EmulatorPaused}
-                    <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
-                        🔇 Click to enable sound
-                    </button>
-                {/if}
-                {#if $showRomsWindow}
-                    <Window title="ROMs Library" onclose={() => showRomsWindow.set(false)}>
-                        <RomsSection />
-                    </Window>
-                {/if}
-                {#if $showSavesWindow}
-                    <Window title="Saves" onclose={() => showSavesWindow.set(false)}>
-                        <SavesViewer />
-                    </Window>
-                {/if}
-                {#if $showOptionsWindow}
-                    <Window title="Options" onclose={() => showOptionsWindow.set(false)}>
-                        <OptionsView />
-                    </Window>
-                {/if}
-                {#if $showBindingsWindow}
-                    <Window title="Keyboard Bindings" onclose={() => showBindingsWindow.set(false)}>
-                        <BindingsView />
-                    </Window>
-                {/if}
-                {#if $showAboutWindow}
-                    <Window title="About SvelteBoy" onclose={() => showAboutWindow.set(false)}>
-                        <AboutView />
-                    </Window>
-                {/if}
-                {#if $showDebugWindow}
-                    <Window title="Debug" onclose={() => showDebugWindow.set(false)} wide>
-                        {#if DebugSection}
-                            <DebugSection />
-                        {:else}
-                            <WindowSkeleton label="Loading debug tools…" />
-                        {/if}
-                    </Window>
-                {/if}
-            </div>
-        </RomDropZone>
-        <div class="menu-bar">
-            <span class="console-name">Svelte BOY</span>
+    <header class="play-topbar">
+        <button class="back-btn" onclick={back} aria-label="Back to library">←</button>
+        <span class="play-title">{$loadedCartridge?.name ?? 'SvelteBoy'}</span>
+        {#if $showFPS}
+            <div class="fps-inline"><FpsCounter /></div>
+        {/if}
+        {#if menuOpen}
+            <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
+        {/if}
+        <div class="burger-wrap">
             {#if menuOpen}
-                <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
+                <BurgerMenu items={menuItems} />
             {/if}
-            <div class="burger-wrap">
-                {#if menuOpen}
-                    <BurgerMenu items={menuItems} />
-                {/if}
-                <button class="burger-btn" onclick={() => menuOpen = !menuOpen} aria-label="Menu" bind:this={burgerBtnEl}>☰</button>
-            </div>
+            <button
+                class="burger-btn"
+                onclick={() => menuOpen = !menuOpen}
+                aria-label="Menu"
+                bind:this={burgerBtnEl}
+            >☰</button>
         </div>
-    </div>
-    <LocalInputViewer />
+    </header>
+
+    <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
+        <div
+            class="play-stage"
+            class:drop-allowed={dragState == DragState.Accept}
+            class:drop-disallowed={dragState == DragState.Reject}
+            bind:this={screenEl}
+        >
+            <div
+                class="screen-tap"
+                ondblclick={toggleFullscreen}
+                role="presentation"
+                bind:this={screenTapEl}
+            >
+                <WebGLCanvas
+                    bind:this={webglCanvas}
+                    palette={PALETTE_PRESETS[$SelectedPaletteIndex]}
+                    cgbColor={$CgbColor}
+                    ghostingStrength={$GhostingStrength}
+                    pixelPerfect={$PixelPerfect}
+                />
+                {#if $EmulatorPaused && hasRom}
+                    <div class="pause-overlay">PAUSE</div>
+                {/if}
+            </div>
+            {#if $showFrametimeHistogram}
+                <div class="frametime-wrapper">
+                    <FrametimeHistogram />
+                </div>
+            {/if}
+            {#if $AudioSuspended && !$EmulatorPaused}
+                <button class="audio-hint" onclick={() => {}} aria-label="Enable audio">
+                    🔇 Click to enable sound
+                </button>
+            {/if}
+        </div>
+    </RomDropZone>
+
+    {#if isCoarsePointer}
+        <div class="play-controls">
+            <LocalInputViewer />
+        </div>
+    {/if}
 </div>
 
 <style>
-    .console {
-        container-type: size;
-        aspect-ratio: 9 / 13;
-        background-color: #bbb;
+    .play-shell {
+        min-height: 100dvh;
+        background: var(--page-bg, #0a0a12);
+        color: var(--text-color, #cdd6f4);
+        display: flex;
+        flex-direction: column;
         touch-action: none;
         user-select: none;
         -webkit-user-select: none;
         -webkit-tap-highlight-color: transparent;
+    }
+    .play-shell:focus,
+    .play-shell:focus-within {
+        outline: none;
+    }
+
+    .play-topbar {
         display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
         align-items: center;
-        border-radius: 2% 2% 9% 2%;
-        border: 4px solid transparent;
-        gap: 10cqmin;
-        padding: 8cqmin 0 0 0;
+        gap: 0.6em;
+        padding: 0.4em 0.7em;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(8px);
+        position: sticky;
+        top: 0;
+        z-index: 50;
     }
 
-    @media (orientation: landscape) {
-        .console {
-            height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-            width: auto;
-            /* aspect-ratio: 9 / 13; */
-        }
+    .back-btn {
+        background: rgba(255, 255, 255, 0.06);
+        border: none;
+        color: var(--text-color, #cdd6f4);
+        font-size: 1em;
+        padding: 0.2em 0.55em;
+        border-radius: 0.3em;
+        cursor: pointer;
+        line-height: 1;
     }
-    @media (orientation: portrait) {
-        .console {
-            width: 100vw;
-            height: auto;
-            max-height: 100dvh;
-            /* aspect-ratio: 9 / 13; */
-        }
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
     }
 
-    .console:focus,
-    .console:focus-within {
-        border-color: var(--highlight-color);
+    .play-title {
+        font-weight: 600;
+        font-size: 0.95em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 60vw;
     }
 
-    .screen {
+    .fps-inline {
+        margin-left: auto;
+        font-size: 0.8em;
+        opacity: 0.7;
+    }
+
+    .burger-wrap {
         position: relative;
-        padding: 2cqmin 5cqmin;
-        background-color: #68717a;
-        border-radius: 1% 1% 4% 1%;
+        margin-left: auto;
+        display: flex;
+    }
+    .fps-inline + .burger-wrap {
+        margin-left: 0.5em;
+    }
+    .burger-btn {
+        background: rgba(255, 255, 255, 0.06);
+        border: none;
+        color: var(--text-color, #cdd6f4);
+        font-size: 1.1em;
+        cursor: pointer;
+        border-radius: 0.3em;
+        padding: 0.15em 0.5em;
+        line-height: 1;
+    }
+    .burger-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
     }
 
-    .screen:fullscreen {
-        padding: 0;
-        margin: 0;
-        background-color: #000;
-        border-radius: 0;
-        width: 100vw;
-        height: 100dvh;
+    .menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 199;
+    }
+
+    .play-stage {
+        flex: 1;
+        min-height: 0;
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 0.5em;
+    }
+    .play-stage.drop-allowed {
+        background-color: rgba(96, 140, 184, 0.25);
+    }
+    .play-stage.drop-disallowed {
+        background-color: rgba(122, 107, 104, 0.25);
     }
 
-    .screen:fullscreen .screen-tap {
+    .play-stage:fullscreen {
+        padding: 0;
+        background: #000;
+        width: 100vw;
+        height: 100dvh;
+    }
+    .play-stage:fullscreen .screen-tap {
         width: 100%;
         height: 100%;
     }
 
-    .screen.drop-allowed {
-        background-color: #608cb8;
-    }
-
-    .screen.drop-disallowed {
-        background-color: #7a6b68;
-    }
-
-    .fps-wrapper {
-        position: absolute;
+    .screen-tap {
+        position: relative;
+        display: block;
+        line-height: 0;
+        width: min(100%, 100dvh * 10 / 9);
+        aspect-ratio: 10 / 9;
+        max-height: 100%;
     }
 
     .frametime-wrapper {
@@ -353,11 +382,12 @@
         top: 0.05cqmin;
         left: 0.05cqmin;
         z-index: 5;
+        pointer-events: none;
     }
 
     .audio-hint {
         position: absolute;
-        bottom: 0.05cqmin;
+        bottom: 0.6em;
         left: 50%;
         transform: translateX(-50%);
         background: rgba(0,0,0,0.75);
@@ -370,73 +400,8 @@
         white-space: nowrap;
         z-index: 10;
     }
-
     .audio-hint:hover {
         background: rgba(0,0,0,0.9);
-    }
-
-    .menu-bar {
-        display: flex;
-        width: 100%;
-        /* align-items: center; */
-        padding: 0.2em 0.5em;
-        margin-top: 0.5cqmin;
-        gap: 0.5em;
-    }
-
-    .console-name {
-        font-family: "Courier New", Courier, monospace;
-        color: #12153d;
-        font-weight: bold;
-        font-size: 6cqi;
-        margin: 0 3% 0 5%;
-        align-self: flex-start;
-        font-style: italic;
-        text-transform: uppercase;
-    }
-
-    .burger-wrap {
-        position: relative;
-        margin-left: auto;
-        align-self: flex-start;
-        display: flex;
-    }
-
-    .burger-btn {
-        width: 6cqmin;
-        height: 6cqmin;
-        line-height: 1;
-        background: rgba(0,0,0,0.4);
-        border: none;
-        color: #eee;
-        font-size: 4cqmin;
-        cursor: pointer;
-        border-radius: 0.2em;
-        padding: 0 0.3em;
-        line-height: 1;
-    }
-
-    .burger-btn:hover {
-        background: rgba(0,0,0,0.7);
-    }
-
-    .menu-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 199;
-    }
-
-    .screen-tap {
-        position: relative;
-        display: block;
-        line-height: 0;
-        width: 80cqmin;
-        height: 72cqmin;
-    }
-
-    .screen:fullscreen .screen-tap {
-        width: 100%;
-        height: 100%;
     }
 
     .pause-overlay {
@@ -454,5 +419,13 @@
         text-transform: uppercase;
         pointer-events: none;
         user-select: none;
+    }
+
+    .play-controls {
+        container-type: inline-size;
+        width: 100%;
+        max-width: 720px;
+        align-self: center;
+        padding-bottom: env(safe-area-inset-bottom);
     }
 </style>

@@ -56,9 +56,10 @@
     }
 
     .window {
-        position: absolute;
-        top: 0;
-        left: 0;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         z-index: 100;
         background: #1e1e2e;
         color: #cdd6f4;
@@ -81,6 +82,7 @@
             inset: 0;
             top: 0;
             left: 0;
+            transform: none;
             width: 100vw;
             max-width: 100vw;
             max-height: 100dvh;

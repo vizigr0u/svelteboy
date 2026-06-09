@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import Player from "./lib/Player.svelte";
+  import HomeHub from "./lib/HomeHub.svelte";
+  import WindowOverlays from "./lib/WindowOverlays.svelte";
   import ConfirmDialog from "./lib/ConfirmDialog.svelte";
   import Toaster from "./lib/Toaster.svelte";
   import Motd from "./lib/Motd.svelte";
@@ -9,6 +11,8 @@
   import RomDrawer from "./lib/RomDrawer.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
+  import { playViewActive } from "./stores/viewStore";
+  import { loadedCartridge, loadedBootRom } from "./stores/romStores";
   import {
     libraryHydrated,
     findLibraryRomBySha1,
@@ -100,25 +104,15 @@
 
 <AudioStatusNotice />
 <Motd />
-<div class="page-container">
-  <main>
-    <Player />
-  </main>
-</div>
+{#if $playViewActive && ($loadedCartridge || $loadedBootRom)}
+  <Player />
+{:else}
+  <HomeHub />
+{/if}
+<WindowOverlays />
 <RomDrawer />
 <ConfirmDialog />
 <Toaster />
 
 <style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: 2em;
-  }
-  .page-container {
-    width: 100%;
-    display: flex;
-    justify-content: left;
-    gap: 2em;
-  }
 </style>

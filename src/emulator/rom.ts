@@ -13,6 +13,7 @@ import { getActiveBank, loadBank } from "../batterySaveDb";
 import { setActiveBankCache } from "../activeBankCache";
 import { requestConfirm } from "stores/confirmStore";
 import { showRomsWindow } from "stores/windowStores";
+import { goToPlay } from "stores/viewStore";
 import type { LibraryRom, SaveGameData } from "../types";
 
 function renderModeToBackend(mode: ResolvedRenderMode): number {
@@ -91,6 +92,7 @@ export async function playRom(rom: LibraryRom): Promise<void> {
         .catch(err => console.error('markLibraryRomPlayed failed:', err));
     if (!get(DebuggerAttached))
         runUntilBreak();
+    goToPlay();
 }
 
 export function loadSaveGame(savegame: SaveGameData): void {
