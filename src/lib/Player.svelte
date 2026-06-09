@@ -21,7 +21,7 @@
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
-    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow, showAboutWindow } from "../stores/windowStores";
+    import { showRomsWindow, showSavesWindow, showOptionsWindow, showBindingsWindow, showDebugWindow, showAboutWindow, selectedRomSha1 } from "../stores/windowStores";
     import type { Writable } from "svelte/store";
 
     let dragState: DragState = $state(DragState.Idle);
@@ -91,8 +91,19 @@
         }
     });
 
+    const anyOverlayOpen = $derived(
+        menuOpen
+        || $showRomsWindow
+        || $showSavesWindow
+        || $showOptionsWindow
+        || $showBindingsWindow
+        || $showDebugWindow
+        || $showAboutWindow
+        || $selectedRomSha1 != undefined
+    );
+
     $effect(() => {
-        if (!isFullscreen) return;
+        if (anyOverlayOpen) return;
         window.addEventListener('keydown', gameInputKeydownHandler);
         window.addEventListener('keyup', gameInputKeyupHandler);
         return () => {
@@ -171,15 +182,7 @@
     });
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div
-    class="console"
-    role="main"
-    tabindex="0"
-    onkeydown={gameInputKeydownHandler}
-    onkeyup={gameInputKeyupHandler}
->
+<div class="console" role="main">
     <div>
         <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
             <div
