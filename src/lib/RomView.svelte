@@ -14,7 +14,9 @@
 
     const defaultThumbnailUri = "./UnknownGame.png";
     const defaultAltText = "Unknown game art";
-    const artDir = "https://thumbnails.libretro.com/";
+    const artDir = import.meta.env.DEV
+        ? "/libretro-art/"
+        : "https://thumbnails.libretro.com/";
     const gbArtDir = artDir + "Nintendo%20-%20Game%20Boy/Named_Boxarts/";
     const gbcArtDir =
         artDir + "Nintendo%20-%20Game%20Boy%20Color/Named_Boxarts/";

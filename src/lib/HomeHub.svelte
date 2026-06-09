@@ -1,6 +1,9 @@
 <script lang="ts">
     import RomsSection from "./RomsSection.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
+    import HomeHero from "./HomeHero.svelte";
+    import ContinuePlayingRow from "./ContinuePlayingRow.svelte";
+    import { libraryStore } from "stores/libraryStore";
     import { loadedCartridge } from "stores/romStores";
     import { goToPlay } from "stores/viewStore";
     import {
@@ -12,9 +15,19 @@
     } from "stores/windowStores";
     import type { Writable } from "svelte/store";
 
+    const CONTINUE_ROW_MAX = 8;
+
     let menuOpen: boolean = $state(false);
 
     const hasRom = $derived($loadedCartridge != undefined);
+
+    let playedRoms = $derived(
+        $libraryStore
+            .filter(r => (r.lastPlayedAt ?? 0) > 0)
+            .sort((a, b) => (b.lastPlayedAt ?? 0) - (a.lastPlayedAt ?? 0))
+    );
+    let heroRom = $derived(playedRoms[0]);
+    let continueRoms = $derived(playedRoms.slice(1, CONTINUE_ROW_MAX + 1));
 
     function toggleWindow(store: Writable<boolean>) {
         store.update(v => !v);
@@ -55,6 +68,10 @@
         </div>
     </header>
     <main class="home-main">
+        {#if heroRom}
+            <HomeHero rom={heroRom} />
+            <ContinuePlayingRow roms={continueRoms} />
+        {/if}
         <RomsSection />
     </main>
 </div>
