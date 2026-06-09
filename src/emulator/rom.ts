@@ -1,6 +1,7 @@
 import { get } from "svelte/store";
 import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode } from "./wasmBridge";
 import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
+import { resetSaveTracking } from "./loop";
 import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, ensureCartMeta, persistRomFields } from "stores/libraryStore";
 import { AutoSaveUriRoms, DefaultRenderMode } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
@@ -8,7 +9,8 @@ import { DebuggerAttached } from "stores/debugStores";
 import { humanReadableSize } from "../utils";
 import { isZipUri, extractRomFromZip } from "../zipRom";
 import { CartType, cartTypeFromCgbFlag, resolveRenderMode, type ResolvedRenderMode } from "../cartType";
-import { loadBattery } from "../batterySaveDb";
+import { getActiveBank, loadBank } from "../batterySaveDb";
+import { setActiveBankCache } from "../activeBankCache";
 import { requestConfirm } from "stores/confirmStore";
 import { showRomsWindow } from "stores/windowStores";
 import type { LibraryRom, SaveGameData } from "../types";
@@ -43,14 +45,20 @@ async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
 }
 
 export async function playRom(rom: LibraryRom): Promise<void> {
+    // Pause + clear save-watermark up front: any awaits below let the run loop fire frames
+    // that would otherwise autosave stale backend SRAM into the newly-selected bank.
+    pauseEmulator();
+    resetSaveTracking();
     const buffer = await getRomBuffer(rom);
     if (!buffer) return;
     if (!loadCartridgeRom(buffer)) {
         console.log(`Error loading rom`);
         return;
     }
-    const battery = await loadBattery(rom.sha1).catch(() => undefined);
-    if (battery) backendLoadSave(battery.bytes);
+    const activeBank = await getActiveBank(rom.sha1).catch(() => 'default');
+    setActiveBankCache(rom.sha1, activeBank);
+    const batteryBytes = await loadBank(rom.sha1, activeBank).catch(() => undefined);
+    if (batteryBytes) backendLoadSave(batteryBytes);
     let activeRom: LibraryRom = ensureCartMeta(ensureCgbFlag(rom, buffer), buffer);
     if (activeRom !== rom) {
         persistRomFields({ ...activeRom }).catch(err => console.error('persistRomFields failed:', err));
@@ -76,7 +84,6 @@ export async function playRom(rom: LibraryRom): Promise<void> {
         setForcedRenderMode(renderModeToBackend(resolved));
     }
     showRomsWindow.set(false);
-    pauseEmulator();
     resetEmulator();
     loadedCartridge.set(activeRom);
     markLibraryRomPlayed(activeRom.sha1).catch(err => console.error('markLibraryRomPlayed failed:', err));

@@ -27,8 +27,19 @@ export function updateInput(input: InputType, pressed: boolean) {
     })
 }
 
+function isEditableTarget(event: Event): boolean {
+    const t = event.target as HTMLElement | null;
+    if (!t) return false;
+    const tag = t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    return t.isContentEditable;
+}
+
 export function gameInputKeydownHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
+        return;
+
+    if (isEditableTarget(event))
         return;
 
     if (!(event.key in activeKeybinds))
@@ -40,6 +51,9 @@ export function gameInputKeydownHandler(event: KeyboardEvent) {
 
 export function gameInputKeyupHandler(event: KeyboardEvent) {
     if (event.defaultPrevented)
+        return;
+
+    if (isEditableTarget(event))
         return;
 
     if (!(event.key in activeKeybinds))
