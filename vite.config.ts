@@ -101,6 +101,21 @@ export default defineConfig({
         return [];
       }
     }
-  }
+  },
+  // The AssemblyScript loader in build/backend.js has a Node/Bun branch that does
+  // `import("node:fs/promises")`. The browser never enters it, but Vite still scans
+  // the import and warns ("externalized for browser compatibility"). Stub it out.
+  {
+    name: 'stub-node-builtins',
+    enforce: 'pre' as const,
+    resolveId(id: string) {
+      if (id === 'node:fs/promises') return '\0stub:node-fs-promises';
+    },
+    load(id: string) {
+      if (id === '\0stub:node-fs-promises') {
+        return 'export const readFile = () => Promise.reject(new Error("node:fs/promises not available in browser"));';
+      }
+    },
+  },
   ],
 })

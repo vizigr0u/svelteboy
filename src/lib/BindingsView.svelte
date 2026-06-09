@@ -87,14 +87,4 @@
         opacity: 0.6;
         font-size: 0.85em;
     }
-
-    .actions {
-        display: flex;
-        gap: 0.5em;
-        margin-top: 1em;
-    }
-
-    .actions button {
-        width: fit-content;
-    }
 </style>
