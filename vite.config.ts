@@ -78,6 +78,13 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
+    proxy: {
+      '/libretro-art/': {
+        target: 'https://thumbnails.libretro.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/libretro-art\//, '/'),
+      },
+    },
   },
   preview: {
     headers: {
