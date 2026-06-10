@@ -7,6 +7,8 @@
     import { loadedCartridge } from "stores/romStores";
     import { goToPlay } from "stores/viewStore";
     import { openPalette } from "stores/paletteStore";
+    import { resolveHeroAction } from "./heroAction";
+    import { EmulatorInitialized } from "stores/playStores";
 
     const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
     const PALETTE_HINT = IS_MAC ? "⌘K" : "Ctrl+K";
@@ -14,8 +16,11 @@
     const CONTINUE_ROW_MAX = 8;
 
     let menuOpen: boolean = $state(false);
+    let heroEl: HTMLDivElement | undefined = $state(undefined);
+    let heroVisible: boolean = $state(true);
 
     const hasRom = $derived($loadedCartridge != undefined);
+    const hasResumableSession = $derived(hasRom && $EmulatorInitialized);
 
     let playedRoms = $derived(
         $libraryStore
@@ -24,6 +29,22 @@
     );
     let heroRom = $derived(playedRoms[0]);
     let continueRoms = $derived(playedRoms.slice(1, CONTINUE_ROW_MAX + 1));
+
+    let pillRedundant = $derived(resolveHeroAction.pillRedundantWhenHeroVisible({
+        heroSha1: heroRom?.sha1,
+        loadedSha1: $loadedCartridge?.sha1,
+    }));
+    let showPill = $derived(hasResumableSession && !(pillRedundant && heroVisible));
+
+    $effect(() => {
+        if (!heroEl) return;
+        const obs = new IntersectionObserver(
+            entries => { heroVisible = entries[0]?.isIntersecting ?? true; },
+            { threshold: 0.15 }
+        );
+        obs.observe(heroEl);
+        return () => obs.disconnect();
+    });
 
     function resume() {
         menuOpen = false;
@@ -36,7 +57,7 @@
     }
 
     const menuItems = $derived([
-        ...(hasRom ? [{ label: 'Resume playing', active: false, toggle: resume }] : []),
+        ...(hasResumableSession ? [{ label: 'Resume playing', active: false, toggle: resume }] : []),
         { label: 'Commands…', active: false, toggle: openCommandPalette },
     ]);
 </script>
@@ -44,7 +65,7 @@
 <div class="home-hub">
     <header class="home-header">
         <span class="brand">SvelteBoy</span>
-        {#if hasRom}
+        {#if showPill}
             <button class="resume-pill" onclick={resume}>
                 ▶ Resume <span class="resume-title">{$loadedCartridge?.name}</span>
             </button>
@@ -65,7 +86,9 @@
     </header>
     <main class="home-main">
         {#if heroRom}
-            <HomeHero rom={heroRom} />
+            <div bind:this={heroEl}>
+                <HomeHero rom={heroRom} />
+            </div>
             <ContinuePlayingRow roms={continueRoms} />
         {/if}
         <RomsSection />
