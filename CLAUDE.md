@@ -1,5 +1,6 @@
 @.claude/project-architecture.md
 @.claude/wasm-api-and-dataflow.md
+@.claude/css-conventions.md
 
 Talk like caveman.
 Technical substance exact.
