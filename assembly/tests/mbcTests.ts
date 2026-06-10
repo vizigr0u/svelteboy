@@ -1,6 +1,7 @@
 import { CartridgeType } from "../metadata";
 import { isRamEnabled } from "../memory/mbcTypes";
 import { MBC } from "../memory/mbc";
+import { MemoryMap } from "../memory/memoryMap";
 import { CARTRIDGE_ROM_START, ROM_BANK_SIZE, GB_EXT_RAM_START, GB_EXT_RAM_BANK_SIZE } from "../memory/memoryConstants";
 import { SaveGame } from "../memory/savegame";
 import { describe, it, assertEquals } from "./framework";
@@ -291,6 +292,58 @@ export function testMbc(): boolean {
                 setupMBCCart(CartridgeType.MBC2, 3, 0);
                 mbcWrite(0x2100, 0x10);
                 assertEquals<u8>(readRomBank1Sentinel(), 1, "0x10 lower nibble = 0 → bank 1");
+            });
+        });
+
+        describe("RAM nibble masking (4-bit storage)", () => {
+            it("write 0xA3 stores nibble 3 → read returns 0xF3", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A); // enable RAM
+                writeRam(0xA3);
+                assertEquals<u8>(readRam(), 0xF3, "0xA3 stored as 0x3, read = 0xF0|0x3");
+            });
+
+            it("write 0xFF stores nibble 0xF → read returns 0xFF", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A);
+                writeRam(0xFF);
+                assertEquals<u8>(readRam(), 0xFF, "0xFF stored as 0xF, read = 0xFF");
+            });
+
+            it("write 0x00 stores nibble 0 → read returns 0xF0", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A);
+                writeRam(0x00);
+                assertEquals<u8>(readRam(), 0xF0, "0x00 stored as 0x0, read = 0xF0|0x0");
+            });
+
+            it("read of fresh (zero) RAM still returns 0xF0", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A);
+                assertEquals<u8>(readRam(), 0xF0, "fresh RAM read = 0xF0");
+            });
+
+            it("write/read works across 9-bit mirror", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A);
+                MemoryMap.GBstore<u8>(0xA1FF, 0x77); // upper byte 511
+                assertEquals<u8>(MemoryMap.GBload<u8>(0xA1FF), 0xF7, "byte 511 mirrored");
+                assertEquals<u8>(MemoryMap.GBload<u8>(0xA3FF), 0xF7, "echoed through mirror");
+            });
+
+            it("write while RAM disabled has no effect", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                mbcWrite(0x0000, 0x0A); // enable
+                writeRam(0x05);
+                mbcWrite(0x0000, 0x00); // disable
+                writeRam(0x0A);         // should be ignored
+                mbcWrite(0x0000, 0x0A); // re-enable
+                assertEquals<u8>(readRam(), 0xF5, "write while disabled ignored, prior 0x5 preserved");
+            });
+
+            it("read while RAM disabled returns 0xFF (open-bus)", () => {
+                setupMBCCart(CartridgeType.MBC2, 3, 0);
+                assertEquals<u8>(readRam(), 0xFF, "disabled-RAM read = 0xFF");
             });
         });
 

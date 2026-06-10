@@ -99,12 +99,14 @@ export class MBC {
 
     @inline
     static HandleRamRead(gbAddress: u16): i32 {
+        if (MBC.type == MBCType.MBC2) return MBC2.HandleRamRead(gbAddress);
         if (MBC.type == MBCType.MBC3) return MBC3.HandleRamRead(gbAddress);
         return -1;
     }
 
     @inline
     static HandleRamWrite(gbAddress: u16, value: u8): bool {
+        if (MBC.type == MBCType.MBC2) return MBC2.HandleRamWrite(gbAddress, value);
         if (MBC.type == MBCType.MBC3) return MBC3.HandleRamWrite(gbAddress, value);
         return false;
     }

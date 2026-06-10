@@ -1,6 +1,6 @@
 import { Logger } from "../debug/logger";
 import { MBC } from "./mbc";
-import { enableRam, log } from "./mbcTypes";
+import { enableRam, isRamEnabled, log } from "./mbcTypes";
 import { CARTRIDGE_ROM_START, GB_EXT_RAM_START, ROM_BANK_SIZE } from "./memoryConstants";
 
 @final
@@ -27,6 +27,19 @@ export class MBC2 {
             MBC2.romBank = newRomBank;
         }
         MBC2.Recache();
+    }
+
+    static HandleRamRead(gbAddress: u16): i32 {
+        if (!isRamEnabled()) return 0xFF;
+        const raw = load<u8>(MBC.MapRam(gbAddress));
+        return <i32>(0xF0 | (raw & 0x0F));
+    }
+
+    static HandleRamWrite(gbAddress: u16, value: u8): bool {
+        if (isRamEnabled()) {
+            store<u8>(MBC.MapRam(gbAddress), value & 0x0F);
+        }
+        return true;
     }
 
     @inline
