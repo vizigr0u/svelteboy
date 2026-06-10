@@ -6,7 +6,7 @@
 
     let { rom } = $props<{ rom: LibraryRom }>();
     let prefs = $derived(prefsForRom(rom.sha1));
-    let slotCount = $derived($prefs.quickSaveSlotCount ?? 4);
+    let slotCount = $derived($prefs.quickSaveSlotCount ?? 9);
 </script>
 
 <div class="saves-tab">

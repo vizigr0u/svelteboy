@@ -1,8 +1,6 @@
 <script lang="ts">
-    import FpsCounter from "./debug/FPSCounter.svelte";
     import FrametimeHistogram from "./debug/FrametimeHistogram.svelte";
     import {
-        showFPS,
         showFrametimeHistogram,
         SelectedPaletteIndex,
         PALETTE_PRESETS,
@@ -12,6 +10,7 @@
         WakeLockEnabled,
         OrientationLockEnabled,
     } from "stores/optionsStore";
+    import HudOverlay from "./hud/HudOverlay.svelte";
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
@@ -220,9 +219,6 @@
     <header class="play-topbar">
         <button class="back-btn" onclick={back} aria-label="Back to library">←</button>
         <span class="play-title">{$loadedCartridge?.name ?? 'SvelteBoy'}</span>
-        {#if $showFPS}
-            <div class="fps-inline"><FpsCounter /></div>
-        {/if}
         <button class="palette-chip" onclick={openPalette} aria-label="Open command palette">
             <span class="palette-chip-icon">⌕</span>
             <kbd>{PALETTE_HINT}</kbd>
@@ -267,6 +263,7 @@
                 {#if $EmulatorPaused && hasRom}
                     <div class="pause-overlay">PAUSE</div>
                 {/if}
+                <HudOverlay />
             </div>
             {#if $showFrametimeHistogram}
                 <div class="frametime-wrapper">
@@ -348,12 +345,6 @@
         max-width: 60vw;
     }
 
-    .fps-inline {
-        margin-left: auto;
-        font-size: 0.8em;
-        opacity: 0.7;
-    }
-
     .palette-chip {
         display: inline-flex;
         align-items: center;
@@ -367,8 +358,7 @@
         cursor: pointer;
         line-height: 1;
     }
-    .play-title ~ .palette-chip:not(.fps-inline + .palette-chip) { margin-left: auto; }
-    .fps-inline + .palette-chip { margin-left: 0; }
+    .play-title ~ .palette-chip { margin-left: auto; }
     .palette-chip:hover {
         background: rgba(255, 255, 255, 0.1);
         color: inherit;

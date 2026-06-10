@@ -10,7 +10,7 @@
     let currentMode = $derived<RenderModeOverride>(rom.renderMode ?? 'auto');
     let mutedChannels = $derived($prefs.mutedChannels ?? []);
     let skipBootRom = $derived($prefs.skipBootRom ?? false);
-    let slotCount = $derived($prefs.quickSaveSlotCount ?? 4);
+    let slotCount = $derived($prefs.quickSaveSlotCount ?? 9);
     let rtcOffsetSec = $derived($prefs.rtcOffsetSec ?? 0);
     let rtcDays = $derived(Math.floor(rtcOffsetSec / 86400));
     let rtcHours = $derived(Math.floor((rtcOffsetSec % 86400) / 3600));
