@@ -9,6 +9,7 @@
   import Motd from "./lib/Motd.svelte";
   import AudioStatusNotice from "./lib/AudioStatusNotice.svelte";
   import RomDrawer from "./lib/RomDrawer.svelte";
+  import CommandPalette from "./lib/CommandPalette.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
   import { playViewActive } from "./stores/viewStore";
@@ -20,6 +21,7 @@
     findLibraryRomByUri,
   } from "./stores/libraryStore";
   import { selectedRomSha1 } from "./stores/windowStores";
+  import { togglePalette, debugUnlocked } from "./stores/paletteStore";
   import type { LibraryRom } from "./types";
 
   const SHA1_HEX = /^[a-f0-9]{40}$/i;
@@ -63,8 +65,28 @@
     });
   }
 
+  function onPaletteHotkey(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePalette();
+    }
+  }
+
+  function maybeUnlockDebugFromQuery() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("debug") !== "1") return;
+    debugUnlocked.set(true);
+    params.delete("debug");
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+    history.replaceState(null, "", newUrl);
+  }
+
   onMount(async () => {
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("keydown", onPaletteHotkey, true);
+    maybeUnlockDebugFromQuery();
     const initial = readSha1FromHash();
     if (initial) selectedRomSha1.set(initial);
     const param = parseRomParam();
@@ -98,6 +120,7 @@
 
   onDestroy(() => {
     window.removeEventListener("hashchange", onHashChange);
+    window.removeEventListener("keydown", onPaletteHotkey, true);
     unsubSelected();
   });
 </script>
@@ -111,6 +134,7 @@
 {/if}
 <WindowOverlays />
 <RomDrawer />
+<CommandPalette />
 <ConfirmDialog />
 <Toaster />
 
