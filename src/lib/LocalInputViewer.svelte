@@ -71,124 +71,113 @@
 <style>
     .input-viewer {
         position: relative;
-        display: flex;
-        --base-size: 7cqmin;
-        height: calc(var(--base-size) * 3 + 14cqmin);
-        justify-content: space-between;
-        padding: 1cqmin 4% 6cqmin 4%;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        --pad: 11cqmin;
+        --action: 13cqmin;
+        --special: 12cqmin;
+        padding: 3cqmin 4cqmin calc(4cqmin + env(safe-area-inset-bottom));
+        gap: 3cqmin;
         width: 100%;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
     .input-viewer button {
-        font-size: initial;
-    }
-
-    .input-viewer button::after {
-        position: absolute;
-        font-family: "Courier New", Courier, monospace;
-        color: #12153d;
-        font-weight: bold;
-        font-size: 2.5cqmin;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        border: none;
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 600;
         text-transform: uppercase;
-        text-align: center;
-        content: attr(data-input);
-        left: 0;
+        letter-spacing: 0.06em;
     }
 
+    /* D-Pad: cross shape, dark plate */
     .dir-viewer {
-        --size: var(--base-size);
-        align-self: flex-start;
+        justify-self: start;
         display: grid;
-        background-color: #b2b2b2;
-        border-radius: 50%;
-        padding: 0.8cqmin;
-        grid-template-columns: repeat(3, var(--size));
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1.5cqmin;
+        padding: 1cqmin;
+        grid-template-columns: repeat(3, var(--pad));
+        grid-template-rows: repeat(3, var(--pad));
         grid-template-areas:
             ". U ."
             "L C R"
             ". D .";
     }
-
-    .dir-viewer button::after {
-        content: none;
-    }
-
     .dir-viewer > button,
     .dir-viewer > .center {
-        width: var(--size);
-        height: var(--size);
-        background-color: black;
+        background: #2a2a3a;
+        border-radius: 1cqmin;
     }
-
-    button[data-input="Up"] {
-        grid-area: U;
+    .dir-viewer > .center {
+        background: rgba(255, 255, 255, 0.08);
     }
-
-    button[data-input="Down"] {
-        grid-area: D;
+    .dir-viewer > button::after { content: none; }
+    .dir-viewer > button:active {
+        background: var(--highlight-color, #89b4fa);
     }
+    button[data-input="Up"] { grid-area: U; }
+    button[data-input="Down"] { grid-area: D; }
+    button[data-input="Left"] { grid-area: L; }
+    button[data-input="Right"] { grid-area: R; }
+    .center { grid-area: C; }
 
-    button[data-input="Left"] {
-        grid-area: L;
-    }
-
-    button[data-input="Right"] {
-        grid-area: R;
-    }
-
-    .center {
-        grid-area: C;
-    }
-
+    /* Start / Select: flat pills, no rotation */
     .special-key-viewer {
-        display: flex;
-        align-self: flex-end;
-        gap: 5cqmin;
-    }
-
-    .special-key-viewer > button {
-        position: relative;
-        width: 9cqmin;
-        height: 2.2cqmin;
-        background-color: #555;
-        border-radius: 2cqmin;
-        transform: rotate(-20deg);
-    }
-
-    .special-key-viewer > button::after {
-        top: 2.5cqmin;
-        width: 5cqmin;
-        font-size: 2.5cqmin;
-        letter-spacing: 0.3cqmin;
-    }
-
-    .action-key-viewer {
+        justify-self: center;
         display: flex;
         gap: 3cqmin;
-        margin-top: 4cqmin;
-        align-self: flex-start;
-        background-color: #afafaf;
-        border-radius: 5cqmin;
-        padding: 1.5cqmin;
-        transform: rotate(-20deg);
+        align-self: end;
     }
-
-    .action-key-viewer > button {
-        --size: 9cqmin;
+    .special-key-viewer > button {
         position: relative;
-        width: var(--size);
-        height: var(--size);
-        border-radius: 50%;
-        background-color: #64213e;
+        height: var(--special);
+        min-width: 16cqmin;
+        padding: 0 3cqmin;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        font-size: 3cqmin;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    .special-key-viewer > button::after {
+        content: attr(data-input);
+        position: relative;
     }
 
+    /* A / B: flat circles, accent color, B left A right */
+    .action-key-viewer {
+        justify-self: end;
+        display: flex;
+        gap: 3cqmin;
+        align-items: flex-end;
+    }
+    .action-key-viewer > button {
+        position: relative;
+        width: var(--action);
+        height: var(--action);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 2px solid rgba(255, 255, 255, 0.18);
+        font-size: 5cqmin;
+        color: rgba(255, 255, 255, 0.9);
+    }
     .action-key-viewer > button::after {
-        font-size: 4.5cqmin;
-        top: calc(var(--size) + 1.5cqmin);
-        width: calc(var(--size) + 1.5cqmin);
+        content: attr(data-input);
+        position: relative;
+    }
+    .action-key-viewer > button[data-input="A"] {
+        margin-bottom: 4cqmin;
     }
 
     :global(.input-viewer button.pressed) {
-        background-color: red !important;
+        background: var(--highlight-color, #89b4fa) !important;
+        color: #1e1e2e !important;
+        border-color: var(--highlight-color, #89b4fa) !important;
     }
 </style>
