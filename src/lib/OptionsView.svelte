@@ -1,6 +1,5 @@
 <script lang="ts">
     import {
-        showFPS,
         showFrametimeHistogram,
         AutoSaveUriRoms,
         RegularSpeed,
@@ -20,6 +19,15 @@
         OrientationLockEnabled,
     } from "stores/optionsStore";
     import { clearAllStorage } from "../stores/idbStore";
+    import {
+        HudStore,
+        HUD_CHIP_LABELS,
+        HUD_POSITION_LABELS,
+        setHudChip,
+        setHudPosition,
+        type HudChipId,
+        type HudPosition,
+    } from "stores/hudStore";
     import PalettePicker from "./PalettePicker.svelte";
     import DisabledTooltip from "./DisabledTooltip.svelte";
     import { isCgbMode } from "../emulator/wasmBridge";
@@ -120,11 +128,31 @@
 
     <h4>Display</h4>
     <div class="options">
-        <label for="showfps">Display FPS:</label>
-        <input id="showfps" type="checkbox" bind:checked={$showFPS} />
-
         <label for="showframetime">Frametime histogram:</label>
         <input id="showframetime" type="checkbox" bind:checked={$showFrametimeHistogram} />
+
+        <label for="hudPosition">HUD chip position:</label>
+        <select id="hudPosition" value={$HudStore.position} onchange={(e) => setHudPosition((e.currentTarget as HTMLSelectElement).value as HudPosition)}>
+            {#each Object.entries(HUD_POSITION_LABELS) as [val, label]}
+                <option value={val}>{label}</option>
+            {/each}
+        </select>
+
+        <span>HUD chips:</span>
+        <div class="hud-chip-row">
+            {#each Object.entries(HUD_CHIP_LABELS) as [id, label]}
+                {#if id !== 'rewind'}
+                    <label class="hud-toggle">
+                        <input
+                            type="checkbox"
+                            checked={$HudStore.enabled[id as HudChipId]}
+                            onchange={(e) => setHudChip(id as HudChipId, (e.currentTarget as HTMLInputElement).checked)}
+                        />
+                        {label}
+                    </label>
+                {/if}
+            {/each}
+        </div>
 
         <label for="pixelPerfect">Pixel-perfect scale:</label>
         <input id="pixelPerfect" type="checkbox" bind:checked={$PixelPerfect} />
@@ -263,5 +291,16 @@
     }
     .danger {
         color: #c00;
+    }
+    .hud-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4em 0.8em;
+    }
+    .hud-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3em;
+        font-size: 0.9em;
     }
 </style>

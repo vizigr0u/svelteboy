@@ -13,9 +13,10 @@ export const DEFAULT_BINDINGS = {
     reset:        { code: 'KeyR' },
     screenshot:   { code: 'KeyS', shift: true },
     fastForward:  { code: 'Space' },
+    frameAdvance: { code: 'Period' },
 } satisfies Record<string, KeySpec>;
 
 export const DEFAULT_SLOT_RANGES = {
-    quickLoad: { codePrefix: 'Digit', slotRange: [1, 4] as [number, number] },
-    quickSave: { codePrefix: 'Digit', slotRange: [1, 4] as [number, number], shift: true },
+    quickLoad: { codePrefix: 'Digit', slotRange: [1, 9] as [number, number] },
+    quickSave: { codePrefix: 'Digit', slotRange: [1, 9] as [number, number], shift: true },
 };

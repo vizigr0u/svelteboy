@@ -12,9 +12,10 @@ import {
     showAboutWindow,
     showRomsWindow,
 } from "../stores/windowStores";
-import { showFPS, showFrametimeHistogram } from "../stores/optionsStore";
+import { showFrametimeHistogram } from "../stores/optionsStore";
 import { DebuggerAttached } from "../stores/debugStores";
 import { debugUnlocked } from "../stores/paletteStore";
+import { toggleHudChip, enableSpeedrunHud } from "../stores/hudStore";
 
 export type CommandGroup = "nav" | "play" | "saves" | "speedrun" | "debug";
 
@@ -162,12 +163,44 @@ const savesCommands: Command[] = [
 
 const speedrunCommands: Command[] = [
     {
-        id: "speedrun.fps",
-        label: "Toggle frame counter HUD",
+        id: "speedrun.toggleFps",
+        label: "Toggle FPS HUD chip",
         group: "speedrun",
-        keywords: ["fps", "counter"],
+        keywords: ["fps", "counter", "hud"],
         available: () => true,
-        run: () => toggleWindow(showFPS),
+        run: () => toggleHudChip('fps'),
+    },
+    {
+        id: "speedrun.toggleFrameCounter",
+        label: "Toggle frame counter HUD chip",
+        group: "speedrun",
+        keywords: ["frames", "hud"],
+        available: () => true,
+        run: () => toggleHudChip('frame'),
+    },
+    {
+        id: "speedrun.toggleInputDisplay",
+        label: "Toggle input display HUD chip",
+        group: "speedrun",
+        keywords: ["buttons", "joypad", "hud"],
+        available: () => true,
+        run: () => toggleHudChip('input'),
+    },
+    {
+        id: "speedrun.toggleCpu",
+        label: "Toggle CPU cycle HUD chip",
+        group: "speedrun",
+        keywords: ["cycles", "hud"],
+        available: () => true,
+        run: () => toggleHudChip('cpu'),
+    },
+    {
+        id: "speedrun.enableAll",
+        label: "Enable speedrun HUD",
+        group: "speedrun",
+        keywords: ["bundle", "preset", "fps", "frame", "input"],
+        available: () => true,
+        run: enableSpeedrunHud,
     },
     {
         id: "speedrun.frametime",
@@ -182,6 +215,7 @@ const speedrunCommands: Command[] = [
         label: "Frame-advance one frame",
         group: "speedrun",
         keywords: ["step", "tick"],
+        shortcut: ".",
         available: () => hasRom(),
         run: Debug.RunFrame,
     },

@@ -11,7 +11,7 @@
     } from "../../saveStateDb";
     import Icon from "../icons/Icon.svelte";
 
-    let { sha1, name, slotCount = 4 } = $props<{
+    let { sha1, name, slotCount = 9 } = $props<{
         sha1: string;
         name: string;
         slotCount?: number;

@@ -1,7 +1,7 @@
 import { get } from "svelte/store";
 import { EmulatorPaused, FastForwardActive } from "stores/playStores";
 import { loadedBootRom, loadedCartridge } from "stores/romStores";
-import { Emulator } from "./emulator";
+import { Debug, Emulator } from "./emulator";
 import { takeScreenshot } from "./screenshot";
 import { KeybindingsStore } from "./keybinds/store";
 import { DEFAULT_SLOT_RANGES } from "./keybinds/defaults";
@@ -50,6 +50,12 @@ const downActions: Record<BindingId, Action | null> = {
         if (e.repeat) return;
         e.preventDefault();
         FastForwardActive.set(true);
+    },
+    frameAdvance: (e) => {
+        if (!hasRom()) return;
+        if (!get(EmulatorPaused)) return;
+        e.preventDefault();
+        Debug.RunFrame();
     },
     gameA: null, gameB: null, gameSelect: null, gameStart: null,
     gameUp: null, gameDown: null, gameLeft: null, gameRight: null,

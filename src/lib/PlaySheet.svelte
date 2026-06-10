@@ -1,7 +1,6 @@
 <script lang="ts">
     import Icon from "./icons/Icon.svelte";
     import type { IconName } from "./icons/Icon.svelte";
-    import { Emulator } from "../emulator";
     import { EmulatorPaused } from "stores/playStores";
     import {
         showSavesWindow,
@@ -11,6 +10,8 @@
     } from "stores/windowStores";
     import { goToHome } from "stores/viewStore";
     import { pauseEmulator, unPauseEmulator } from "../emulator/lifecycle";
+    import { prefsForRom, loadedCartridge } from "stores/romStores";
+    import SaveSlotPanel from "./SaveSlotPanel.svelte";
 
     interface Props {
         open: boolean;
@@ -21,21 +22,16 @@
 
     let { open, onclose, onfullscreen, isFullscreen }: Props = $props();
 
-    const QUICK_SLOT = 1;
+    let slotsOpen = $state(false);
+    let cart = $derived($loadedCartridge);
+    let prefs = $derived(cart ? prefsForRom(cart.sha1) : null);
+    let slotCount = $derived(prefs ? ($prefs?.quickSaveSlotCount ?? 9) : 9);
 
     function close() { onclose(); }
 
     function togglePause() {
         if ($EmulatorPaused) unPauseEmulator();
         else pauseEmulator();
-        close();
-    }
-    async function quickSave() {
-        await Emulator.QuickSave(QUICK_SLOT);
-        close();
-    }
-    async function quickLoad() {
-        await Emulator.QuickLoad(QUICK_SLOT);
         close();
     }
     function openSaves() { showSavesWindow.set(true); close(); }
@@ -50,8 +46,6 @@
         $EmulatorPaused
             ? { label: 'Resume', icon: 'circle-play', onclick: togglePause, emphasis: 'primary' }
             : { label: 'Pause',  icon: 'circle-play', onclick: togglePause },
-        { label: 'Quick save (slot 1)', icon: 'bookmark', onclick: quickSave },
-        { label: 'Quick load (slot 1)', icon: 'bookmark', onclick: quickLoad },
         { label: 'Saves…',     icon: 'bookmark', onclick: openSaves },
         { label: 'Options…',   icon: 'filter',  onclick: openOptions },
         { label: 'Bindings…',  icon: 'filter',  onclick: openBindings },
@@ -67,6 +61,22 @@
     <div class="sheet" role="dialog" aria-modal="true" aria-label="Quick actions">
         <div class="sheet-handle" aria-hidden="true"></div>
         <div class="sheet-body">
+            {#if cart}
+                <button
+                    class="sheet-item"
+                    onclick={() => slotsOpen = !slotsOpen}
+                    aria-expanded={slotsOpen}
+                >
+                    <span class="sheet-icon"><Icon name="bookmark" /></span>
+                    <span class="sheet-label">Quick saves</span>
+                    <span class="disclosure">{slotsOpen ? '−' : '+'}</span>
+                </button>
+                {#if slotsOpen}
+                    <div class="slots-wrap">
+                        <SaveSlotPanel {slotCount} onaction={close} />
+                    </div>
+                {/if}
+            {/if}
             {#each actions as a}
                 <button
                     class="sheet-item"
@@ -153,6 +163,15 @@
         width: 1.3em;
         justify-content: center;
         opacity: 0.85;
+    }
+    .disclosure {
+        margin-left: auto;
+        font-family: monospace;
+        opacity: 0.6;
+        font-size: 1.1em;
+    }
+    .slots-wrap {
+        padding: 0.3em 0.6em 0.6em;
     }
 
     @keyframes slideUp {

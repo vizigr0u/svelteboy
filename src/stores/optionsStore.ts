@@ -18,7 +18,6 @@ export const PALETTE_NAMES = ['Green', 'Black&White', 'Pocket', 'DMG-01'] as con
 export const SelectedPaletteIndex = MakeLocalStore<number>('option-palette-index', 0);
 
 export const useBoot = writable<boolean>(false);
-export const showFPS = MakeLocalStore<boolean>('option-show-fps', false);
 export const showFrametimeHistogram = MakeLocalStore<boolean>('option-show-frametime-histogram', false);
 export const DismissSavesWarning = MakeLocalStore<boolean>('option-hide-saves-warning', false);
 export const DismissBadgeHint = MakeLocalStore<boolean>('option-hide-badge-hint', false);
