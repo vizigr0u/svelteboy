@@ -1,6 +1,7 @@
 import { CartridgeType } from "../metadata";
 import { isRamEnabled } from "../memory/mbcTypes";
 import { MBC } from "../memory/mbc";
+import { MBC5 } from "../memory/mbc5";
 import { MemoryMap } from "../memory/memoryMap";
 import { CARTRIDGE_ROM_START, ROM_BANK_SIZE, GB_EXT_RAM_START, GB_EXT_RAM_BANK_SIZE } from "../memory/memoryConstants";
 import { SaveGame } from "../memory/savegame";
@@ -670,6 +671,45 @@ export function testMbc(): boolean {
                 setupMBCCart(CartridgeType.MBC5, 3, 0);
                 mbcWrite(0x2000, 7);
                 assertEquals<u32>(MBC.MapRom(0x4000), CARTRIDGE_ROM_START + 7 * ROM_BANK_SIZE, "MapRom(0x4000) = bank 7");
+            });
+        });
+
+        describe("Rumble bit (MBC5_RUMBLE*)", () => {
+            it("rumble cart: bit3 controls motor, bits 0-2 select RAM bank", () => {
+                setupMBCCart(CartridgeType.MBC5_RUMBLE_RAM, 3, 3); // 4 RAM banks
+                mbcWrite(0x4000, 0x0B); // 1011: motor=1, bank=3
+                assertEquals<u32>(
+                    MBC.MapRam(0xA000),
+                    GB_EXT_RAM_START + 3 * GB_EXT_RAM_BANK_SIZE,
+                    "rumble cart: bank=3 (bit3 ignored for bank)"
+                );
+                assertEquals<bool>(MBC5.motor, true, "motor on (bit3=1)");
+            });
+
+            it("rumble cart: bit3 set with bank bits 0 → bank 0, motor on", () => {
+                setupMBCCart(CartridgeType.MBC5_RUMBLE_RAM, 3, 3);
+                mbcWrite(0x4000, 0x08); // motor=1, bank=0
+                assertEquals<u32>(MBC.MapRam(0xA000), GB_EXT_RAM_START, "bank 0");
+                assertEquals<bool>(MBC5.motor, true, "motor on");
+            });
+
+            it("rumble cart: motor cleared when bit3=0", () => {
+                setupMBCCart(CartridgeType.MBC5_RUMBLE_RAM, 3, 3);
+                mbcWrite(0x4000, 0x08);
+                assertEquals<bool>(MBC5.motor, true, "motor on");
+                mbcWrite(0x4000, 0x02);
+                assertEquals<bool>(MBC5.motor, false, "motor off after bit3=0");
+                assertEquals<u32>(
+                    MBC.MapRam(0xA000),
+                    GB_EXT_RAM_START + 2 * GB_EXT_RAM_BANK_SIZE,
+                    "bank 2 selected"
+                );
+            });
+
+            it("non-rumble MBC5_RAM: bit3 is bank bit, motor stays off", () => {
+                setupMBCCart(CartridgeType.MBC5_RAM, 3, 3); // 4 RAM banks (mask not in scope here)
+                mbcWrite(0x4000, 0x08);
+                assertEquals<bool>(MBC5.motor, false, "motor off on non-rumble cart");
             });
         });
 
