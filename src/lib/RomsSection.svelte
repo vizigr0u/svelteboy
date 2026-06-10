@@ -11,7 +11,7 @@
         type LibraryTypeFilter,
     } from "@/stores/optionsStore";
     import { DragState, type LibraryRom } from "../types";
-    import type { ImportReport } from "../romImport";
+    import { importRomFiles, type ImportReport } from "../romImport";
     import { CartType, cartTypeFromCgbFlag } from "../cartType";
     import RomDropZone from "./RomDropZone.svelte";
     import RomList from "./RomList.svelte";
@@ -22,6 +22,34 @@
     let progress: { done: number; total: number } | undefined = $state(undefined);
     let report: ImportReport | undefined = $state(undefined);
     let importing = $state(false);
+
+    let fileInputEl: HTMLInputElement | undefined = $state();
+    const FILE_PICKER_ACCEPT = ".gb,.gbc,.zip,application/zip,application/octet-stream";
+
+    function openFilePicker() {
+        fileInputEl?.click();
+    }
+
+    async function onFileInputChange(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        const list = input.files;
+        if (!list || list.length === 0) return;
+        const files = Array.from(list);
+        input.value = ""; // reset so same file can be re-selected
+        importing = true;
+        progress = { done: 0, total: files.length };
+        dragStatus = `Importing ${files.length}...`;
+        try {
+            const r = await importRomFiles(files, (done, total) => {
+                progress = { done, total };
+            });
+            report = r;
+        } finally {
+            progress = undefined;
+            dragStatus = "";
+            importing = false;
+        }
+    }
 
     const sortOptions: { value: LibrarySortOrder; label: string }[] = [
         { value: "lastPlayed", label: "Last played" },
@@ -161,6 +189,9 @@
                 {#if report.errors.length > 0}
                     <div class="line err">
                         {report.errors.length} imports failed (check console)
+                        {#if report.errors.length <= 2}
+                            : {report.errors.map((e) => (e.name + ': ' + e.reason)).join(", ")}
+                        {/if}
                     </div>
                 {/if}
                 {#if report.skippedSav.length > 0}
@@ -174,11 +205,15 @@
             <div class="empty-library">
                 <Icon name="cloud-arrow-down" />
                 <h3>Your library is empty</h3>
-                <p>Drop a <code>.gb</code> or <code>.gbc</code> ROM file here to add it.<br />Zipped roms supported.</p>
-                <p class="or">— or —</p>
-                <button class="browse-btn" onclick={addSpecialSource} disabled={importing}>
-                    Browse homebrews…
-                </button>
+                <p>Drop a <code>.gb</code> or <code>.gbc</code> ROM file here, or pick one from your device.<br />Zipped roms supported.</p>
+                <div class="empty-cta-row">
+                    <button class="browse-btn primary" onclick={openFilePicker} disabled={importing}>
+                        <Icon name="cloud-arrow-up" /> Choose ROM file…
+                    </button>
+                    <button class="browse-btn" onclick={addSpecialSource} disabled={importing}>
+                        Browse homebrews…
+                    </button>
+                </div>
             </div>
         {/if}
         {#if !isEmpty && !$DismissBadgeHint && hasOnlyRemote}
@@ -193,6 +228,15 @@
             </div>
         {/if}
         <div class="library-controls">
+            <button
+                type="button"
+                class="add-rom-btn"
+                title="Add ROM from your device"
+                onclick={openFilePicker}
+                disabled={importing}
+            >
+                <Icon name="cloud-arrow-up" /> Add ROM
+            </button>
             <button
                 type="button"
                 class="add-source"
@@ -242,6 +286,17 @@
         <RomList title="Library" roms={sortedRoms} />
     </div>
 </RomDropZone>
+
+<input
+    bind:this={fileInputEl}
+    type="file"
+    accept={FILE_PICKER_ACCEPT}
+    multiple
+    class="visually-hidden"
+    onchange={onFileInputChange}
+    aria-hidden="true"
+    tabindex="-1"
+/>
 
 <style>
     .dropzone-hint {
@@ -373,10 +428,6 @@
         color: #aaa;
         font-size: 0.9em;
     }
-    .empty-library .or {
-        color: #666;
-        margin: 0.4em 0;
-    }
     .empty-library code {
         background: #313244;
         padding: 0.05em 0.3em;
@@ -384,17 +435,70 @@
         font-size: 0.9em;
     }
     .browse-btn {
-        padding: 0.4em 1em;
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
-        border: none;
-        border-radius: 4px;
+        padding: 0.45em 1.1em;
+        background: rgba(255,255,255,0.06);
+        color: #cdd6f4;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 999px;
         cursor: pointer;
         font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35em;
+        min-height: 44px;
+    }
+    .browse-btn:hover:not(:disabled) {
+        background: rgba(255,255,255,0.1);
+    }
+    .browse-btn.primary {
+        background: var(--highlight-color, #89b4fa);
+        color: #1e1e2e;
+        border-color: var(--highlight-color, #89b4fa);
+    }
+    .browse-btn.primary:hover:not(:disabled) {
+        filter: brightness(1.08);
+        background: var(--highlight-color, #89b4fa);
     }
     .browse-btn:disabled {
         opacity: 0.5;
         cursor: wait;
+    }
+    .empty-cta-row {
+        display: flex;
+        gap: 0.6em;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 0.4em;
+    }
+    .add-rom-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3em;
+        padding: 0.3em 0.7em;
+        background: rgba(255,255,255,0.06);
+        color: #cdd6f4;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 0.3em;
+        cursor: pointer;
+        font-size: 0.85em;
+    }
+    .add-rom-btn:hover:not(:disabled) {
+        background: rgba(255,255,255,0.12);
+    }
+    .add-rom-btn:disabled {
+        opacity: 0.5;
+        cursor: wait;
+    }
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     .badge-hint {

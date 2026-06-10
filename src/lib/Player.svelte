@@ -20,6 +20,7 @@
     import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
     import BurgerMenu from "./BurgerMenu.svelte";
+    import PlaySheet from "./PlaySheet.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
@@ -37,11 +38,37 @@
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void; getCanvas: () => HTMLCanvasElement } | null = $state(null);
     let menuOpen: boolean = $state(false);
+    let sheetOpen: boolean = $state(false);
     let screenEl: HTMLDivElement | undefined = $state();
     let screenTapEl: HTMLDivElement | undefined = $state();
     let burgerBtnEl: HTMLButtonElement | undefined = $state();
     let isFullscreen: boolean = $state(false);
     let isCoarsePointer: boolean = $state(false);
+
+    const DOUBLE_TAP_MS = 280;
+    let lastTapTime = 0;
+    let pendingTapTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function onScreenTap(e: MouseEvent) {
+        // Desktop: rely on ondblclick for fullscreen, no sheet on single-click.
+        if (!isCoarsePointer) return;
+        if (!hasRom) return;
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastTapTime < DOUBLE_TAP_MS) {
+            // Double-tap → fullscreen, cancel pending sheet
+            if (pendingTapTimer) { clearTimeout(pendingTapTimer); pendingTapTimer = null; }
+            lastTapTime = 0;
+            toggleFullscreen();
+            return;
+        }
+        lastTapTime = now;
+        if (pendingTapTimer) clearTimeout(pendingTapTimer);
+        pendingTapTimer = setTimeout(() => {
+            sheetOpen = true;
+            pendingTapTimer = null;
+        }, DOUBLE_TAP_MS);
+    }
 
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
 
@@ -223,6 +250,7 @@
             <div
                 class="screen-tap"
                 ondblclick={toggleFullscreen}
+                onclick={onScreenTap}
                 role="presentation"
                 bind:this={screenTapEl}
             >
@@ -256,6 +284,13 @@
         </div>
     {/if}
 </div>
+
+<PlaySheet
+    open={sheetOpen}
+    onclose={() => sheetOpen = false}
+    onfullscreen={toggleFullscreen}
+    {isFullscreen}
+/>
 
 <style>
     .play-shell {
