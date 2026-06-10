@@ -1,11 +1,10 @@
 import { get } from "svelte/store";
 import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode } from "./wasmBridge";
-import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
+import { pauseEmulator, resetEmulator } from "./lifecycle";
 import { resetSaveTracking } from "./loop";
 import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, ensureCartMeta, persistRomFields } from "stores/libraryStore";
 import { AutoSaveUriRoms, DefaultRenderMode } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
-import { DebuggerAttached } from "stores/debugStores";
 import { humanReadableSize } from "../utils";
 import { isZipUri, extractRomFromZip } from "../zipRom";
 import { CartType, cartTypeFromCgbFlag, resolveRenderMode, type ResolvedRenderMode } from "../cartType";
@@ -90,8 +89,6 @@ export async function playRom(rom: LibraryRom): Promise<void> {
     metaPersist
         .then(() => markLibraryRomPlayed(activeRom.sha1))
         .catch(err => console.error('markLibraryRomPlayed failed:', err));
-    if (!get(DebuggerAttached))
-        runUntilBreak();
     goToPlay();
 }
 
