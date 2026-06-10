@@ -5,6 +5,10 @@
     import { humanReadableSize } from "../utils";
     import { Emulator } from "../emulator";
     import { selectedRomSha1 } from "stores/windowStores";
+    import { loadedCartridge } from "stores/romStores";
+    import { EmulatorInitialized } from "stores/playStores";
+    import { goToPlay } from "stores/viewStore";
+    import { resolveHeroAction } from "./heroAction";
     import Icon from "./icons/Icon.svelte";
 
     let { rom } = $props<{ rom: LibraryRom }>();
@@ -27,6 +31,15 @@
     let sizeLabel = $derived(rom.fileSize != null ? humanReadableSize(rom.fileSize) : undefined);
     let lastPlayedLabel = $derived(formatLastPlayed(rom.lastPlayedAt));
 
+    let action = $derived(resolveHeroAction({
+        heroSha1: rom.sha1,
+        loadedSha1: $loadedCartridge?.sha1,
+        emulatorInitialized: $EmulatorInitialized,
+    }));
+    let isResume = $derived(action === 'resume');
+    let primaryLabel = $derived(isResume ? 'Resume' : 'Play');
+    let primaryHint = $derived(isResume ? 'Continue session' : undefined);
+
     function formatLastPlayed(ts: number | undefined): string {
         if (!ts) return "Never played";
         const diff = Date.now() - ts;
@@ -40,7 +53,15 @@
         return new Date(ts).toLocaleDateString();
     }
 
-    function resume() {
+    function primary() {
+        if (action === 'resume') {
+            goToPlay();
+            return;
+        }
+        Emulator.PlayRom(rom);
+    }
+
+    function restart() {
         Emulator.PlayRom(rom);
     }
 
@@ -67,10 +88,15 @@
                 {#if sizeLabel}<span class="chip chip-size">{sizeLabel}</span>{/if}
             </div>
             <div class="hero-actions">
-                <button class="cta-primary" onclick={resume}>
-                    <Icon name="circle-play" /> Resume
+                <button class="cta-primary" onclick={primary} title={primaryHint}>
+                    <Icon name="circle-play" /> {primaryLabel}
                 </button>
                 <button class="cta-secondary" onclick={openDetails}>Details</button>
+                {#if isResume}
+                    <button class="cta-tertiary" onclick={restart} title="Cold boot (discards in-memory progress)">
+                        Restart
+                    </button>
+                {/if}
             </div>
         </div>
     </div>
@@ -197,6 +223,21 @@
     }
     .cta-secondary:hover {
         background: rgba(255,255,255,0.18);
+    }
+    .cta-tertiary {
+        background: transparent;
+        color: rgba(255,255,255,0.6);
+        border: none;
+        padding: 0.55em 0.6em;
+        font-size: 0.82em;
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-color: rgba(255,255,255,0.25);
+        text-underline-offset: 0.2em;
+    }
+    .cta-tertiary:hover {
+        color: rgba(255,255,255,0.9);
+        text-decoration-color: rgba(255,255,255,0.6);
     }
 
     @media (max-width: 600px) {
