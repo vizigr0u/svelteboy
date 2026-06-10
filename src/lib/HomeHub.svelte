@@ -6,14 +6,10 @@
     import { libraryStore } from "stores/libraryStore";
     import { loadedCartridge } from "stores/romStores";
     import { goToPlay } from "stores/viewStore";
-    import {
-        showSavesWindow,
-        showOptionsWindow,
-        showBindingsWindow,
-        showDebugWindow,
-        showAboutWindow,
-    } from "stores/windowStores";
-    import type { Writable } from "svelte/store";
+    import { openPalette } from "stores/paletteStore";
+
+    const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+    const PALETTE_HINT = IS_MAC ? "⌘K" : "Ctrl+K";
 
     const CONTINUE_ROW_MAX = 8;
 
@@ -29,23 +25,19 @@
     let heroRom = $derived(playedRoms[0]);
     let continueRoms = $derived(playedRoms.slice(1, CONTINUE_ROW_MAX + 1));
 
-    function toggleWindow(store: Writable<boolean>) {
-        store.update(v => !v);
-        menuOpen = false;
-    }
-
     function resume() {
         menuOpen = false;
         goToPlay();
     }
 
+    function openCommandPalette() {
+        menuOpen = false;
+        openPalette();
+    }
+
     const menuItems = $derived([
         ...(hasRom ? [{ label: 'Resume playing', active: false, toggle: resume }] : []),
-        { label: 'Saves',     active: $showSavesWindow,    toggle: () => toggleWindow(showSavesWindow), disabled: !hasRom },
-        { label: 'Options',   active: $showOptionsWindow,  toggle: () => toggleWindow(showOptionsWindow) },
-        { label: 'Bindings',  active: $showBindingsWindow, toggle: () => toggleWindow(showBindingsWindow) },
-        { label: 'Debug',     active: $showDebugWindow,    toggle: () => toggleWindow(showDebugWindow) },
-        { label: 'About',     active: $showAboutWindow,    toggle: () => toggleWindow(showAboutWindow) },
+        { label: 'Commands…', active: false, toggle: openCommandPalette },
     ]);
 </script>
 
@@ -57,6 +49,10 @@
                 ▶ Resume <span class="resume-title">{$loadedCartridge?.name}</span>
             </button>
         {/if}
+        <button class="palette-chip" onclick={openPalette} aria-label="Open command palette">
+            <span class="palette-chip-icon">⌕</span>
+            <kbd>{PALETTE_HINT}</kbd>
+        </button>
         {#if menuOpen}
             <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
         {/if}
@@ -128,13 +124,43 @@
         opacity: 0.85;
     }
 
+    .palette-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35em;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: rgba(205, 214, 244, 0.75);
+        font-size: 0.75em;
+        padding: 0.2em 0.55em;
+        border-radius: 0.3em;
+        cursor: pointer;
+        line-height: 1;
+    }
+    .palette-chip:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: inherit;
+    }
+    .palette-chip-icon { font-size: 1em; opacity: 0.7; }
+    .palette-chip kbd {
+        font-family: monospace;
+        font-size: 0.9em;
+        opacity: 0.85;
+    }
+    .brand ~ .palette-chip:not(.resume-pill + .palette-chip) {
+        margin-left: auto;
+    }
+    @media (pointer: coarse) {
+        .palette-chip { display: none; }
+    }
+
     .burger-wrap {
         position: relative;
         margin-left: auto;
         display: flex;
     }
-    .resume-pill + .burger-wrap {
-        margin-left: 0;
+    .palette-chip + .burger-wrap {
+        margin-left: 0.5em;
     }
     .burger-btn {
         background: rgba(255, 255, 255, 0.06);
