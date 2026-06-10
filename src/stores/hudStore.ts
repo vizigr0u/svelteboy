@@ -14,13 +14,25 @@ const DEFAULT_HUD: HudConfig = {
     position: 'tr',
 };
 
-function migrate(stored: HudConfig): HudConfig {
+export function migrateHudConfig(stored: HudConfig): HudConfig {
     const enabled = { ...DEFAULT_HUD.enabled, ...(stored.enabled ?? {}) };
     const position = (['tl', 'tr', 'bl', 'br'] as const).includes(stored.position) ? stored.position : 'tr';
     return { enabled, position };
 }
 
-export const HudStore = MakeIDBStore<HudConfig>('option-hud-config', DEFAULT_HUD, migrate);
+export function applyToggleChip(c: HudConfig, id: HudChipId): HudConfig {
+    return { ...c, enabled: { ...c.enabled, [id]: !c.enabled[id] } };
+}
+
+export function applySetChip(c: HudConfig, id: HudChipId, on: boolean): HudConfig {
+    return { ...c, enabled: { ...c.enabled, [id]: on } };
+}
+
+export function applyEnableSpeedrun(c: HudConfig): HudConfig {
+    return { ...c, enabled: { ...c.enabled, fps: true, frame: true, input: true } };
+}
+
+export const HudStore = MakeIDBStore<HudConfig>('option-hud-config', DEFAULT_HUD, migrateHudConfig);
 
 export const HUD_CHIP_LABELS: Record<HudChipId, string> = {
     fps: 'FPS',
@@ -38,11 +50,11 @@ export const HUD_POSITION_LABELS: Record<HudPosition, string> = {
 };
 
 export function toggleHudChip(id: HudChipId): void {
-    HudStore.update(c => ({ ...c, enabled: { ...c.enabled, [id]: !c.enabled[id] } }));
+    HudStore.update(c => applyToggleChip(c, id));
 }
 
 export function setHudChip(id: HudChipId, on: boolean): void {
-    HudStore.update(c => ({ ...c, enabled: { ...c.enabled, [id]: on } }));
+    HudStore.update(c => applySetChip(c, id, on));
 }
 
 export function setHudPosition(p: HudPosition): void {
@@ -50,7 +62,7 @@ export function setHudPosition(p: HudPosition): void {
 }
 
 export function enableSpeedrunHud(): void {
-    HudStore.update(c => ({ ...c, enabled: { ...c.enabled, fps: true, frame: true, input: true } }));
+    HudStore.update(c => applyEnableSpeedrun(c));
 }
 
 export function isHudChipEnabled(id: HudChipId): boolean {

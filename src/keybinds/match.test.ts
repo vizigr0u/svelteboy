@@ -87,6 +87,16 @@ describe('matchBinding (RangeKeySpec)', () => {
         const b: RangeKeySpec = { codePrefix: 'Digit', slotRange: [1, 4] };
         expect(matchBinding(ev('Digit2', { ctrl: true }), b)).toBe(false);
     });
+
+    it('matches Digit9 in range [1,9]', () => {
+        const b: RangeKeySpec = { codePrefix: 'Digit', slotRange: [1, 9] };
+        expect(matchBinding(ev('Digit9'), b)).toBe(true);
+    });
+
+    it('rejects Digit0 from range [1,9]', () => {
+        const b: RangeKeySpec = { codePrefix: 'Digit', slotRange: [1, 9] };
+        expect(matchBinding(ev('Digit0'), b)).toBe(false);
+    });
 });
 
 describe('slotFromCode', () => {

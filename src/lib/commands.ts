@@ -286,6 +286,7 @@ export function fuzzyScore(needle: string, haystack: string): number {
     let firstMatch = -1;
     for (let i = 0; i < n.length; i++) {
         const c = n[i];
+        const startHi = hi;
         let found = -1;
         while (hi < h.length) {
             if (h[hi] === c) { found = hi; break; }
@@ -295,7 +296,7 @@ export function fuzzyScore(needle: string, haystack: string): number {
         if (firstMatch === -1) firstMatch = found;
         const isBoundary = found === 0 || h[found - 1] === ' ' || h[found - 1] === '/';
         score += 10 + streak * 4 + (isBoundary ? 6 : 0);
-        streak = (streak === 0 || found === hi) ? streak + 1 : 1;
+        streak = (found === startHi) ? streak + 1 : 1;
         hi = found + 1;
     }
     score -= firstMatch;
