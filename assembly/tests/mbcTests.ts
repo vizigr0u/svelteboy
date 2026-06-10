@@ -1,12 +1,13 @@
 import { CartridgeType } from "../metadata";
 import { isRamEnabled } from "../memory/mbcTypes";
 import { MBC } from "../memory/mbc";
+import { MBC1 } from "../memory/mbc1";
 import { MBC5 } from "../memory/mbc5";
 import { MemoryMap } from "../memory/memoryMap";
 import { CARTRIDGE_ROM_START, ROM_BANK_SIZE, GB_EXT_RAM_START, GB_EXT_RAM_BANK_SIZE } from "../memory/memoryConstants";
 import { SaveGame } from "../memory/savegame";
 import { describe, it, assertEquals } from "./framework";
-import { setupMBCCart, readRomBank0Sentinel, readRomBank1Sentinel, writeRam, readRam, mbcWrite } from "./mbcTestHelpers";
+import { setupMBCCart, setupMBC1MultiCart, readRomBank0Sentinel, readRomBank1Sentinel, writeRam, readRam, mbcWrite } from "./mbcTestHelpers";
 
 export function testMbc(): boolean {
     describe("No MBC (ROM only)", () => {
@@ -169,6 +170,62 @@ export function testMbc(): boolean {
                 setupMBCCart(CartridgeType.MBC1, 3, 0);
                 mbcWrite(0x2000, 0xE1);
                 assertEquals<u8>(readRomBank1Sentinel(), 1, "0xE1 & 0x1F = 1 → bank 1");
+            });
+        });
+
+        describe("MBC1M multicart detection", () => {
+            it("detects multicart when logos match at $0104 and $40104", () => {
+                setupMBC1MultiCart();
+                assertEquals<bool>(MBC1.multicart, true, "multicart flag set");
+            });
+
+            it("ignores small carts (<=16 banks)", () => {
+                setupMBCCart(CartridgeType.MBC1, 3, 0); // 16 banks, 256 KiB
+                assertEquals<bool>(MBC1.multicart, false, "16-bank cart not multicart");
+            });
+
+            it("non-matching second logo → not multicart", () => {
+                setupMBCCart(CartridgeType.MBC1, 5, 0); // 64 banks
+                // stamp logo at $0104 only
+                for (let i: u32 = 0; i < 0x30; i++) {
+                    store<u8>(CARTRIDGE_ROM_START + 0x0104 + i, <u8>i);
+                }
+                MBC.Init();
+                assertEquals<bool>(MBC1.multicart, false, "single-logo cart not multicart");
+            });
+        });
+
+        describe("MBC1M bank mapping", () => {
+            it("low register masked to 4 bits (bit4 ignored)", () => {
+                setupMBC1MultiCart();
+                mbcWrite(0x2000, 0x11); // bit4 set, low=1 (after mask=1)
+                // No high register set → rom1Bank = (0 << 4) | 1 = 1
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "bit4 of low register ignored");
+            });
+
+            it("high register shifts by 4 (not 5)", () => {
+                setupMBC1MultiCart();
+                mbcWrite(0x4000, 0x01); // high=1 → bank base 0x10
+                mbcWrite(0x2000, 0x01); // low=1
+                // rom1Bank = (1 << 4) | 1 = 17
+                assertEquals<u8>(readRomBank1Sentinel(), 17, "high=1 + low=1 → bank 17 (MBC1M shift=4)");
+            });
+
+            it("advanced mode: bank 0 window also shifts by 4", () => {
+                setupMBC1MultiCart();
+                mbcWrite(0x6000, 0x01); // advanced mode
+                mbcWrite(0x4000, 0x01); // high=1
+                // rom0Bank = (1 << 4) & mask = 16
+                assertEquals<u8>(readRomBank0Sentinel(), 16, "advanced + high=1 → rom0=bank 16");
+            });
+
+            it("game select: high=3 → top-of-cart game at bank 0x30", () => {
+                setupMBC1MultiCart();
+                mbcWrite(0x6000, 0x01); // advanced mode
+                mbcWrite(0x4000, 0x03); // high=3
+                assertEquals<u8>(readRomBank0Sentinel(), 0x30, "high=3 → rom0=bank 0x30");
+                mbcWrite(0x2000, 0x05); // low=5 within game
+                assertEquals<u8>(readRomBank1Sentinel(), 0x35, "rom1=(3<<4)|5 = 0x35");
             });
         });
 

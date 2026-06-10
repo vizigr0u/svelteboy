@@ -72,6 +72,25 @@ export function mbcWrite(gbAddress: u16, value: u8): void {
     MemoryMap.GBstore<u8>(gbAddress, value);
 }
 
+/** Nintendo logo bytes — must appear at $0104 on every cart, and at $40104 on MBC1M. */
+const NINTENDO_LOGO: u8[] = [
+    0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
+    0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
+    0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+];
+
+/**
+ * Set up a 1 MiB (64-bank) MBC1 cartridge with the Nintendo logo planted at
+ * $40104 so MBC.Init() detects it as a multicart (MBC1M).
+ */
+export function setupMBC1MultiCart(): void {
+    setupMBCCart(CartridgeType.MBC1, 5, 0); // 64 banks
+    for (let i: i32 = 0; i < NINTENDO_LOGO.length; i++) {
+        store<u8>(CARTRIDGE_ROM_START + 0x40104 + <u32>i, NINTENDO_LOGO[i]);
+    }
+    MBC.Init();
+}
+
 /**
  * Snapshot the current SaveGame buffer into a fresh ArrayBuffer.
  *
