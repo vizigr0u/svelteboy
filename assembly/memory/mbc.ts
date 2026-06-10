@@ -1,11 +1,14 @@
 import { Cartridge } from "../cartridge";
+import { Logger } from "../debug/logger";
 import { CartridgeType } from "../metadata";
+import { getCartridgeTypeName } from "../debug/symbols";
 import { GB_EXT_RAM_START } from "./memoryConstants";
 import { MBC1 } from "./mbc1";
 import { MBC2 } from "./mbc2";
 import { MBC3 } from "./mbc3";
 import { MBC5 } from "./mbc5";
 import { NoMBC } from "./noMbc";
+import { log } from "./mbcTypes";
 
 const enum MBCType {
     None = 0,
@@ -39,15 +42,10 @@ function getType(t: CartridgeType): i32 {
         case CartridgeType.MBC5_RUMBLE_RAM:
         case CartridgeType.MBC5_RUMBLE_RAM_BATTERY:
             return MBCType.MBC5;
-        case CartridgeType.MBC6:
-        case CartridgeType.MBC7_SENSOR_RUMBLE_RAM_BATTERY:
-        case CartridgeType.POCKET_CAMERA:
-        case CartridgeType.BANDAI_TAMA5:
-        case CartridgeType.HuC3:
-        case CartridgeType.HuC1_RAM_BATTERY:
-        default:
-            return MBCType.MBC1;
     }
+    if (Logger.verbose >= 1)
+        log('Warning: unsupported cartridge type ' + getCartridgeTypeName(t) + ', falling back to MBC1 (saves and bank switching may be wrong)');
+    return MBCType.MBC1;
 }
 
 @final
