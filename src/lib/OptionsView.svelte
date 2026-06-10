@@ -6,6 +6,7 @@
         BurstSpeed,
         MuteOnFastForward,
         PauseOnVisibilityLost,
+        AutoSnapEnabled,
         // AudioBufferSize,
         AudioMasterVolume,
         AudioResampleMode,
@@ -123,6 +124,13 @@
             id="pauseOnVisibilityLost"
             type="checkbox"
             bind:checked={$PauseOnVisibilityLost}
+        />
+
+        <label for="autoSnapEnabled">Auto-save session every 30s and on exit:</label>
+        <input
+            id="autoSnapEnabled"
+            type="checkbox"
+            bind:checked={$AutoSnapEnabled}
         />
     </div>
 

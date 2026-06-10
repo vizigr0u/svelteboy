@@ -33,6 +33,7 @@ export const RegularSpeed = MakeLocalStore<number>('option-regular-speed', 1);
 export const BurstSpeed = MakeLocalStore<number>('option-emulator-speed', 4);
 export const MuteOnFastForward = MakeLocalStore<boolean>('option-mute-on-fast-forward', true);
 export const PauseOnVisibilityLost = MakeLocalStore<boolean>('option-pause-on-visibility-lost', true);
+export const AutoSnapEnabled = MakeLocalStore<boolean>('option-autosnap-enabled', true);
 // export const AudioBufferSize = writable<number>(512);
 export const AudioMasterVolume = MakeLocalStore<number>("option-master-volume", 0.25);
 export type AudioResampleModeType = 'js' | 'apu';

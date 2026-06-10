@@ -1,7 +1,11 @@
 import { get } from "svelte/store";
-import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode } from "./wasmBridge";
-import { pauseEmulator, resetEmulator } from "./lifecycle";
-import { resetSaveTracking } from "./loop";
+import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode, loadSaveState } from "./wasmBridge";
+import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
+import { resetSaveTracking, postRun } from "./loop";
+import { snapNow, purgeAutoFor, resetAutoSnapTracking } from "./autoSnap";
+import { stopQueuedAudio } from "./audio";
+import { loadAuto, isValidSaveStateBlob, deleteAuto } from "../saveStateDb";
+import { showToast } from "stores/toastStore";
 import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, ensureCartMeta, persistRomFields } from "stores/libraryStore";
 import { AutoSaveUriRoms, DefaultRenderMode } from "stores/optionsStore";
 import { loadedCartridge } from "stores/romStores";
@@ -44,16 +48,28 @@ async function getRomBuffer(rom: LibraryRom): Promise<ArrayBuffer | undefined> {
     return undefined;
 }
 
-export async function playRom(rom: LibraryRom): Promise<void> {
+export type PlayRomOptions = {
+    purgeAutoOnLoad?: boolean;
+};
+
+export async function playRom(rom: LibraryRom, opts: PlayRomOptions = {}): Promise<void> {
+    const prevCart = get(loadedCartridge);
+    if (prevCart && prevCart.sha1 !== rom.sha1) {
+        await snapNow('swap').catch(() => {});
+    }
     // Pause + clear save-watermark up front: any awaits below let the run loop fire frames
     // that would otherwise autosave stale backend SRAM into the newly-selected bank.
     pauseEmulator();
     resetSaveTracking();
+    resetAutoSnapTracking();
     const buffer = await getRomBuffer(rom);
     if (!buffer) return;
     if (!loadCartridgeRom(buffer)) {
         console.log(`Error loading rom`);
         return;
+    }
+    if (opts.purgeAutoOnLoad) {
+        await purgeAutoFor(rom.sha1).catch(() => {});
     }
     const activeBank = await getActiveBank(rom.sha1).catch(() => 'default');
     setActiveBankCache(rom.sha1, activeBank);
@@ -90,6 +106,27 @@ export async function playRom(rom: LibraryRom): Promise<void> {
         .then(() => markLibraryRomPlayed(activeRom.sha1))
         .catch(err => console.error('markLibraryRomPlayed failed:', err));
     goToPlay();
+}
+
+export async function resumeRom(rom: LibraryRom): Promise<boolean> {
+    await playRom(rom);
+    const entry = await loadAuto(rom.sha1).catch(() => null);
+    if (!entry) return false;
+    if (!isValidSaveStateBlob(entry.state)) {
+        showToast('Saved session incompatible; starting fresh.', 'error');
+        await deleteAuto(rom.sha1).catch(() => {});
+        return false;
+    }
+    pauseEmulator();
+    stopQueuedAudio();
+    const ok = loadSaveState(entry.state);
+    if (!ok) {
+        showToast('Saved session incompatible; starting fresh.', 'error');
+        await deleteAuto(rom.sha1).catch(() => {});
+        return false;
+    }
+    runUntilBreak();
+    return true;
 }
 
 export function loadSaveGame(savegame: SaveGameData): void {

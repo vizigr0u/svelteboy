@@ -7,6 +7,7 @@ describe('resolveHeroAction', () => {
             heroSha1: 'abc',
             loadedSha1: 'abc',
             emulatorInitialized: true,
+            hasAutoSnap: false,
         })).toBe('resume');
     });
 
@@ -15,6 +16,7 @@ describe('resolveHeroAction', () => {
             heroSha1: 'abc',
             loadedSha1: 'abc',
             emulatorInitialized: false,
+            hasAutoSnap: false,
         })).toBe('play');
     });
 
@@ -23,6 +25,7 @@ describe('resolveHeroAction', () => {
             heroSha1: 'abc',
             loadedSha1: 'def',
             emulatorInitialized: true,
+            hasAutoSnap: false,
         })).toBe('play');
     });
 
@@ -31,6 +34,7 @@ describe('resolveHeroAction', () => {
             heroSha1: 'abc',
             loadedSha1: undefined,
             emulatorInitialized: false,
+            hasAutoSnap: false,
         })).toBe('play');
     });
 
@@ -39,7 +43,35 @@ describe('resolveHeroAction', () => {
             heroSha1: 'abc',
             loadedSha1: undefined,
             emulatorInitialized: true,
+            hasAutoSnap: false,
         })).toBe('play');
+    });
+
+    it('returns resume on cold load when autosnap exists for hero rom', () => {
+        expect(resolveHeroAction({
+            heroSha1: 'abc',
+            loadedSha1: undefined,
+            emulatorInitialized: false,
+            hasAutoSnap: true,
+        })).toBe('resume');
+    });
+
+    it('returns resume when different rom loaded but hero has autosnap', () => {
+        expect(resolveHeroAction({
+            heroSha1: 'abc',
+            loadedSha1: 'def',
+            emulatorInitialized: true,
+            hasAutoSnap: true,
+        })).toBe('resume');
+    });
+
+    it('live session wins: returns resume when hero matches loaded (even if autosnap absent)', () => {
+        expect(resolveHeroAction({
+            heroSha1: 'abc',
+            loadedSha1: 'abc',
+            emulatorInitialized: true,
+            hasAutoSnap: false,
+        })).toBe('resume');
     });
 });
 

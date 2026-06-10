@@ -3,21 +3,46 @@
     import { resolveRomArt, onThumbErr, DEFAULT_THUMB_SRC, DEFAULT_THUMB_ALT } from "../cartArt";
     import { Emulator } from "../emulator";
     import { selectedRomSha1 } from "stores/windowStores";
+    import { loadAuto, autoSnapVersion } from "../saveStateDb";
+    import { formatRelativeTime } from "../relativeTime";
+    import { onMount, onDestroy } from "svelte";
     import Icon from "./icons/Icon.svelte";
 
     let { rom } = $props<{ rom: LibraryRom }>();
 
     let thumbSrc: string = $state(DEFAULT_THUMB_SRC);
     let thumbAlt: string = $state(DEFAULT_THUMB_ALT);
+    let autoThumb: string | undefined = $state(undefined);
+    let autoSavedAt: number | undefined = $state(undefined);
+    let labelTick = $state(0);
+    let tickHandle: ReturnType<typeof setInterval> | undefined;
 
     $effect(() => {
         const r = rom;
         resolveRomArt(r).then(({ src, alt }) => { thumbSrc = src; thumbAlt = alt; });
     });
 
+    $effect(() => {
+        rom.sha1;
+        $autoSnapVersion;
+        loadAuto(rom.sha1).then(entry => {
+            autoThumb = entry?.thumbnail;
+            autoSavedAt = entry?.savedAt;
+        });
+    });
+
+    onMount(() => { tickHandle = setInterval(() => { labelTick++; }, 30_000); });
+    onDestroy(() => { if (tickHandle) clearInterval(tickHandle); });
+
+    let autoLabel = $derived.by(() => {
+        labelTick;
+        return autoSavedAt ? formatRelativeTime(autoSavedAt) : undefined;
+    });
+
     function play(e: MouseEvent) {
         e.stopPropagation();
-        Emulator.PlayRom(rom);
+        if (autoThumb) Emulator.ResumeRom(rom);
+        else Emulator.PlayRom(rom);
     }
     function openDetails() {
         selectedRomSha1.set(rom.sha1);
@@ -41,11 +66,17 @@
 >
     <div class="cp-thumb-wrap">
         <img class="cp-thumb" src={thumbSrc} alt={thumbAlt} onerror={onThumbErr} loading="lazy" />
-        <button class="cp-play" onclick={play} aria-label="Play {rom.name}">
+        {#if autoThumb}
+            <img class="cp-auto-badge" src={autoThumb} alt="Auto-saved" />
+        {/if}
+        <button class="cp-play" onclick={play} aria-label={autoThumb ? `Resume ${rom.name}` : `Play ${rom.name}`}>
             <Icon name="circle-play" />
         </button>
     </div>
     <div class="cp-title" title={rom.name}>{rom.name}</div>
+    {#if autoLabel}
+        <div class="cp-auto-label">{autoLabel}</div>
+    {/if}
 </div>
 
 <style>
@@ -106,6 +137,26 @@
     .cp-title {
         font-size: 0.78em;
         color: #cdd6f4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .cp-auto-badge {
+        position: absolute;
+        right: 4px;
+        bottom: 4px;
+        width: 40%;
+        aspect-ratio: 10 / 9;
+        object-fit: cover;
+        image-rendering: pixelated;
+        border-radius: 0.2em;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.25);
+        background: #111;
+    }
+    .cp-auto-label {
+        font-size: 0.7em;
+        color: #888;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

@@ -1,5 +1,6 @@
 import { get, writable } from "svelte/store";
 import { pauseEmulator, runUntilBreak } from "../emulator/lifecycle";
+import { snapNow } from "../emulator/autoSnap";
 import { EmulatorInitialized } from "./playStores";
 import { DebuggerAttached } from "./debugStores";
 import { shouldAutoResumeOnEnterPlay } from "./viewResume";
@@ -16,7 +17,8 @@ export function goToPlay(): void {
     }
 }
 
-export function goToHome(): void {
+export async function goToHome(): Promise<void> {
+    await snapNow('exit').catch(() => {});
     pauseEmulator();
     playViewActive.set(false);
 }

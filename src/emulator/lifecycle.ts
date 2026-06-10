@@ -2,6 +2,7 @@ import { get } from "svelte/store";
 import { initEmulator } from "./wasmBridge";
 import { Audio, suspendAudio, resumeAudio } from "./audio";
 import { cancelLoop, postRun, requestRunLoop, resetTiming } from "./loop";
+import { snapNow, startAutoSnapScheduler, stopAutoSnapScheduler } from "./autoSnap";
 import { EmulatorInitialized, EmulatorPaused } from "stores/playStores";
 import { DebuggerAttached } from "stores/debugStores";
 import { PauseOnVisibilityLost, useBoot } from "stores/optionsStore";
@@ -38,12 +39,17 @@ export function resetEmulator(): void {
 if (import.meta.hot) {
     import.meta.hot.dispose(() => {
         cancelLoop();
+        stopAutoSnapScheduler();
     });
 }
+
+startAutoSnapScheduler();
 
 let pausedByVisibility = false;
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+        // Snap before pause so the gate sees emulator still running.
+        void snapNow('hidden').catch(() => {});
         if (get(PauseOnVisibilityLost) && !get(EmulatorPaused)) {
             pausedByVisibility = true;
             pauseEmulator();
@@ -52,4 +58,8 @@ document.addEventListener('visibilitychange', () => {
         pausedByVisibility = false;
         runUntilBreak();
     }
+});
+
+window.addEventListener('pagehide', () => {
+    void snapNow('hidden').catch(() => {});
 });
