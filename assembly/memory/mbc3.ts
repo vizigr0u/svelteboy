@@ -9,6 +9,7 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_S
 @final
 export class MBC3 {
     static romBank: u32 = 1;
+    static romBankMask: u8 = 0x7F;
     static ramBank: u8 = 0;
     static rtcSelect: i32 = -1;
     static latchPrev: u8 = 0xFF;
@@ -23,6 +24,7 @@ export class MBC3 {
         MBC3.ramBank = 0;
         MBC3.rtcSelect = -1;
         MBC3.latchPrev = 0xFF;
+        MBC3.romBankMask = <u8>((Cartridge.Data.RomBankCount - 1) & 0x7F);
         enableRam(false);
         MBC.extRamMask = 0x1FFF;
         MBC3RTC.Init();
@@ -39,7 +41,7 @@ export class MBC3 {
                 return;
             case 0x2:
             case 0x3:
-                const newRomBank: u32 = value == 0 ? 1 : (value & 0x7F);
+                const newRomBank: u32 = (value == 0 ? 1 : (value & 0x7F)) & MBC3.romBankMask;
                 if (newRomBank != MBC3.romBank && Logger.verbose >= 2)
                     log(`Switching ROM bank(1) from #${MBC3.romBank} to ${newRomBank}`)
                 MBC3.romBank = newRomBank;

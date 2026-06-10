@@ -455,6 +455,32 @@ export function testMbc(): boolean {
             });
         });
 
+        describe("ROM bank overflow mask", () => {
+            it("16-bank cart: write 0x15 → bank 5 (masked to 4 bits)", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 0); // 16 banks, mask=0xF
+                mbcWrite(0x2000, 0x15);
+                assertEquals<u8>(readRomBank1Sentinel(), 5, "0x15 & 0xF → bank 5");
+            });
+
+            it("16-bank cart: write 0x10 → bank 0 (wraps to physical bank 0)", () => {
+                setupMBCCart(CartridgeType.MBC3, 3, 0);
+                mbcWrite(0x2000, 0x10);
+                assertEquals<u8>(readRomBank1Sentinel(), 0, "0x10 & 0xF → bank 0 wrap");
+            });
+
+            it("4-bank cart: write 7 → bank 3 (masked to 2 bits)", () => {
+                setupMBCCart(CartridgeType.MBC3, 1, 0); // 4 banks, mask=3
+                mbcWrite(0x2000, 7);
+                assertEquals<u8>(readRomBank1Sentinel(), 3, "7 & 3 → bank 3");
+            });
+
+            it("128-bank cart: write 0x7F → bank 0x7F (no over-mask)", () => {
+                setupMBCCart(CartridgeType.MBC3, 7, 0); // 128 banks, mask=0x7F
+                mbcWrite(0x2000, 0x7F);
+                assertEquals<u8>(readRomBank1Sentinel(), 0x7F, "bank 0x7F accessible");
+            });
+        });
+
         describe("ROM bank switch does not affect RAM enable", () => {
             it("writing ROM bank $05 to $2000 keeps RAM enabled", () => {
                 setupMBCCart(CartridgeType.MBC3, 3, 3);
@@ -543,6 +569,34 @@ export function testMbc(): boolean {
                 setupMBCCart(CartridgeType.MBC5, 3, 0);
                 mbcWrite(0x2000, 5);
                 assertEquals<u8>(readRomBank0Sentinel(), 0, "bank 0 window always physical bank 0");
+            });
+        });
+
+        describe("ROM bank overflow mask", () => {
+            it("4-bank cart: write 5 → bank 1 (masked to 2 bits)", () => {
+                setupMBCCart(CartridgeType.MBC5, 1, 0); // 4 banks, mask=3
+                mbcWrite(0x2000, 5);
+                assertEquals<u8>(readRomBank1Sentinel(), 1, "5 & 3 → bank 1");
+            });
+
+            it("4-bank cart: write 0xFF → bank 3 (masked to 2 bits)", () => {
+                setupMBCCart(CartridgeType.MBC5, 1, 0);
+                mbcWrite(0x2000, 0xFF);
+                assertEquals<u8>(readRomBank1Sentinel(), 3, "0xFF & 3 → bank 3");
+            });
+
+            it("16-bank cart: high-bit write 0x01 to 0x3000 wraps (mask=0xF)", () => {
+                setupMBCCart(CartridgeType.MBC5, 3, 0); // 16 banks, mask=0xF
+                mbcWrite(0x2000, 0x00);
+                mbcWrite(0x3000, 0x01); // would request bank 256, masks to 0
+                assertEquals<u8>(readRomBank1Sentinel(), 0, "bank 256 wraps to bank 0");
+            });
+
+            it("256-bank cart: write 0x55 + high=1 → bank 0x155 (no over-mask)", () => {
+                setupMBCCart(CartridgeType.MBC5, 7, 0); // 256 banks, mask=0xFF
+                mbcWrite(0x2000, 0x55);
+                mbcWrite(0x3000, 0x01); // requests bank 0x155, mask=0xFF → 0x55
+                assertEquals<u8>(readRomBank1Sentinel(), 0x55, "bank wraps to 0x55");
             });
         });
 

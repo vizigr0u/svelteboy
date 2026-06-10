@@ -1,3 +1,4 @@
+import { Cartridge } from "../cartridge";
 import { Logger } from "../debug/logger";
 import { uToHex } from "../utils/stringUtils";
 import { MBC } from "./mbc";
@@ -8,6 +9,7 @@ import { CARTRIDGE_ROM_START, GB_EXT_RAM_BANK_SIZE, GB_EXT_RAM_START, ROM_BANK_S
 export class MBC5 {
     static romBankLow: u8 = 1;
     static romBankHigh: u8 = 0;
+    static romBankMask: u32 = 0x1FF;
     static ramBank: u8 = 0;
 
     static Init(): void {
@@ -16,6 +18,7 @@ export class MBC5 {
         MBC5.romBankLow = 1;
         MBC5.romBankHigh = 0;
         MBC5.ramBank = 0;
+        MBC5.romBankMask = (<u32>Cartridge.Data.RomBankCount - 1) & 0x1FF;
         enableRam(false);
         MBC.extRamMask = 0x1FFF;
         MBC5.Recache();
@@ -45,7 +48,7 @@ export class MBC5 {
 
     @inline
     static Recache(): void {
-        const romBank: u32 = (<u32>MBC5.romBankHigh << 8) | MBC5.romBankLow;
+        const romBank: u32 = (((<u32>MBC5.romBankHigh << 8) | MBC5.romBankLow)) & MBC5.romBankMask;
         MBC.rom0Base = CARTRIDGE_ROM_START;
         MBC.rom1Base = CARTRIDGE_ROM_START + romBank * ROM_BANK_SIZE;
         MBC.extRamBase = GB_EXT_RAM_START + <u32>MBC5.ramBank * GB_EXT_RAM_BANK_SIZE;
