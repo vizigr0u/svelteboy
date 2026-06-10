@@ -3,23 +3,42 @@
     import { resolveRomArt, onThumbErr, DEFAULT_THUMB_SRC, DEFAULT_THUMB_ALT } from "../cartArt";
     import { CartType, cartTypeFromCgbFlag, cartTypeLabel } from "../cartType";
     import { humanReadableSize } from "../utils";
+    import { formatRelativeTime } from "../relativeTime";
     import { Emulator } from "../emulator";
     import { selectedRomSha1 } from "stores/windowStores";
     import { loadedCartridge } from "stores/romStores";
     import { EmulatorInitialized } from "stores/playStores";
     import { goToPlay } from "stores/viewStore";
+    import { loadAuto, autoSnapVersion } from "../saveStateDb";
     import { resolveHeroAction } from "./heroAction";
+    import { onMount, onDestroy } from "svelte";
     import Icon from "./icons/Icon.svelte";
 
     let { rom } = $props<{ rom: LibraryRom }>();
 
     let thumbSrc: string = $state(DEFAULT_THUMB_SRC);
     let thumbAlt: string = $state(DEFAULT_THUMB_ALT);
+    let autoThumb: string | undefined = $state(undefined);
+    let autoSavedAt: number | undefined = $state(undefined);
+    let labelTick = $state(0);
+    let tickHandle: ReturnType<typeof setInterval> | undefined;
 
     $effect(() => {
         const r = rom;
         resolveRomArt(r).then(({ src, alt }) => { thumbSrc = src; thumbAlt = alt; });
     });
+
+    $effect(() => {
+        rom.sha1;
+        $autoSnapVersion;
+        loadAuto(rom.sha1).then(entry => {
+            autoThumb = entry?.thumbnail;
+            autoSavedAt = entry?.savedAt;
+        });
+    });
+
+    onMount(() => { tickHandle = setInterval(() => { labelTick++; }, 30_000); });
+    onDestroy(() => { if (tickHandle) clearInterval(tickHandle); });
 
     let cartType = $derived(cartTypeFromCgbFlag(rom.cgbFlag));
     let cartLabel = $derived(cartTypeLabel(cartType));
@@ -29,40 +48,40 @@
         : "badge-gb"
     );
     let sizeLabel = $derived(rom.fileSize != null ? humanReadableSize(rom.fileSize) : undefined);
-    let lastPlayedLabel = $derived(formatLastPlayed(rom.lastPlayedAt));
+    let lastPlayedLabel = $derived.by(() => {
+        labelTick;
+        return rom.lastPlayedAt ? formatRelativeTime(rom.lastPlayedAt) : 'Never played';
+    });
+    let autoLabel = $derived.by(() => {
+        labelTick;
+        return autoSavedAt ? formatRelativeTime(autoSavedAt) : undefined;
+    });
 
     let action = $derived(resolveHeroAction({
         heroSha1: rom.sha1,
         loadedSha1: $loadedCartridge?.sha1,
         emulatorInitialized: $EmulatorInitialized,
+        hasAutoSnap: !!autoThumb,
     }));
+    let isLiveSession = $derived(!!$loadedCartridge && $loadedCartridge.sha1 === rom.sha1 && $EmulatorInitialized);
     let isResume = $derived(action === 'resume');
     let primaryLabel = $derived(isResume ? 'Resume' : 'Play');
     let primaryHint = $derived(isResume ? 'Continue session' : undefined);
 
-    function formatLastPlayed(ts: number | undefined): string {
-        if (!ts) return "Never played";
-        const diff = Date.now() - ts;
-        const m = Math.floor(diff / 60000);
-        if (m < 1) return "Moments ago";
-        if (m < 60) return `${m} min ago`;
-        const h = Math.floor(m / 60);
-        if (h < 24) return `${h} hr ago`;
-        const d = Math.floor(h / 24);
-        if (d < 7) return `${d} day${d === 1 ? '' : 's'} ago`;
-        return new Date(ts).toLocaleDateString();
-    }
-
     function primary() {
         if (action === 'resume') {
-            goToPlay();
+            if (isLiveSession) {
+                goToPlay();
+                return;
+            }
+            Emulator.ResumeRom(rom).then(() => goToPlay());
             return;
         }
         Emulator.PlayRom(rom);
     }
 
     function restart() {
-        Emulator.PlayRom(rom);
+        Emulator.PlayRom(rom, { purgeAutoOnLoad: true });
     }
 
     function openDetails() {
@@ -87,13 +106,19 @@
                 {#if rom.hasBattery}<span class="chip"><Icon name="battery" /> BATT</span>{/if}
                 {#if sizeLabel}<span class="chip chip-size">{sizeLabel}</span>{/if}
             </div>
+            {#if autoThumb && !isLiveSession}
+                <div class="autosnap-strip" title="Auto-saved session">
+                    <img class="autosnap-thumb" src={autoThumb} alt="Auto-saved session" />
+                    <span class="autosnap-label">Auto-saved {autoLabel}</span>
+                </div>
+            {/if}
             <div class="hero-actions">
                 <button class="cta-primary" onclick={primary} title={primaryHint}>
                     <Icon name="circle-play" /> {primaryLabel}
                 </button>
                 <button class="cta-secondary" onclick={openDetails}>Details</button>
                 {#if isResume}
-                    <button class="cta-tertiary" onclick={restart} title="Cold boot (discards in-memory progress)">
+                    <button class="cta-tertiary" onclick={restart} title="Cold boot (discards auto-saved session)">
                         Restart
                     </button>
                 {/if}
@@ -191,6 +216,25 @@
     .cart-badge.badge-mixed { background: #5e548e; color: #f4f0fa; }
     .cart-badge.badge-cgb { background: #d65f5f; color: #fff; }
 
+    .autosnap-strip {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        margin: 0.3em 0 0;
+    }
+    .autosnap-thumb {
+        width: 56px;
+        height: 50.4px;
+        object-fit: contain;
+        image-rendering: pixelated;
+        background: #111;
+        border-radius: 0.25em;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .autosnap-label {
+        font-size: 0.78em;
+        color: rgba(255,255,255,0.75);
+    }
     .hero-actions {
         display: flex;
         gap: 0.6em;

@@ -29,7 +29,8 @@ import {
 } from "./loop";
 import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
 import { quickSave, quickLoad } from "./saveState";
-import { playRom, loadSaveGame } from "./rom";
+import { playRom, resumeRom, loadSaveGame } from "./rom";
+import { purgeAutoFor, snapNow } from "./autoSnap";
 import { AudioSuspended } from "./audio";
 import { Verbose, AudioBufferSize } from "stores/debugStores";
 
@@ -45,6 +46,9 @@ export const Emulator = {
     LoadCartridgeRom: loadCartridgeRom,
     LoadSave: loadSaveGame,
     PlayRom: playRom,
+    ResumeRom: resumeRom,
+    PurgeAutoSnap: purgeAutoFor,
+    SnapNow: snapNow,
     AddPostRunCallback: addPostRunCallback,
     RemovePostRunCallback: removePostRunCallback,
     AddRenderCallback: addRenderCallback,

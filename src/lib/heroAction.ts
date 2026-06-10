@@ -4,6 +4,7 @@ type ResolveArgs = {
     heroSha1: string;
     loadedSha1: string | undefined;
     emulatorInitialized: boolean;
+    hasAutoSnap: boolean;
 };
 
 type PillArgs = {
@@ -18,6 +19,8 @@ interface ResolveHeroActionFn {
 
 const fn = ((args: ResolveArgs): HeroAction => {
     if (args.loadedSha1 && args.heroSha1 === args.loadedSha1 && args.emulatorInitialized)
+        return 'resume';
+    if (args.hasAutoSnap)
         return 'resume';
     return 'play';
 }) as ResolveHeroActionFn;

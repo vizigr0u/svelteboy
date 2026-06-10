@@ -2,31 +2,47 @@
     import { Emulator } from "../../emulator";
     import { loadedCartridge } from "stores/romStores";
     import type { LibraryRom } from "../../types";
-    import { loadSlot } from "../../saveStateDb";
-    import { quickSaveVersion } from "../../saveStateDb";
+    import { loadAuto, autoSnapVersion } from "../../saveStateDb";
+    import { formatRelativeTime } from "../../relativeTime";
+    import { onMount, onDestroy } from "svelte";
 
     let { rom } = $props<{ rom: LibraryRom }>();
 
-    let latestThumb: string | undefined = $state(undefined);
+    let autoThumb: string | undefined = $state(undefined);
+    let autoSavedAt: number | undefined = $state(undefined);
+    let labelTick = $state(0);
+    let tickHandle: ReturnType<typeof setInterval> | undefined;
 
     $effect(() => {
         rom.sha1;
-        $quickSaveVersion;
-        loadSlot(rom.sha1, 1).then(entry => {
-            latestThumb = entry?.thumbnail;
+        $autoSnapVersion;
+        loadAuto(rom.sha1).then(entry => {
+            autoThumb = entry?.thumbnail;
+            autoSavedAt = entry?.savedAt;
         });
+    });
+
+    onMount(() => {
+        tickHandle = setInterval(() => { labelTick++; }, 30_000);
+    });
+    onDestroy(() => {
+        if (tickHandle) clearInterval(tickHandle);
     });
 
     let isLoaded = $derived($loadedCartridge?.sha1 === rom.sha1);
     let lastPlayed = $derived(rom.lastPlayedAt ? new Date(rom.lastPlayedAt).toLocaleString() : 'Never');
     let busy = $state(false);
+    let relLabel = $derived.by(() => {
+        labelTick;
+        return autoSavedAt ? formatRelativeTime(autoSavedAt) : undefined;
+    });
 
     async function resume() {
         if (busy) return;
         busy = true;
         try {
-            await Emulator.PlayRom(rom);
-            if (latestThumb) await Emulator.QuickLoad(1);
+            if (autoThumb) await Emulator.ResumeRom(rom);
+            else await Emulator.PlayRom(rom);
         } finally {
             busy = false;
         }
@@ -36,7 +52,7 @@
         if (busy) return;
         busy = true;
         try {
-            await Emulator.PlayRom(rom);
+            await Emulator.PlayRom(rom, { purgeAutoOnLoad: true });
         } finally {
             busy = false;
         }
@@ -45,17 +61,17 @@
 
 <div class="play-tab">
     <div class="thumb-strip">
-        {#if latestThumb}
-            <img src={latestThumb} alt="Latest save slot 1" />
-            <span class="thumb-label">Last quick save (slot 1)</span>
+        {#if autoThumb}
+            <img src={autoThumb} alt="Auto-saved session" />
+            <span class="thumb-label">Auto-saved {relLabel}</span>
         {:else}
-            <div class="thumb-empty">No quick saves yet</div>
+            <div class="thumb-empty">No saved session yet</div>
         {/if}
     </div>
     <button class="play-button" onclick={resume} disabled={isLoaded || busy}>
-        {isLoaded ? 'Running' : (latestThumb ? 'Resume from slot 1' : 'Play')}
+        {isLoaded ? 'Running' : (autoThumb ? `Resume · ${relLabel}` : 'Play')}
     </button>
-    {#if latestThumb}
+    {#if autoThumb}
         <button class="secondary-button" onclick={playFromBoot} disabled={isLoaded || busy}>
             Reset and play from boot
         </button>

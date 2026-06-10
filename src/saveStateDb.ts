@@ -10,6 +10,7 @@ export type SaveStateEntry = {
 };
 
 export const quickSaveVersion = writable(0);
+export const autoSnapVersion = writable(0);
 
 // Header: [0..3]="SVBY" magic, [4..5]=u16 version (little-endian)
 const SVBY_MAGIC = [0x53, 0x56, 0x42, 0x59]; // 'S','V','B','Y'
@@ -39,6 +40,10 @@ function slotKey(romSha1: string, slot: number): string {
     return `${romSha1}:slot${slot}`;
 }
 
+function autoKey(romSha1: string): string {
+    return `${romSha1}:auto`;
+}
+
 export async function saveSlot(romSha1: string, slot: number, entry: SaveStateEntry): Promise<void> {
     const db = await openDb();
     return new Promise((resolve, reject) => {
@@ -61,4 +66,34 @@ export async function loadSlot(romSha1: string, slot: number): Promise<SaveState
 
 export async function getAllSlots(romSha1: string, count: number): Promise<(SaveStateEntry | null)[]> {
     return Promise.all(Array.from({ length: count }, (_, i) => loadSlot(romSha1, i + 1)));
+}
+
+export async function saveAuto(romSha1: string, entry: SaveStateEntry): Promise<void> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(entry, autoKey(romSha1));
+        tx.oncomplete = () => { autoSnapVersion.update(v => v + 1); resolve(); };
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+export async function loadAuto(romSha1: string): Promise<SaveStateEntry | null> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).get(autoKey(romSha1));
+        req.onsuccess = () => resolve((req.result as SaveStateEntry) ?? null);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+export async function deleteAuto(romSha1: string): Promise<void> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).delete(autoKey(romSha1));
+        tx.oncomplete = () => { autoSnapVersion.update(v => v + 1); resolve(); };
+        tx.onerror = () => reject(tx.error);
+    });
 }
