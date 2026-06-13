@@ -33,7 +33,7 @@
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^25.6.0",
     "assemblyscript": "^0.28.13",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "fake-indexeddb": "^6.2.5",
     "playwright": "^1.59.1",
     "rollup": "^4.60.1",
