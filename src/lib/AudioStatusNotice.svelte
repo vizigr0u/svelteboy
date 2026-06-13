@@ -38,9 +38,9 @@
         gap: 0.6em;
         padding: calc(0.5em + var(--safe-top)) calc(0.9em + var(--safe-right)) 0.5em calc(0.9em + var(--safe-left));
         font-size: 0.9em;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        background: #f38ba8;
-        color: #1e1e2e;
+        box-shadow: var(--elev-1);
+        background: var(--danger-color);
+        color: var(--background-color);
     }
     .notice-text {
         flex: 1;

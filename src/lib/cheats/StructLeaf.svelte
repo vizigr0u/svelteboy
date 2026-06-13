@@ -261,8 +261,8 @@
         font-size: 0.9em;
     }
     .leaf-cell:hover:not(:disabled) {
-        border-color: #666;
-        background-color: rgba(255, 255, 255, 0.05);
+        border-color: var(--border-color);
+        background-color: var(--tint-1);
     }
     .leaf-cell:disabled {
         cursor: default;
@@ -288,9 +288,9 @@
         align-items: center;
     }
     .open-picker {
-        background: #333;
+        background: var(--panel-color);
         color: #aaa;
-        border: 1px solid #555;
+        border: 1px solid var(--border-color);
         cursor: pointer;
         padding: 0 0.3em;
         font-size: 0.75em;
@@ -298,7 +298,7 @@
     }
     .open-picker:hover {
         color: #fff;
-        border-color: #888;
+        border-color: var(--muted-color);
     }
     .bitflags {
         display: inline-flex;
@@ -310,9 +310,9 @@
         font-size: 0.75em;
         padding: 0.05em 0.4em;
         border-radius: 2px;
-        background-color: #333;
-        color: #888;
-        border: 1px solid #444;
+        background-color: var(--panel-color);
+        color: var(--muted-color);
+        border: 1px solid var(--border-color);
         cursor: pointer;
     }
     .bit.set {
@@ -325,7 +325,7 @@
     }
     .raw {
         font-family: monospace;
-        color: #888;
+        color: var(--muted-color);
         font-size: 0.8em;
     }
 </style>

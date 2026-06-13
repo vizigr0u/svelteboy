@@ -40,7 +40,7 @@
         font-size: 0.85em;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #888;
+        color: var(--muted-color);
     }
 
     .shortcuts {
@@ -71,12 +71,12 @@
         display: inline-block;
         padding: 0.1em 0.4em;
         margin: 0 0.15em;
-        background: #313244;
-        border: 1px solid #45475a;
+        background: var(--panel-color);
+        border: 1px solid var(--border-color);
         border-radius: 0.25em;
         font-family: "Courier New", Courier, monospace;
         font-size: 0.85em;
-        color: #cdd6f4;
+        color: var(--text-color);
     }
 
     .plus {

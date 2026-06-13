@@ -130,7 +130,7 @@
         flex-direction: column;
         align-items: center;
         gap: 0.25em;
-        background: #222;
+        background: var(--background-color);
         border-radius: 4px;
         padding: 0.4em;
         min-width: 130px;
@@ -140,7 +140,7 @@
     .slot-preview {
         width: 130px;
         height: 117px;
-        background: #111;
+        background: var(--section-bg-color);
         border-radius: 2px;
         display: flex;
         align-items: center;
@@ -156,7 +156,7 @@
     }
 
     .empty {
-        color: #555;
+        color: var(--muted-color);
     }
 
     .slot-label {
@@ -191,7 +191,7 @@
         align-items: center;
         justify-content: center;
         background: #2a2a2a;
-        border: 1px solid #444;
+        border: 1px solid var(--border-color);
         border-radius: 3px;
         color: inherit;
         font-size: 0.9em;
@@ -201,7 +201,7 @@
 
     .slot-io button:hover:not(:disabled),
     .slot-io .upload-btn:not(.disabled):hover {
-        background: #333;
+        background: var(--panel-color);
     }
 
     .slot-io .upload-btn input {

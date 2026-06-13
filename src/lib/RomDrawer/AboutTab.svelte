@@ -70,17 +70,17 @@
         gap: 0.3em 0.8em;
         margin: 0;
     }
-    dt { color: #888; }
+    dt { color: var(--muted-color); }
     dd { margin: 0; word-break: break-word; }
     .mono { font-family: ui-monospace, monospace; font-size: 0.85em; }
     .break { word-break: break-all; }
     section { display: flex; flex-direction: column; gap: 0.3em; }
-    h3 { margin: 0; font-size: 0.9em; color: #cdd6f4; }
+    h3 { margin: 0; font-size: 0.9em; color: var(--text-color); }
     textarea {
         width: 100%;
         background: #1a1a26;
-        color: #cdd6f4;
-        border: 1px solid #45475a;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 3px;
         padding: 0.4em;
         font-family: inherit;

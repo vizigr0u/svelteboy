@@ -237,10 +237,10 @@
         cursor: pointer;
     }
     .rom-container:hover {
-        border-color: var(--highlight-color, #89b4fa);
+        border-color: var(--highlight-color);
     }
     .rom-container:focus-visible {
-        outline: 2px solid var(--highlight-color, #89b4fa);
+        outline: 2px solid var(--highlight-color);
         outline-offset: 1px;
     }
     .image-wrapper {

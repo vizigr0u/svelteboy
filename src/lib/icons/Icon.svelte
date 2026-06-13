@@ -119,9 +119,4 @@
     .spin {
         animation: icon-spin 1s linear infinite;
     }
-    @keyframes icon-spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
 </style>

@@ -64,7 +64,7 @@
     }
     .slot {
         position: relative;
-        background: #111;
+        background: var(--section-bg-color);
         border: 1px solid rgba(255,255,255,0.1);
         border-radius: 0.3em;
         padding: 0;
@@ -77,7 +77,7 @@
         justify-content: center;
     }
     .slot:hover:not(:disabled) {
-        border-color: var(--highlight-color, #89b4fa);
+        border-color: var(--highlight-color);
     }
     .slot:disabled {
         opacity: 0.4;

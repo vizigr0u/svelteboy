@@ -54,7 +54,7 @@
         flex-direction: column;
         gap: 0.3em;
         font-size: 0.9em;
-        color: #cdd6f4;
+        color: var(--text-color);
         user-select: text;
         -webkit-user-select: text;
         cursor: text;
@@ -65,10 +65,10 @@
         align-items: baseline;
     }
     .about-label {
-        color: #888;
+        color: var(--muted-color);
     }
     .about a {
-        color: #89b4fa;
+        color: var(--highlight-color);
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     }
     .about a:hover {

@@ -29,23 +29,23 @@
 <style>
     .burger-menu {
         position: absolute;
-        z-index: 200;
+        z-index: var(--z-overlay);
         top: calc(100% + 0.3em);
         right: 0;
-        background: #1e1e2e;
-        border: 1px solid #45475a;
+        background: var(--background-color);
+        border: 1px solid var(--border-color);
         border-radius: 0.4em;
         display: flex;
         flex-direction: column;
         min-width: 140px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 16px var(--scrim);
         overflow: hidden;
     }
 
     .menu-item {
         background: none;
         border: none;
-        color: #cdd6f4;
+        color: var(--text-color);
         padding: 0.6em 1em;
         text-align: left;
         cursor: pointer;
@@ -53,11 +53,11 @@
     }
 
     .menu-item:hover {
-        background: #313244;
+        background: var(--panel-color);
     }
 
     .menu-item.active {
-        color: #a6e3a1;
+        color: var(--success-color);
     }
 
     .menu-item.active::before {

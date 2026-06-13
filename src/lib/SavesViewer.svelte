@@ -152,7 +152,7 @@
 
     .savegame-section.empty {
         text-align: center;
-        color: #888;
+        color: var(--muted-color);
         font-style: italic;
     }
 

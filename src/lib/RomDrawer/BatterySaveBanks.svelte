@@ -204,7 +204,7 @@
     onMount(() => { refresh(); });
 </script>
 
-<div class="banks-card">
+<div class="panel banks-card">
     <header>
         <Icon name="battery" />
         <h3>Battery saves (SRAM)</h3>
@@ -305,58 +305,57 @@
 </div>
 
 <style>
+    /* .panel supplies border + radius; keep deeper surface bg + tighter padding */
     .banks-card {
-        background: #181825;
-        border: 1px solid #45475a;
-        border-radius: 4px;
+        background: var(--section-bg-color);
         padding: 0.6em 0.75em;
         display: flex;
         flex-direction: column;
         gap: 0.6em;
     }
     header { display: flex; align-items: center; gap: 0.4em; }
-    h3 { margin: 0; font-size: 0.95em; color: #cdd6f4; }
-    .empty { margin: 0; font-style: italic; color: #888; font-size: 0.85em; }
+    h3 { margin: 0; font-size: 0.95em; color: var(--text-color); }
+    .empty { margin: 0; font-style: italic; color: var(--muted-color); font-size: 0.85em; }
 
     ul.banks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35em; }
     .bank {
         display: flex; align-items: center; justify-content: space-between; gap: 0.6em;
         padding: 0.4em 0.5em;
-        background: #1e1e2e; border: 1px solid #313244; border-radius: 3px;
+        background: var(--background-color); border: 1px solid var(--panel-color); border-radius: 3px;
     }
-    .bank.active { border-color: #89b4fa; background: #1e2030; }
+    .bank.active { border-color: var(--highlight-color); background: #1e2030; }
     .radio { display: flex; align-items: center; gap: 0.5em; cursor: pointer; flex: 1; min-width: 0; }
     .radio input { margin: 0; }
     .info { display: flex; flex-direction: column; min-width: 0; }
-    .name { font-size: 0.9em; color: #cdd6f4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .meta { font-size: 0.75em; color: #888; }
+    .name { font-size: 0.9em; color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta { font-size: 0.75em; color: var(--muted-color); }
     .rename-input {
-        background: #11111b; color: #cdd6f4;
+        background: #11111b; color: var(--text-color);
         border: 1px solid #585b70; border-radius: 2px;
         padding: 0.1em 0.3em; font-size: 0.9em;
     }
 
     .row-actions { display: flex; gap: 0.3em; flex-wrap: wrap; }
-    .row-actions.create { padding-top: 0.2em; border-top: 1px dashed #313244; }
+    .row-actions.create { padding-top: 0.2em; border-top: 1px dashed var(--panel-color); }
     .btn {
         display: inline-flex; align-items: center; gap: 0.3em;
         padding: 0.3em 0.55em;
-        background: #2a2a3a; border: 1px solid #45475a; border-radius: 3px;
+        background: #2a2a3a; border: 1px solid var(--border-color); border-radius: 3px;
         color: inherit; cursor: pointer; font-size: 0.85em;
     }
     .btn:hover { background: #34344a; }
     .btn.small { padding: 0.2em 0.45em; font-size: 0.8em; }
     .btn.icon-only { padding: 0.3em 0.45em; }
     .upload input { display: none; }
-    .danger { color: #f38ba8; }
+    .danger { color: var(--danger-color); }
     .danger:hover { background: rgba(243, 139, 168, 0.12); }
 
-    .ring { display: flex; flex-direction: column; gap: 0.3em; padding-top: 0.3em; border-top: 1px dashed #313244; }
+    .ring { display: flex; flex-direction: column; gap: 0.3em; padding-top: 0.3em; border-top: 1px dashed var(--panel-color); }
     .ring-toggle {
         background: transparent; border: 0; color: #a6adc8;
         text-align: left; padding: 0.2em 0; font-size: 0.85em; cursor: pointer;
     }
-    .ring-toggle:hover { color: #cdd6f4; }
+    .ring-toggle:hover { color: var(--text-color); }
     ul.ring-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25em; }
     ul.ring-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.5em; font-size: 0.85em; }
 </style>

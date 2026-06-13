@@ -61,15 +61,15 @@
         bottom: calc(100% + 6px);
         left: 50%;
         transform: translateX(-50%);
-        background: #1e1e2e;
-        color: #cdd6f4;
-        border: 1px solid #45475a;
+        background: var(--background-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         padding: 0.35em 0.6em;
         border-radius: 0.3em;
         font-size: 0.78em;
         white-space: nowrap;
         pointer-events: none;
         z-index: 250;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 2px 8px var(--scrim);
     }
 </style>

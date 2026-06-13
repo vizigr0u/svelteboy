@@ -16,7 +16,7 @@
 </script>
 
 <div
-    class="backdrop"
+    class="scrim"
     onclick={onclose}
     ondrop={stopProp}
     ondragover={stopProp}
@@ -29,7 +29,7 @@
 ></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-    class="window"
+    class="window modal-shell"
     class:wide
     ondrop={stopProp}
     ondragover={stopProp}
@@ -48,50 +48,38 @@
 </div>
 
 <style>
-    .backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 99;
-        background: rgba(0, 0, 0, 0.3);
-    }
-
+    /* .scrim + .modal-shell from app.css supply backdrop + shell; local = centering, sizing, flex */
+    /* mobile-first: base = fullscreen sheet (override modal-shell radius) */
     .window {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 100;
-        background: #1e1e2e;
-        color: #cdd6f4;
-        border: 1px solid #45475a;
-        border-radius: 0.5em;
+        inset: 0;
         display: flex;
         flex-direction: column;
-        max-height: 80vh;
-        width: clamp(280px, 90vw, 500px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 100dvh;
+        border-radius: 0;
     }
 
-    .window.wide {
-        width: clamp(280px, 95vw, 1400px);
+    .window-body {
+        flex: 1;
+        min-height: 0;
     }
 
-    @media (max-width: 600px) {
-        .window, .window.wide {
-            position: fixed;
-            inset: 0;
-            top: 0;
-            left: 0;
-            transform: none;
-            width: 100vw;
-            max-width: 100vw;
-            max-height: 100dvh;
-            border-radius: 0;
+    /* sm up: floating centered modal. 640px = --bp-sm */
+    @media (min-width: 640px) {
+        .window {
+            inset: auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: clamp(280px, 90vw, 500px);
+            max-width: none;
+            max-height: 80vh;
+            border-radius: var(--radius-lg);
         }
 
-        .window-body {
-            flex: 1;
-            min-height: 0;
+        .window.wide {
+            width: clamp(280px, 95vw, 1400px);
         }
     }
 
@@ -100,9 +88,9 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.5em 0.75em;
-        background: #313244;
+        background: var(--panel-color);
         border-radius: 0.5em 0.5em 0 0;
-        border-bottom: 1px solid #45475a;
+        border-bottom: 1px solid var(--border-color);
         user-select: none;
     }
 
@@ -114,7 +102,7 @@
     .close-btn {
         background: none;
         border: none;
-        color: #cdd6f4;
+        color: var(--text-color);
         cursor: pointer;
         font-size: 1em;
         padding: 0 0.25em;
@@ -122,7 +110,7 @@
     }
 
     .close-btn:hover {
-        color: #f38ba8;
+        color: var(--danger-color);
     }
 
     .window-body {

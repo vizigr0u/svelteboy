@@ -22,5 +22,5 @@
 <style>
     .saves-tab { display: flex; flex-direction: column; gap: 1em; }
     section { display: flex; flex-direction: column; gap: 0.3em; }
-    h3 { margin: 0; font-size: 1em; color: #cdd6f4; }
+    h3 { margin: 0; font-size: 1em; color: var(--text-color); }
 </style>

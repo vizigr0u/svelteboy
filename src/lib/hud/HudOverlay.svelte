@@ -27,7 +27,7 @@
         gap: 4px;
         padding: 6px;
         pointer-events: none;
-        z-index: 6;
+        z-index: var(--z-content);
         font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     }
     .hud-tl { top: 0; left: 0; align-items: flex-start; }

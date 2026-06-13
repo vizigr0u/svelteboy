@@ -92,7 +92,7 @@
         transition: background 0.12s;
     }
     .cp-card:hover, .cp-card:focus-visible {
-        background: rgba(255,255,255,0.06);
+        background: var(--tint-1);
         outline: none;
     }
     .cp-thumb-wrap {
@@ -132,11 +132,11 @@
         opacity: 1;
     }
     .cp-play:hover {
-        color: var(--highlight-color, #89b4fa);
+        color: var(--highlight-color);
     }
     .cp-title {
         font-size: 0.78em;
-        color: #cdd6f4;
+        color: var(--text-color);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -152,11 +152,11 @@
         border-radius: 0.2em;
         box-shadow: 0 1px 4px rgba(0,0,0,0.55);
         border: 1px solid rgba(255,255,255,0.25);
-        background: #111;
+        background: var(--section-bg-color);
     }
     .cp-auto-label {
         font-size: 0.7em;
-        color: #888;
+        color: var(--muted-color);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

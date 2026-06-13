@@ -271,7 +271,7 @@
         font-size: 0.85em;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #888;
+        color: var(--muted-color);
     }
     .options {
         display: grid;

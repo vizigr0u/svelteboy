@@ -155,33 +155,33 @@
     .palette-backdrop {
         position: fixed;
         inset: 0;
-        z-index: 300;
-        background: rgba(0, 0, 0, 0.5);
+        z-index: var(--z-modal);
+        background: var(--scrim);
         backdrop-filter: blur(6px);
         display: flex;
         align-items: flex-start;
         justify-content: center;
         padding-top: 18vh;
-        animation: fadeIn 0.12s ease-out;
+        animation: fadeIn var(--t-fast) var(--ease-out);
     }
     .palette {
         width: min(560px, calc(100vw - 2em));
         max-height: 64vh;
         background: #1a1a25;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--tint-2);
         border-radius: 8px;
         box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
         display: flex;
         flex-direction: column;
-        color: #cdd6f4;
-        animation: slideIn 0.14s ease-out;
+        color: var(--text-color);
+        animation: popIn var(--t-base) var(--ease-out);
     }
     .search-row {
         display: flex;
         align-items: center;
         gap: 0.6em;
         padding: 0.6em 0.9em;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--tint-1);
     }
     .search-icon {
         opacity: 0.5;
@@ -197,8 +197,8 @@
         font-family: inherit;
     }
     .hint-kbd, .item-kbd {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: var(--tint-2);
+        border: 1px solid var(--tint-3);
         border-radius: 3px;
         padding: 0.05em 0.4em;
         font-size: 0.75em;
@@ -245,21 +245,13 @@
         white-space: nowrap;
     }
     .item.highlighted {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
     }
     .item.highlighted .item-kbd {
         background: rgba(30, 30, 46, 0.15);
         border-color: rgba(30, 30, 46, 0.25);
-        color: #1e1e2e;
+        color: var(--background-color);
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-    }
-    @keyframes slideIn {
-        from { transform: translateY(-6px); opacity: 0; }
-        to   { transform: none; opacity: 1; }
-    }
 </style>

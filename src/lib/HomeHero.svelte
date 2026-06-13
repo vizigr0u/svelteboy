@@ -166,7 +166,7 @@
         object-fit: contain;
         background: white;
         border-radius: 0.4em;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+        box-shadow: 0 6px 20px var(--scrim);
         flex-shrink: 0;
         image-rendering: pixelated;
     }
@@ -206,12 +206,12 @@
         font-size: 0.72em;
         font-weight: 600;
         letter-spacing: 0.04em;
-        background: rgba(255, 255, 255, 0.12);
+        background: var(--tint-3);
         color: #f3f3f3;
         border-radius: 0.25em;
     }
     .chip-mbc { font-family: ui-monospace, monospace; background: rgba(255,255,255,0.18); }
-    .chip-size { background: rgba(255,255,255,0.08); color: #d0d0d0; }
+    .chip-size { background: var(--tint-2); color: #d0d0d0; }
     .cart-badge.badge-gb { background: #4a5568; color: #e2e8f0; }
     .cart-badge.badge-mixed { background: #5e548e; color: #f4f0fa; }
     .cart-badge.badge-cgb { background: #d65f5f; color: #fff; }
@@ -227,7 +227,7 @@
         height: 50.4px;
         object-fit: contain;
         image-rendering: pixelated;
-        background: #111;
+        background: var(--section-bg-color);
         border-radius: 0.25em;
         box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     }
@@ -241,8 +241,8 @@
         margin-top: 0.4em;
     }
     .cta-primary {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
         border: none;
         border-radius: 999px;
         padding: 0.55em 1.4em;

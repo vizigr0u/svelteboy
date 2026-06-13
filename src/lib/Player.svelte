@@ -296,7 +296,7 @@
     .play-shell {
         min-height: 100dvh;
         background: var(--page-bg, #0a0a12);
-        color: var(--text-color, #cdd6f4);
+        color: var(--text-color);
         display: flex;
         flex-direction: column;
         touch-action: none;
@@ -315,7 +315,7 @@
         gap: 0.6em;
         padding: 0.4em 0.7em;
         background: rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--tint-1);
         backdrop-filter: blur(8px);
         position: sticky;
         top: 0;
@@ -323,9 +323,9 @@
     }
 
     .back-btn {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--tint-1);
         border: none;
-        color: var(--text-color, #cdd6f4);
+        color: var(--text-color);
         font-size: 1em;
         padding: 0.2em 0.55em;
         border-radius: 0.3em;
@@ -333,7 +333,7 @@
         line-height: 1;
     }
     .back-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
+        background: var(--tint-3);
     }
 
     .play-title {
@@ -349,8 +349,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35em;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--tint-1);
+        border: 1px solid var(--tint-2);
         color: rgba(205, 214, 244, 0.75);
         font-size: 0.75em;
         padding: 0.15em 0.5em;
@@ -380,9 +380,9 @@
     }
     .palette-chip + .burger-wrap { margin-left: 0.5em; }
     .burger-btn {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--tint-1);
         border: none;
-        color: var(--text-color, #cdd6f4);
+        color: var(--text-color);
         font-size: 1.1em;
         cursor: pointer;
         border-radius: 0.3em;
@@ -390,7 +390,7 @@
         line-height: 1;
     }
     .burger-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
+        background: var(--tint-3);
     }
 
     .menu-backdrop {

@@ -35,7 +35,7 @@
 <style>
   .status {
     text-align: center;
-    border: 1px solid #333;
+    border: 1px solid var(--border-color);
     padding: 0.8em;
     font-size: 1.2em;
   }

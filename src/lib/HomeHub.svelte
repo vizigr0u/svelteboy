@@ -99,7 +99,7 @@
     .home-hub {
         min-height: 100dvh;
         background: var(--page-bg, #0f0f17);
-        color: var(--text-color, #cdd6f4);
+        color: var(--text-color);
         display: flex;
         flex-direction: column;
     }
@@ -110,7 +110,7 @@
         gap: 0.8em;
         padding: 0.6em 1em;
         background: rgba(255, 255, 255, 0.02);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--tint-1);
         position: sticky;
         top: 0;
         z-index: 50;
@@ -125,8 +125,8 @@
 
     .resume-pill {
         margin-left: auto;
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
         border: none;
         border-radius: 999px;
         padding: 0.3em 0.9em;
@@ -151,8 +151,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35em;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--tint-1);
+        border: 1px solid var(--tint-2);
         color: rgba(205, 214, 244, 0.75);
         font-size: 0.75em;
         padding: 0.2em 0.55em;
@@ -186,9 +186,9 @@
         margin-left: 0.5em;
     }
     .burger-btn {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--tint-1);
         border: none;
-        color: var(--text-color, #cdd6f4);
+        color: var(--text-color);
         font-size: 1.1em;
         cursor: pointer;
         border-radius: 0.3em;
@@ -196,7 +196,7 @@
         line-height: 1;
     }
     .burger-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
+        background: var(--tint-3);
     }
 
     .menu-backdrop {

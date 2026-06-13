@@ -68,11 +68,11 @@
             <div class="thumb-empty">No saved session yet</div>
         {/if}
     </div>
-    <button class="play-button" onclick={resume} disabled={isLoaded || busy}>
+    <button class="btn btn-primary play-button" onclick={resume} disabled={isLoaded || busy}>
         {isLoaded ? 'Running' : (autoThumb ? `Resume · ${relLabel}` : 'Play')}
     </button>
     {#if autoThumb}
-        <button class="secondary-button" onclick={playFromBoot} disabled={isLoaded || busy}>
+        <button class="btn btn-secondary secondary-button" onclick={playFromBoot} disabled={isLoaded || busy}>
             Reset and play from boot
         </button>
     {/if}
@@ -98,46 +98,25 @@
         max-width: 240px;
         image-rendering: pixelated;
         border-radius: 4px;
-        background: #111;
+        background: var(--section-bg-color);
     }
     .thumb-empty {
-        color: #666;
+        color: var(--muted-color);
         font-style: italic;
         padding: 1.5em 0;
     }
     .thumb-label {
         font-size: 0.8em;
-        color: #888;
+        color: var(--muted-color);
     }
     .play-button {
-        padding: 0.6em 1.2em;
         font-size: 1.1em;
         font-weight: 600;
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .play-button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
     }
     .secondary-button {
-        padding: 0.4em 1em;
+        min-height: 2.25rem;
+        padding-inline: var(--space-4);
         font-size: 0.85em;
-        background: transparent;
-        color: #cdd6f4;
-        border: 1px solid #45475a;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-    .secondary-button:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.04);
-    }
-    .secondary-button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
     }
     .play-meta {
         display: grid;
@@ -147,7 +126,7 @@
         margin: 0;
     }
     .play-meta dt {
-        color: #888;
+        color: var(--muted-color);
     }
     .play-meta dd {
         margin: 0;

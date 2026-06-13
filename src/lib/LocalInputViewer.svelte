@@ -99,7 +99,7 @@
         justify-self: start;
         display: grid;
         background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--tint-2);
         border-radius: 1.5cqmin;
         padding: 1cqmin;
         grid-template-columns: repeat(3, var(--pad));
@@ -115,11 +115,11 @@
         border-radius: 1cqmin;
     }
     .dir-viewer > .center {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--tint-2);
     }
     .dir-viewer > button::after { content: none; }
     .dir-viewer > button:active {
-        background: var(--highlight-color, #89b4fa);
+        background: var(--highlight-color);
     }
     button[data-input="Up"] { grid-area: U; }
     button[data-input="Down"] { grid-area: D; }
@@ -139,7 +139,7 @@
         height: var(--special);
         min-width: 16cqmin;
         padding: 0 3cqmin;
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--tint-1);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 999px;
         font-size: 3cqmin;
@@ -162,7 +162,7 @@
         width: var(--action);
         height: var(--action);
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--tint-1);
         border: 2px solid rgba(255, 255, 255, 0.18);
         font-size: 5cqmin;
         color: rgba(255, 255, 255, 0.9);
@@ -176,8 +176,8 @@
     }
 
     :global(.input-viewer button.pressed) {
-        background: var(--highlight-color, #89b4fa) !important;
-        color: #1e1e2e !important;
-        border-color: var(--highlight-color, #89b4fa) !important;
+        background: var(--highlight-color) !important;
+        color: var(--background-color) !important;
+        border-color: var(--highlight-color) !important;
     }
 </style>

@@ -98,7 +98,7 @@
 
     .preset-btn {
         padding: 0.2em 0.6em;
-        border: 1px solid #555;
+        border: 1px solid var(--border-color);
         background: transparent;
         color: inherit;
         cursor: pointer;
@@ -107,12 +107,12 @@
     }
 
     .preset-btn.active {
-        background: #555;
+        background: var(--border-color);
         border-color: #aaa;
     }
 
     .preset-btn:hover:not(.active):not(.conflicted) {
-        background: #333;
+        background: var(--panel-color);
     }
 
     .preset-btn.conflicted {

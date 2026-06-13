@@ -119,7 +119,7 @@
 <style>
     .hint {
         font-size: 0.85em;
-        color: #888;
+        color: var(--muted-color);
         font-style: italic;
         margin: 0.5em 0;
     }
@@ -134,7 +134,7 @@
         flex-direction: column;
         align-items: center;
         gap: 0.25em;
-        background: #222;
+        background: var(--background-color);
         border-radius: 4px;
         padding: 0.4em;
         font-size: 0.85em;
@@ -142,7 +142,7 @@
     .slot-preview {
         width: 100%;
         aspect-ratio: 10 / 9;
-        background: #111;
+        background: var(--section-bg-color);
         border-radius: 2px;
         display: flex;
         align-items: center;
@@ -156,7 +156,7 @@
         image-rendering: pixelated;
     }
     .empty {
-        color: #555;
+        color: var(--muted-color);
     }
     .slot-label {
         color: #aaa;
@@ -175,7 +175,7 @@
         align-items: center;
         justify-content: center;
         background: #2a2a2a;
-        border: 1px solid #444;
+        border: 1px solid var(--border-color);
         border-radius: 3px;
         color: inherit;
         font-size: 0.9em;
@@ -183,7 +183,7 @@
     .slot-actions button:hover:not(:disabled),
     .slot-io button:hover:not(:disabled),
     .slot-io .upload-btn:hover {
-        background: #333;
+        background: var(--panel-color);
     }
     .slot-io .upload-btn input {
         display: none;

@@ -169,7 +169,7 @@
         gap: 1em;
     }
     section { display: flex; flex-direction: column; gap: 0.4em; }
-    h3 { margin: 0; font-size: 0.9em; color: #cdd6f4; }
+    h3 { margin: 0; font-size: 0.9em; color: var(--text-color); }
     .render-mode-row, .mute-row {
         display: flex;
         gap: 0.3em;
@@ -183,15 +183,15 @@
         padding: 0.2em 0.6em;
         border-radius: 0.2em;
         cursor: pointer;
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--tint-1);
     }
     .render-mode-radio.active, .mute-chip.active {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
     }
     .render-mode-radio input, .mute-chip input {
         margin: 0;
-        accent-color: var(--highlight-color, #89b4fa);
+        accent-color: var(--highlight-color);
     }
     .switch-row {
         display: flex;
@@ -202,7 +202,7 @@
     .switch-row input[type="number"] {
         width: 4em;
     }
-    .hint { font-size: 0.8em; color: #888; margin: 0; }
+    .hint { font-size: 0.8em; color: var(--muted-color); margin: 0; }
     .rtc-row {
         display: flex;
         align-items: center;
@@ -222,7 +222,7 @@
         font-size: 0.8em;
         padding: 0.2em 0.6em;
         border-radius: 0.2em;
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--tint-1);
         color: inherit;
         border: 1px solid rgba(255, 255, 255, 0.1);
         cursor: pointer;
@@ -233,11 +233,11 @@
     .rtc-preview {
         font-size: 0.85em;
         margin: 0;
-        color: #cdd6f4;
+        color: var(--text-color);
     }
     .rtc-preview-abs {
         font-size: 0.75em;
-        color: #888;
+        color: var(--muted-color);
         margin-left: 0.4em;
     }
 </style>

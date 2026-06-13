@@ -152,7 +152,7 @@
         font-size: 0.9em;
     }
     .struct.nested {
-        border-left: 2px solid #444;
+        border-left: 2px solid var(--border-color);
         padding-left: 0.4em;
     }
     .toggle {

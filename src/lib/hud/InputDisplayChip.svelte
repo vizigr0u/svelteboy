@@ -53,12 +53,12 @@
         font-size: 6px;
         line-height: 1;
         color: rgba(255,255,255,0.45);
-        background: rgba(255,255,255,0.08);
+        background: var(--tint-2);
         border-radius: 1px;
     }
     .hud-dpad-btn.on {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
     }
     .area-U { grid-area: U; }
     .area-D { grid-area: D; }
@@ -69,14 +69,14 @@
         font-size: 9px;
         line-height: 1;
         padding: 2px 3px;
-        background: rgba(255,255,255,0.08);
+        background: var(--tint-2);
         color: rgba(255,255,255,0.5);
         border-radius: 2px;
         font-family: monospace;
         letter-spacing: 0;
     }
     .hud-mini-btn.on {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
     }
 </style>

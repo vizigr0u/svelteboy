@@ -121,7 +121,7 @@
 {#if rom}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="rom-drawer-backdrop" onclick={onBackdropClick}>
+    <div class="scrim rom-drawer-backdrop" onclick={onBackdropClick}>
         <div class="rom-drawer" role="dialog" aria-modal="true" aria-label="ROM details: {rom.name}">
             <header class="drawer-header">
                 <img class="drawer-thumb" src={thumbnailSrc} alt={thumbnailAlt} onerror={onThumbErr} />
@@ -136,10 +136,10 @@
                         {#if rom.hasBattery}<span class="feat" title="Battery"><Icon name="battery" /></span>{/if}
                     </div>
                     {#if rom.source.kind === 'uri'}
-                        <button class="install-btn" onclick={onPromote}>Add to library</button>
+                        <button class="btn btn-primary install-btn" onclick={onPromote}>Add to library</button>
                     {/if}
                 </div>
-                <button class="close-btn" onclick={close} aria-label="Close">
+                <button class="btn btn-ghost btn-icon close-btn" onclick={close} aria-label="Close">
                     <Icon name="xmark" />
                 </button>
             </header>
@@ -166,7 +166,7 @@
                 {/if}
             </div>
             <div class="drawer-footer">
-                <button class="danger-btn" onclick={onDelete}>
+                <button class="btn btn-danger" onclick={onDelete}>
                     <Icon name="trash" /> Remove from library
                 </button>
             </div>
@@ -175,40 +175,34 @@
 {/if}
 
 <style>
+    /* .scrim supplies fixed/inset/z/bg; local = right-align drawer */
     .rom-drawer-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 110;
-        background: rgba(0, 0, 0, 0.4);
         display: flex;
         justify-content: flex-end;
     }
     .rom-drawer {
-        background: #1e1e2e;
-        color: #cdd6f4;
-        border-left: 1px solid #45475a;
-        width: 480px;
+        background: var(--background-color);
+        color: var(--text-color);
+        border-left: 1px solid var(--border-color);
+        width: 100vw;
         max-width: 100vw;
         height: 100vh;
         display: flex;
         flex-direction: column;
-        box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
-        animation: slideIn 0.18s ease-out;
+        box-shadow: -8px 0 32px var(--scrim);
+        animation: slideIn var(--t-base) var(--ease-out);
     }
-    @keyframes slideIn {
-        from { transform: translateX(100%); }
-        to   { transform: translateX(0); }
-    }
-    @media (max-width: 600px) {
-        .rom-drawer { width: 100vw; }
+    /* mobile-first: full-width drawer; fixed panel from sm up. 640px = --bp-sm */
+    @media (min-width: 640px) {
+        .rom-drawer { width: 480px; }
     }
     .drawer-header {
         display: grid;
         grid-template-columns: 80px 1fr auto;
         gap: 0.75em;
         padding: 0.75em;
-        background: #313244;
-        border-bottom: 1px solid #45475a;
+        background: var(--panel-color);
+        border-bottom: 1px solid var(--border-color);
         align-items: start;
     }
     .drawer-thumb {
@@ -250,48 +244,41 @@
         display: inline-flex;
         align-items: center;
         padding: 0.05em 0.3em;
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--tint-2);
         border-radius: 0.2em;
         color: #cfd8dc;
     }
     .install-btn {
         margin-top: 0.3em;
-        padding: 0.2em 0.6em;
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
-        border: none;
-        border-radius: 3px;
+        min-height: 1.8rem;
+        padding-inline: var(--space-3);
         font-size: 0.8em;
-        cursor: pointer;
         align-self: flex-start;
     }
     .close-btn {
-        background: none;
-        border: none;
-        color: #cdd6f4;
-        cursor: pointer;
+        min-height: 2rem;
+        min-width: 2rem;
         font-size: 1.1em;
-        padding: 0.2em 0.4em;
     }
-    .close-btn:hover { color: #f38ba8; }
+    .close-btn:hover { color: var(--danger-color); }
     .tab-nav {
         display: flex;
-        border-bottom: 1px solid #45475a;
+        border-bottom: 1px solid var(--border-color);
         background: #181825;
     }
     .tab-btn {
         flex: 1;
         background: none;
         border: none;
-        color: #888;
+        color: var(--muted-color);
         padding: 0.6em;
         cursor: pointer;
         font-size: 0.9em;
         border-bottom: 2px solid transparent;
     }
     .tab-btn.active {
-        color: #cdd6f4;
-        border-bottom-color: var(--highlight-color, #89b4fa);
+        color: var(--text-color);
+        border-bottom-color: var(--highlight-color);
     }
     .tab-btn:hover:not(.active) { color: #b0b0b0; }
     .tab-body {
@@ -302,20 +289,13 @@
     .drawer-footer {
         padding: 0.6em 0.75em;
         background: #181825;
-        border-top: 1px solid #45475a;
+        border-top: 1px solid var(--border-color);
         display: flex;
         justify-content: flex-end;
     }
-    .danger-btn {
-        background: none;
-        border: 1px solid #45475a;
-        color: #f38ba8;
-        padding: 0.3em 0.7em;
-        border-radius: 3px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3em;
+    .drawer-footer .btn-danger {
+        min-height: 2.25rem;
+        padding-inline: var(--space-3);
     }
-    .danger-btn:hover { background: rgba(243, 139, 168, 0.12); }
+    .drawer-footer .btn-danger:hover { background: rgba(243, 139, 168, 0.12); }
 </style>

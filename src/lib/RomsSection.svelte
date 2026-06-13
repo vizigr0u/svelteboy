@@ -207,10 +207,10 @@
                 <h3>Your library is empty</h3>
                 <p>Drop a <code>.gb</code> or <code>.gbc</code> ROM file here, or pick one from your device.<br />Zipped roms supported.</p>
                 <div class="empty-cta-row">
-                    <button class="browse-btn primary" onclick={openFilePicker} disabled={importing}>
+                    <button class="btn btn-primary browse-btn" onclick={openFilePicker} disabled={importing}>
                         <Icon name="cloud-arrow-up" /> Choose ROM file…
                     </button>
-                    <button class="browse-btn" onclick={addSpecialSource} disabled={importing}>
+                    <button class="btn btn-secondary browse-btn" onclick={addSpecialSource} disabled={importing}>
                         Browse homebrews…
                     </button>
                 </div>
@@ -230,7 +230,7 @@
         <div class="library-controls">
             <button
                 type="button"
-                class="add-rom-btn"
+                class="btn btn-secondary add-rom-btn"
                 title="Add ROM from your device"
                 onclick={openFilePicker}
                 disabled={importing}
@@ -239,7 +239,7 @@
             </button>
             <button
                 type="button"
-                class="add-source"
+                class="btn btn-ghost btn-icon add-source"
                 title="Add special source URL"
                 onclick={addSpecialSource}
                 disabled={importing}
@@ -303,7 +303,7 @@
         margin: 0.5em;
         padding: 0.5em;
         background-color: var(--subsection-bg-color);
-        border: 2px solid #111;
+        border: 2px solid var(--section-bg-color);
         display: flex;
         flex-direction: column;
     }
@@ -330,17 +330,17 @@
     }
     .chip {
         padding: 0.15em 0.6em;
-        border: 1px solid #45475a;
-        background: #313244;
-        color: #cdd6f4;
+        border: 1px solid var(--border-color);
+        background: var(--panel-color);
+        color: var(--text-color);
         border-radius: 1em;
         font-size: 0.78em;
         cursor: pointer;
     }
     .chip.active {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
-        border-color: var(--highlight-color, #89b4fa);
+        background: var(--highlight-color);
+        color: var(--background-color);
+        border-color: var(--highlight-color);
     }
     .search-label {
         display: inline-flex;
@@ -354,11 +354,10 @@
     }
     .add-source {
         margin-right: auto;
-        width: 1.8em;
-        height: 1.8em;
+        min-width: 2rem;
+        min-height: 2rem;
         font-size: 1em;
         line-height: 1;
-        cursor: pointer;
     }
     .add-source:disabled {
         cursor: wait;
@@ -374,7 +373,7 @@
         margin: 0.3em 0;
         padding: 0.4em 1.6em 0.4em 0.5em;
         background: rgba(0, 0, 0, 0.25);
-        border-left: 3px solid #555;
+        border-left: 3px solid var(--border-color);
         font-size: 0.9em;
     }
     .import-report .line {
@@ -390,7 +389,7 @@
         color: tomato;
     }
     .import-report .muted {
-        color: #888;
+        color: var(--muted-color);
     }
     .import-report .dismiss {
         position: absolute;
@@ -408,7 +407,7 @@
     .empty-library {
         text-align: center;
         padding: 2em 1em;
-        color: #cdd6f4;
+        color: var(--text-color);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -416,7 +415,7 @@
     }
     .empty-library :global(.icon) {
         font-size: 2.5em;
-        color: var(--highlight-color, #89b4fa);
+        color: var(--highlight-color);
         opacity: 0.7;
     }
     .empty-library h3 {
@@ -429,39 +428,15 @@
         font-size: 0.9em;
     }
     .empty-library code {
-        background: #313244;
+        background: var(--panel-color);
         padding: 0.05em 0.3em;
         border-radius: 0.2em;
         font-size: 0.9em;
     }
     .browse-btn {
-        padding: 0.45em 1.1em;
-        background: rgba(255,255,255,0.06);
-        color: #cdd6f4;
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 999px;
-        cursor: pointer;
+        border-radius: var(--radius-pill);
         font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35em;
-        min-height: 44px;
-    }
-    .browse-btn:hover:not(:disabled) {
-        background: rgba(255,255,255,0.1);
-    }
-    .browse-btn.primary {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
-        border-color: var(--highlight-color, #89b4fa);
-    }
-    .browse-btn.primary:hover:not(:disabled) {
-        filter: brightness(1.08);
-        background: var(--highlight-color, #89b4fa);
-    }
-    .browse-btn:disabled {
-        opacity: 0.5;
-        cursor: wait;
+        padding-inline: var(--space-5);
     }
     .empty-cta-row {
         display: flex;
@@ -471,22 +446,11 @@
         margin-top: 0.4em;
     }
     .add-rom-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3em;
-        padding: 0.3em 0.7em;
-        background: rgba(255,255,255,0.06);
-        color: #cdd6f4;
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 0.3em;
-        cursor: pointer;
+        min-height: 2rem;
+        padding-inline: var(--space-3);
         font-size: 0.85em;
     }
-    .add-rom-btn:hover:not(:disabled) {
-        background: rgba(255,255,255,0.12);
-    }
     .add-rom-btn:disabled {
-        opacity: 0.5;
         cursor: wait;
     }
     .visually-hidden {
@@ -505,22 +469,22 @@
         display: flex;
         align-items: center;
         gap: 0.6em;
-        background: #313244;
-        border-left: 3px solid var(--highlight-color, #89b4fa);
+        background: var(--panel-color);
+        border-left: 3px solid var(--highlight-color);
         padding: 0.4em 0.6em;
         margin: 0.3em 0;
         font-size: 0.85em;
-        color: #cdd6f4;
+        color: var(--text-color);
     }
     .badge-hint span { flex: 1; }
     .badge-hint button {
         background: transparent;
         border: none;
-        color: #888;
+        color: var(--muted-color);
         cursor: pointer;
         padding: 0.2em;
     }
     .badge-hint button:hover {
-        color: #f38ba8;
+        color: var(--danger-color);
     }
 </style>

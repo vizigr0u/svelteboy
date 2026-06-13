@@ -11,7 +11,7 @@ Aligned w/ `.claude/css-conventions.md`. Audit basis: 73 `.svelte` files.
 
 ---
 
-## P0a — Tokens + exact-match swaps (safe)
+## P0a — Tokens + exact-match swaps (safe) (done)
 
 ### Edit `src/app.css`
 
@@ -145,7 +145,7 @@ Aligned w/ `.claude/css-conventions.md`. Audit basis: 73 `.svelte` files.
 
 ---
 
-## P0b — Trickier swaps (per-component judgment)
+## P0b — Trickier swaps (per-component judgment) (done)
 
 1. **`#FEFEFE` → `var(--text-color)`** (12 files) — now `#cdd6f4`. Visual diff intentional.
 2. **`#888` → `var(--muted-color)`** (24 files) — now `#a6adc8`. Defer if pixel-perfect HUD.
@@ -159,7 +159,7 @@ Aligned w/ `.claude/css-conventions.md`. Audit basis: 73 `.svelte` files.
 
 ---
 
-## P1 — Button utilities (in `app.css`)
+## P1 — Button utilities (in `app.css`) (done)
 
 ```css
 .btn {
@@ -187,11 +187,20 @@ Migrate consumers: `ConfirmDialog.svelte`, `RomDrawer.svelte`, `PlaySheet.svelte
 
 ---
 
-## P2 — Modal/overlay primitives
+## P2 — Modal/overlay primitives (done)
 
-Inspect existing `WindowSkeleton.svelte` / `Window.svelte` / `WindowOverlays.svelte` first — likely partially solved.
+`Window.svelte` = component-level modal abstraction (was raw `z-index:99` + literal `rgba(0,0,0,0.3)`). Consumers outside it rolled own backdrop+shell w/ drifting scrim bg (0.3/0.4/0.45/0.5).
 
-If gap, add utilities to `app.css`:
+Added `.scrim` + `.modal-shell` to `app.css`. Migrated (`class="<util> <local>"`, local = position/sizing/anim only):
+
+- `ConfirmDialog` — `scrim` + `modal-shell` (clean centered modal).
+- `Window.svelte` — `scrim` + `modal-shell`; window bumped to `--z-modal` so it sits above scrim, fixed raw `z:99` + literal bg.
+- `PlaySheet` `.sheet-backdrop` — `scrim` only (keeps fade anim). Sheet shell stays custom (bottom radius + upward shadow ≠ modal-shell).
+- `RomDrawer` `.rom-drawer-backdrop` — `scrim` only (keeps right-align flex). Drawer shell stays custom (border-left, no radius, slide-in ≠ modal-shell).
+
+Scrim bg unified to `var(--scrim)` (0.5) across all 4 — slight darkening on drawer/sheet/window, intentional consistency.
+
+Utilities added to `app.css`:
 
 ```css
 .scrim {
@@ -209,11 +218,9 @@ If gap, add utilities to `app.css`:
 }
 ```
 
-Migrate `ConfirmDialog`, `RomDrawer` (drawer = `.modal-shell` + slide-in anim), `PlaySheet`.
-
 ---
 
-## P3 — `.panel` utility
+## P3 — `.panel` utility (done)
 
 ```css
 .panel {
@@ -224,7 +231,14 @@ Migrate `ConfirmDialog`, `RomDrawer` (drawer = `.modal-shell` + slide-in anim), 
 }
 ```
 
-Hits: `RomList`, `DebugSection`, drawer sections, dialog body.
+Added to `app.css`. Scope = standalone cards only (not `debug-tool-container` family — that global already acts as panel across 14 files; defer to broader sweep).
+
+Migrated (`class="panel <local>"`, local rule keeps distinct bg + tighter padding, panel supplies tokenized border+radius):
+
+- `BatterySaveBanks.svelte` `.banks-card` — bg `#181825` → `var(--section-bg-color)`
+- `CheatsPanel.svelte` `.collections-panel` — kept faint tint bg
+
+Deferred: `RomList` / `DebugSection` panels live inside `debug-tool-container`; unify when that family migrated.
 
 ---
 
@@ -246,7 +260,9 @@ Rule of three not met (only `PalettePicker`, `DebugSection`). Add `.popover` uti
 
 ---
 
-## P5 — Chips / badges
+## P5 — Chips / badges (deferred)
+
+**Blocked**: two existing scoped `.chip` defs diverge — `HomeHero` metadata badge (tint bg, 0.25em radius, non-interactive) vs `RomsSection` filter-pill button (panel bg, pill radius, `.active` state, pointer). Same class name, different shape. A global `.chip` in `app.css` would cascade onto both → collision. Not a clean rule-of-three. Revisit if a 3rd, consistent chip shape appears; otherwise rename per-component first.
 
 ```css
 .chip {
@@ -273,7 +289,7 @@ HUD chips stay pixel-perfect per conventions. Keep `px`. Comment: `/* pixel-perf
 
 ---
 
-## P7 — Global `@keyframes` + motion vars
+## P7 — Global `@keyframes` + motion vars (done)
 
 Move `slideIn`, `slideUp`, `fadeIn`, `skeleton-shimmer`, `icon-spin` to `app.css`. Standardize entrance anims on `var(--t-base) var(--ease-out)`. Bundle w/ P0a if scope OK.
 
@@ -285,7 +301,7 @@ Conventions: body fixed rem. em→rem conversion per-component when file touched
 
 ---
 
-## P9 — Mobile-first breakpoint flip (per-component)
+## P9 — Mobile-first breakpoint flip (per-component) (in progress)
 
 ```css
 /* before */
@@ -298,17 +314,24 @@ Conventions: body fixed rem. em→rem conversion per-component when file touched
 
 Use literal `640px` / `1024px` per conventions (vars don't work in `@media`).
 
+Flipped (touched in P2, `max-width:600px` → mobile-first `min-width:640px`):
+
+- `RomDrawer.svelte` — base full-width drawer, 480px from sm.
+- `Window.svelte` — base fullscreen sheet, centered floating modal from sm.
+
+Remaining `max-width:600px`: `HomeHero.svelte` — flip when next touched.
+
 ---
 
 ## Execution order
 
-1. **P0a** — `app.css` tokens + light mode + safe sweeps. 1 PR. Visual drift accepted.
-2. **P7** — global keyframes + motion vars. Bundle w/ P0a if scope OK.
-3. **P0b** — high-impact files (RomDrawer, DebugSection, ConfirmDialog, PalettePicker, HudOverlay). 1 PR each. Mix in P1 button migration when same file.
-4. **P1** + **P3** — utility classes added in app.css w/ P0a; consumers migrated as part of P0b / opportunistic touches.
-5. **P2** — only after Window.svelte family inspection.
-6. **P5** — opportunistic.
-7. **P9** — per-component when touching for other reason.
+1. ✅ **P0a** — `app.css` tokens + light mode + safe sweeps. 1 PR. Visual drift accepted.
+2. ✅ **P7** — global keyframes + motion vars. Bundle w/ P0a if scope OK.
+3. ✅ **P0b** — high-impact files (RomDrawer, DebugSection, ConfirmDialog, PalettePicker, HudOverlay). 1 PR each. Mix in P1 button migration when same file.
+4. ✅ **P1** + ✅ **P3** — utility classes added in app.css w/ P0a; consumers migrated as part of P0b / opportunistic touches. (P3 = standalone cards only; debug-tool-container family deferred.)
+5. ✅ **P2** — scrim + modal-shell utilities; ConfirmDialog/Window full, PlaySheet/RomDrawer scrim-only.
+6. ⏸️ **P5** — deferred: `.chip` name collides w/ 2 divergent scoped defs.
+7. 🔄 **P9** — flipped RomDrawer + Window (P2-touched); HomeHero pending touch.
 8. **P4 / P6 / P8** — defer until 3rd consumer or stable pattern.
 
 ---

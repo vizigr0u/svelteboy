@@ -56,7 +56,7 @@
 </script>
 
 {#if open}
-    <div class="sheet-backdrop" onclick={close} role="presentation"></div>
+    <div class="scrim sheet-backdrop" onclick={close} role="presentation"></div>
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="sheet" role="dialog" aria-modal="true" aria-label="Quick actions">
         <div class="sheet-handle" aria-hidden="true"></div>
@@ -93,27 +93,24 @@
 {/if}
 
 <style>
+    /* .scrim supplies fixed/inset/z/bg; local = entrance anim */
     .sheet-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 180;
-        background: rgba(0, 0, 0, 0.45);
-        animation: fadeIn 0.15s ease-out;
+        animation: fadeIn var(--t-fast) var(--ease-out);
     }
     .sheet {
         position: fixed;
         left: 0;
         right: 0;
         bottom: 0;
-        z-index: 181;
-        background: #1e1e2e;
-        color: #cdd6f4;
+        z-index: var(--z-modal);
+        background: var(--background-color);
+        color: var(--text-color);
         border-radius: 1em 1em 0 0;
-        box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+        box-shadow: 0 -8px 32px var(--scrim);
         padding: 0.5em 0.6em calc(1em + env(safe-area-inset-bottom));
         max-height: 70dvh;
         overflow-y: auto;
-        animation: slideUp 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+        animation: slideUp var(--t-slow) var(--ease-out);
     }
     .sheet-handle {
         width: 36px;
@@ -145,15 +142,15 @@
         background: rgba(255,255,255,0.07);
     }
     .sheet-item.primary {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
         font-weight: 600;
     }
     .sheet-item.primary:hover {
         filter: brightness(1.08);
     }
     .sheet-item.danger {
-        color: #f38ba8;
+        color: var(--danger-color);
     }
     .sheet-item.danger:hover {
         background: rgba(243, 139, 168, 0.12);
@@ -174,12 +171,4 @@
         padding: 0.3em 0.6em 0.6em;
     }
 
-    @keyframes slideUp {
-        from { transform: translateY(100%); }
-        to   { transform: translateY(0); }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-    }
 </style>

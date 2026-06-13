@@ -387,7 +387,7 @@
     {/if}
 
     {#if panelOpen}
-        <div class="collections-panel">
+        <div class="panel collections-panel">
             <div class="panel-block">
                 <h5>Presets</h5>
                 {#if PRESETS.length === 0}
@@ -747,11 +747,11 @@
         margin: 0;
         text-align: center;
     }
+    /* .panel supplies border + radius; keep faint tint bg + tighter padding */
     .collections-panel {
         display: flex;
         flex-direction: column;
         gap: 0.7em;
-        border: 1px solid #444;
         padding: 0.6em;
         background-color: rgba(255, 255, 255, 0.02);
         align-self: stretch;
@@ -781,7 +781,7 @@
         text-align: left;
     }
     .coll-meta {
-        color: #888;
+        color: var(--muted-color);
         font-size: 0.8em;
         font-family: monospace;
     }
@@ -828,7 +828,7 @@
     .cheats-table th,
     .cheats-table td {
         padding: 0.2em 0.6em;
-        border-bottom: 1px solid var(--text-faded-color, #444);
+        border-bottom: 1px solid var(--text-faded-color);
     }
     .cheats-table th {
         color: #999;
@@ -847,8 +847,8 @@
         border-radius: 3px;
     }
     .value-cell:hover {
-        border-color: #666;
-        background-color: rgba(255, 255, 255, 0.05);
+        border-color: var(--border-color);
+        background-color: var(--tint-1);
     }
     .value-input {
         width: 6em;
@@ -873,11 +873,11 @@
     }
     .detached,
     .detached-hint {
-        color: #888;
+        color: var(--muted-color);
         font-style: italic;
     }
     .empty-hint {
-        color: #888;
+        color: var(--muted-color);
         margin: 0;
     }
     .schema-size {

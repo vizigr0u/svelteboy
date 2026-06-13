@@ -69,7 +69,7 @@
         gap: 1em;
         padding: 3px 6px;
         background: #201f25;
-        border: 1px solid #444;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         cursor: pointer;
         color: inherit;
@@ -77,7 +77,7 @@
         width: 100%;
     }
     .trigger:hover {
-        border-color: #666;
+        border-color: var(--border-color);
     }
     .swatches {
         display: flex;
@@ -94,22 +94,22 @@
     }
     .arrow {
         font-size: 0.7em;
-        color: #888;
+        color: var(--muted-color);
         margin-left: auto;
     }
     .dropdown {
         position: absolute;
         top: calc(100% + 4px);
         left: 0;
-        z-index: 100;
+        z-index: var(--z-hud);
         margin: 0;
         padding: 4px 0;
         list-style: none;
         background: #201f25;
-        border: 1px solid #555;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         min-width: 100%;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 12px var(--scrim);
     }
     .dropdown button {
         display: flex;
@@ -129,6 +129,6 @@
         background: #2e2d35;
     }
     .dropdown button.selected {
-        color: var(--highlight-color, #adf);
+        color: var(--highlight-color);
     }
 </style>
