@@ -9,6 +9,7 @@
     import { loadedCartridge } from "stores/romStores";
     import { EmulatorInitialized } from "stores/playStores";
     import { goToPlay } from "stores/viewStore";
+    import { closeOverlay } from "stores/overlayStore";
     import { loadAuto, autoSnapVersion } from "../saveStateDb";
     import { resolveHeroAction } from "./heroAction";
     import { onMount, onDestroy } from "svelte";
@@ -69,6 +70,7 @@
     let primaryHint = $derived(isResume ? 'Continue session' : undefined);
 
     function primary() {
+        closeOverlay();
         if (action === 'resume') {
             if (isLiveSession) {
                 goToPlay();
@@ -81,6 +83,7 @@
     }
 
     function restart() {
+        closeOverlay();
         Emulator.PlayRom(rom, { purgeAutoOnLoad: true });
     }
 

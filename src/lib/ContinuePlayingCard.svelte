@@ -3,6 +3,7 @@
     import { resolveRomArt, onThumbErr, DEFAULT_THUMB_SRC, DEFAULT_THUMB_ALT } from "../cartArt";
     import { Emulator } from "../emulator";
     import { selectedRomSha1 } from "stores/windowStores";
+    import { closeOverlay } from "stores/overlayStore";
     import { loadAuto, autoSnapVersion } from "../saveStateDb";
     import { formatRelativeTime } from "../relativeTime";
     import { onMount, onDestroy } from "svelte";
@@ -41,6 +42,7 @@
 
     function play(e: MouseEvent) {
         e.stopPropagation();
+        closeOverlay();
         if (autoThumb) Emulator.ResumeRom(rom);
         else Emulator.PlayRom(rom);
     }

@@ -14,38 +14,34 @@
     import LocalInputViewer from "./LocalInputViewer.svelte";
     import { gameInputKeydownHandler, gameInputKeyupHandler } from "../inputs";
     import { onMount } from "svelte";
+    import { get } from "svelte/store";
     import { AudioSuspended, Emulator } from "../emulator";
     import { EmulatorPaused, QuickSaveFlyer } from "stores/playStores";
     import { loadedCartridge, loadedBootRom } from "stores/romStores";
     import RomDropZone from "./RomDropZone.svelte";
-    import BurgerMenu from "./BurgerMenu.svelte";
-    import PlaySheet from "./PlaySheet.svelte";
+    import PlayRail from "./play/PlayRail.svelte";
+    import OnboardingCard from "./OnboardingCard.svelte";
     import { DragState } from "../types";
     import WebGLCanvas from "./WebGLCanvas.svelte";
     import { registerShadedCanvas } from "../screenshot";
-    import {
-        showSavesWindow,
-        showOptionsWindow,
-        showBindingsWindow,
-        showDebugWindow,
-        showAboutWindow,
-        selectedRomSha1,
-    } from "stores/windowStores";
-    import { goToHome } from "stores/viewStore";
-    import { openPalette } from "stores/paletteStore";
-
-    const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-    const PALETTE_HINT = IS_MAC ? "⌘K" : "Ctrl+K";
+    import { selectedRomSha1 } from "stores/windowStores";
+    import { overlayOpen, openOverlay, registerFullscreenToggle } from "stores/overlayStore";
 
     let dragState: DragState = $state(DragState.Idle);
     let webglCanvas: { draw: (frame: Uint8Array | Uint16Array) => void; getCanvas: () => HTMLCanvasElement } | null = $state(null);
-    let menuOpen: boolean = $state(false);
-    let sheetOpen: boolean = $state(false);
     let screenEl: HTMLDivElement | undefined = $state();
     let screenTapEl: HTMLDivElement | undefined = $state();
-    let burgerBtnEl: HTMLButtonElement | undefined = $state();
+    let flyTargetEl: HTMLDivElement | undefined = $state();
     let isFullscreen: boolean = $state(false);
     let isCoarsePointer: boolean = $state(false);
+    let titleVisible: boolean = $state(true);
+    let titleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function revealTitle() {
+        titleVisible = true;
+        if (titleTimer) clearTimeout(titleTimer);
+        titleTimer = setTimeout(() => { titleVisible = false; titleTimer = null; }, 1500);
+    }
 
     const DOUBLE_TAP_MS = 280;
     let lastTapTime = 0;
@@ -67,7 +63,7 @@
         lastTapTime = now;
         if (pendingTapTimer) clearTimeout(pendingTapTimer);
         pendingTapTimer = setTimeout(() => {
-            sheetOpen = true;
+            openOverlay('now');
             pendingTapTimer = null;
         }, DOUBLE_TAP_MS);
     }
@@ -75,26 +71,9 @@
     const hasRom = $derived($loadedCartridge != undefined || $loadedBootRom != undefined);
 
     function toggleFullscreen() {
-        menuOpen = false;
         if (!document.fullscreenElement) screenEl?.requestFullscreen();
         else document.exitFullscreen();
     }
-
-    function back() {
-        menuOpen = false;
-        goToHome();
-    }
-
-    function openCommandPalette() {
-        menuOpen = false;
-        openPalette();
-    }
-
-    const menuItems = $derived([
-        { label: 'Library',    active: false,        toggle: back },
-        { label: 'Commands…',  active: false,        toggle: openCommandPalette },
-        { label: 'Fullscreen', active: isFullscreen, toggle: toggleFullscreen },
-    ]);
 
     onMount(() => {
         const drawCallback = () => {
@@ -106,6 +85,7 @@
         };
         Emulator.AddRenderCallback(drawCallback);
         registerShadedCanvas(() => webglCanvas?.getCanvas() ?? null);
+        registerFullscreenToggle(toggleFullscreen);
 
         const onFullscreenChange = () => {
             isFullscreen = !!document.fullscreenElement;
@@ -117,23 +97,41 @@
         updateCoarse();
         coarseMql.addEventListener('change', updateCoarse);
 
+        // Desktop: Esc opens the combo overlay (Overlay handles Esc-to-close itself).
+        const onEsc = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape' || isCoarsePointer) return;
+            if (get(overlayOpen) || !hasRom) return;
+            e.preventDefault();
+            openOverlay('now');
+        };
+        window.addEventListener('keydown', onEsc);
+
+        // Title strip reveals on cursor activity (desktop).
+        const onMove = () => { if (!isCoarsePointer) revealTitle(); };
+        window.addEventListener('pointermove', onMove);
+        revealTitle();
+
         return () => {
             Emulator.RemoveRenderCallback(drawCallback);
             registerShadedCanvas(null);
+            registerFullscreenToggle(null);
             document.removeEventListener('fullscreenchange', onFullscreenChange);
             coarseMql.removeEventListener('change', updateCoarse);
+            window.removeEventListener('keydown', onEsc);
+            window.removeEventListener('pointermove', onMove);
+            if (titleTimer) clearTimeout(titleTimer);
         };
     });
 
     const anyOverlayOpen = $derived(
-        menuOpen
-        || $showSavesWindow
-        || $showOptionsWindow
-        || $showBindingsWindow
-        || $showDebugWindow
-        || $showAboutWindow
+        $overlayOpen
         || $selectedRomSha1 != undefined
     );
+
+    // Reveal the title strip whenever the overlay closes.
+    $effect(() => {
+        if (!$overlayOpen) revealTitle();
+    });
 
     $effect(() => {
         if (anyOverlayOpen) return;
@@ -185,9 +183,9 @@
 
     $effect(() => {
         const data = $QuickSaveFlyer;
-        if (!data || !screenTapEl || !burgerBtnEl) return;
+        if (!data || !screenTapEl || !flyTargetEl) return;
         const from = screenTapEl.getBoundingClientRect();
-        const to = burgerBtnEl.getBoundingClientRect();
+        const to = flyTargetEl.getBoundingClientRect();
         const targetSize = 16;
         const targetLeft = to.left + to.width / 2 - targetSize / 2;
         const targetTop = to.top + to.height / 2 - targetSize / 2;
@@ -216,28 +214,12 @@
 </script>
 
 <div class="play-shell" role="main">
-    <header class="play-topbar">
-        <button class="back-btn" onclick={back} aria-label="Back to library">←</button>
+    <div class="title-strip" class:visible={titleVisible} bind:this={flyTargetEl} aria-hidden={!titleVisible}>
         <span class="play-title">{$loadedCartridge?.name ?? 'SvelteBoy'}</span>
-        <button class="palette-chip" onclick={openPalette} aria-label="Open command palette">
-            <span class="palette-chip-icon">⌕</span>
-            <kbd>{PALETTE_HINT}</kbd>
-        </button>
-        {#if menuOpen}
-            <div class="menu-backdrop" onclick={() => menuOpen = false} role="presentation" aria-hidden="true"></div>
-        {/if}
-        <div class="burger-wrap">
-            {#if menuOpen}
-                <BurgerMenu items={menuItems} />
-            {/if}
-            <button
-                class="burger-btn"
-                onclick={() => menuOpen = !menuOpen}
-                aria-label="Menu"
-                bind:this={burgerBtnEl}
-            >☰</button>
-        </div>
-    </header>
+    </div>
+
+    <PlayRail />
+    <OnboardingCard />
 
     <RomDropZone onRomReceived={Emulator.PlayRom} bind:dragState>
         <div
@@ -285,13 +267,6 @@
     {/if}
 </div>
 
-<PlaySheet
-    open={sheetOpen}
-    onclose={() => sheetOpen = false}
-    onfullscreen={toggleFullscreen}
-    {isFullscreen}
-/>
-
 <style>
     .play-shell {
         min-height: 100dvh;
@@ -309,94 +284,32 @@
         outline: none;
     }
 
-    .play-topbar {
-        display: flex;
-        align-items: center;
-        gap: 0.6em;
-        padding: 0.4em 0.7em;
-        background: rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        backdrop-filter: blur(8px);
-        position: sticky;
+    .title-strip {
+        position: fixed;
         top: 0;
-        z-index: 50;
+        left: 0;
+        right: 0;
+        z-index: 55;
+        padding: 0.6em 1em calc(0.6em + 1.2em);
+        background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(-0.4em);
+        transition: opacity 0.4s ease, transform 0.4s ease;
     }
-
-    .back-btn {
-        background: rgba(255, 255, 255, 0.06);
-        border: none;
-        color: var(--text-color, #cdd6f4);
-        font-size: 1em;
-        padding: 0.2em 0.55em;
-        border-radius: 0.3em;
-        cursor: pointer;
-        line-height: 1;
+    .title-strip.visible {
+        opacity: 1;
+        transform: translateY(0);
     }
-    .back-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
-    }
-
     .play-title {
         font-weight: 600;
-        font-size: 0.95em;
+        font-size: 1em;
+        color: #fff;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 60vw;
-    }
-
-    .palette-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35em;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: rgba(205, 214, 244, 0.75);
-        font-size: 0.75em;
-        padding: 0.15em 0.5em;
-        border-radius: 0.3em;
-        cursor: pointer;
-        line-height: 1;
-    }
-    .play-title ~ .palette-chip { margin-left: auto; }
-    .palette-chip:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: inherit;
-    }
-    .palette-chip-icon { font-size: 1em; opacity: 0.7; }
-    .palette-chip kbd {
-        font-family: monospace;
-        font-size: 0.9em;
-        opacity: 0.85;
-    }
-    @media (pointer: coarse) {
-        .palette-chip { display: none; }
-    }
-
-    .burger-wrap {
-        position: relative;
-        margin-left: auto;
-        display: flex;
-    }
-    .palette-chip + .burger-wrap { margin-left: 0.5em; }
-    .burger-btn {
-        background: rgba(255, 255, 255, 0.06);
-        border: none;
-        color: var(--text-color, #cdd6f4);
-        font-size: 1.1em;
-        cursor: pointer;
-        border-radius: 0.3em;
-        padding: 0.15em 0.5em;
-        line-height: 1;
-    }
-    .burger-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
-    }
-
-    .menu-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 199;
+        max-width: 80vw;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
     }
 
     .play-stage {

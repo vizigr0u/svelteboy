@@ -9,7 +9,6 @@ const FastForwardActive = writable(false);
 const DebuggerAttached = writable(false);
 const debugUnlocked = writable(false);
 const showFrametimeHistogram = writable(false);
-const mkWin = () => writable(false);
 
 vi.mock('../emulator', () => ({
     Emulator: { Reset: () => {}, QuickSave: () => {}, QuickLoad: () => {} },
@@ -19,11 +18,7 @@ vi.mock('../emulator/lifecycle', () => ({ pauseEmulator: () => {}, unPauseEmulat
 vi.mock('../stores/viewStore', () => ({ goToHome: () => {}, goToPlay: () => {}, playViewActive }));
 vi.mock('../stores/romStores', () => ({ loadedCartridge, loadedBootRom }));
 vi.mock('../stores/playStores', () => ({ EmulatorPaused, FastForwardActive }));
-vi.mock('../stores/windowStores', () => ({
-    showSavesWindow: mkWin(), showOptionsWindow: mkWin(),
-    showBindingsWindow: mkWin(), showDebugWindow: mkWin(),
-    showAboutWindow: mkWin(), showRomsWindow: mkWin(),
-}));
+vi.mock('../stores/overlayStore', () => ({ openOverlay: () => {} }));
 vi.mock('../stores/optionsStore', () => ({ showFrametimeHistogram }));
 vi.mock('../stores/debugStores', () => ({ DebuggerAttached }));
 vi.mock('../stores/paletteStore', () => ({ debugUnlocked }));

@@ -64,6 +64,16 @@ export async function loadSlot(romSha1: string, slot: number): Promise<SaveState
     });
 }
 
+export async function deleteSlot(romSha1: string, slot: number): Promise<void> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).delete(slotKey(romSha1, slot));
+        tx.oncomplete = () => { quickSaveVersion.update(v => v + 1); resolve(); };
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
 export async function getAllSlots(romSha1: string, count: number): Promise<(SaveStateEntry | null)[]> {
     return Promise.all(Array.from({ length: count }, (_, i) => loadSlot(romSha1, i + 1)));
 }

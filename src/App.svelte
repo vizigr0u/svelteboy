@@ -3,16 +3,17 @@
   import { get } from "svelte/store";
   import Player from "./lib/Player.svelte";
   import HomeHub from "./lib/HomeHub.svelte";
-  import WindowOverlays from "./lib/WindowOverlays.svelte";
   import ConfirmDialog from "./lib/ConfirmDialog.svelte";
   import Toaster from "./lib/Toaster.svelte";
   import Motd from "./lib/Motd.svelte";
   import AudioStatusNotice from "./lib/AudioStatusNotice.svelte";
   import RomDrawer from "./lib/RomDrawer.svelte";
+  import Overlay from "./lib/Overlay.svelte";
   import CommandPalette from "./lib/CommandPalette.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
-  import { playViewActive } from "./stores/viewStore";
+  import { playViewActive, goToHome } from "./stores/viewStore";
+  import { overlayOpen, closeOverlay } from "./stores/overlayStore";
   import { loadedCartridge, loadedBootRom } from "./stores/romStores";
   import {
     libraryHydrated,
@@ -83,9 +84,27 @@
     history.replaceState(null, "", newUrl);
   }
 
+  // Browser back: 1) close overlay, 2) leave Play for HomeHub, 3) let browser handle.
+  // A single sentinel entry sits on top of history; we re-push it after each intercept.
+  function onPopState() {
+    if (get(overlayOpen)) {
+      closeOverlay();
+      history.pushState({ sb: 1 }, "");
+      return;
+    }
+    if (get(playViewActive)) {
+      goToHome();
+      history.pushState({ sb: 1 }, "");
+      return;
+    }
+    // Nothing to dismiss: allow the navigation to proceed (browser leaves the app).
+  }
+
   onMount(async () => {
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("keydown", onPaletteHotkey, true);
+    window.addEventListener("popstate", onPopState);
+    history.pushState({ sb: 1 }, "");
     maybeUnlockDebugFromQuery();
     const initial = readSha1FromHash();
     if (initial) selectedRomSha1.set(initial);
@@ -121,6 +140,7 @@
   onDestroy(() => {
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("keydown", onPaletteHotkey, true);
+    window.removeEventListener("popstate", onPopState);
     unsubSelected();
   });
 </script>
@@ -132,8 +152,8 @@
 {:else}
   <HomeHub />
 {/if}
-<WindowOverlays />
 <RomDrawer />
+<Overlay />
 <CommandPalette />
 <ConfirmDialog />
 <Toaster />

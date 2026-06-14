@@ -9,6 +9,7 @@
     import { CartType, cartTypeFromCgbFlag, cartTypeLabel } from "../cartType";
     import { SaveGames } from "stores/playStores";
     import { selectedRomSha1 } from "stores/windowStores";
+    import { closeOverlay } from "stores/overlayStore";
     import Icon from "./icons/Icon.svelte";
     import type { IconName } from "./icons/Icon.svelte";
 
@@ -163,6 +164,7 @@
                 <button
                     class="rom-play-button"
                     onclick={() => {
+                        closeOverlay();
                         playRomPromise = Emulator.PlayRom(rom);
                     }}
                     disabled={isLoading || isLoaded}
