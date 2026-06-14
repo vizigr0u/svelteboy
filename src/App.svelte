@@ -3,16 +3,17 @@
   import { get } from "svelte/store";
   import Player from "./lib/Player.svelte";
   import HomeHub from "./lib/HomeHub.svelte";
-  import WindowOverlays from "./lib/WindowOverlays.svelte";
   import ConfirmDialog from "./lib/ConfirmDialog.svelte";
   import Toaster from "./lib/Toaster.svelte";
   import Motd from "./lib/Motd.svelte";
   import AudioStatusNotice from "./lib/AudioStatusNotice.svelte";
-  import RomDrawer from "./lib/RomDrawer.svelte";
+  import SettingsDrawer from "./lib/SettingsDrawer.svelte";
+  import RomContextMenu from "./lib/RomContextMenu.svelte";
   import CommandPalette from "./lib/CommandPalette.svelte";
   import { Emulator } from "./emulator";
   import { parseRomParam } from "./utils";
-  import { playViewActive } from "./stores/viewStore";
+  import { playViewActive, goToHome } from "./stores/viewStore";
+  import { drawerOpen, closeDrawer } from "./stores/playUiStore";
   import { loadedCartridge, loadedBootRom } from "./stores/romStores";
   import {
     libraryHydrated,
@@ -20,12 +21,12 @@
     findLibraryRomByName,
     findLibraryRomByUri,
   } from "./stores/libraryStore";
-  import { selectedRomSha1 } from "./stores/windowStores";
   import { togglePalette, debugUnlocked } from "./stores/paletteStore";
   import type { LibraryRom } from "./types";
 
   const SHA1_HEX = /^[a-f0-9]{40}$/i;
 
+  // #rom=<sha1> deep link plays directly (the details drawer is retired).
   function readSha1FromHash(): string | undefined {
     const h = window.location.hash;
     const m = h.match(/(?:^|[&#])rom=([^&]+)/);
@@ -33,25 +34,6 @@
     const v = decodeURIComponent(m[1]);
     return SHA1_HEX.test(v) ? v.toLowerCase() : undefined;
   }
-
-  function writeSha1ToHash(sha1: string | undefined) {
-    const current = readSha1FromHash();
-    if (current === sha1) return;
-    if (!sha1) {
-      if (window.location.hash.startsWith("#rom=")) {
-        history.replaceState(null, "", window.location.pathname + window.location.search);
-      }
-      return;
-    }
-    history.replaceState(null, "", `${window.location.pathname}${window.location.search}#rom=${sha1}`);
-  }
-
-  function onHashChange() {
-    const s = readSha1FromHash();
-    if (s !== get(selectedRomSha1)) selectedRomSha1.set(s);
-  }
-
-  const unsubSelected = selectedRomSha1.subscribe((v) => writeSha1ToHash(v));
 
   function waitForLibrary(): Promise<void> {
     return new Promise((resolve) => {
@@ -83,13 +65,35 @@
     history.replaceState(null, "", newUrl);
   }
 
+  // Browser back: 1) close drawer, 2) leave Play for HomeHub, 3) let browser handle.
+  // A single sentinel entry sits on top of history; we re-push it after each intercept.
+  function onPopState() {
+    if (get(drawerOpen)) {
+      closeDrawer();
+      history.pushState({ sb: 1 }, "");
+      return;
+    }
+    if (get(playViewActive)) {
+      goToHome();
+      history.pushState({ sb: 1 }, "");
+      return;
+    }
+    // Nothing to dismiss: allow the navigation to proceed (browser leaves the app).
+  }
+
   onMount(async () => {
-    window.addEventListener("hashchange", onHashChange);
     window.addEventListener("keydown", onPaletteHotkey, true);
+    window.addEventListener("popstate", onPopState);
+    history.pushState({ sb: 1 }, "");
     maybeUnlockDebugFromQuery();
-    const initial = readSha1FromHash();
-    if (initial) selectedRomSha1.set(initial);
     const param = parseRomParam();
+    const hashSha1 = readSha1FromHash();
+    if (!param && hashSha1) {
+      await waitForLibrary();
+      const rom = await findLibraryRomBySha1(hashSha1);
+      if (rom) Emulator.PlayRom(rom);
+      return;
+    }
     if (!param) return;
     await waitForLibrary();
 
@@ -119,9 +123,8 @@
   });
 
   onDestroy(() => {
-    window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("keydown", onPaletteHotkey, true);
-    unsubSelected();
+    window.removeEventListener("popstate", onPopState);
   });
 </script>
 
@@ -132,8 +135,8 @@
 {:else}
   <HomeHub />
 {/if}
-<WindowOverlays />
-<RomDrawer />
+<SettingsDrawer />
+<RomContextMenu />
 <CommandPalette />
 <ConfirmDialog />
 <Toaster />

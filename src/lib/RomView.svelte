@@ -1,14 +1,14 @@
 <script lang="ts">
     import type { LibraryRom } from "../types";
     import { loadedCartridge } from "stores/romStores";
-    import { promoteUriToIdb } from "stores/libraryStore";
     import { getGbNames, getGbcNames } from "../cartridgeNames";
     import { Emulator } from "../emulator";
     import { humanReadableSize } from "../utils";
     import { onMount } from "svelte";
     import { CartType, cartTypeFromCgbFlag, cartTypeLabel } from "../cartType";
     import { SaveGames } from "stores/playStores";
-    import { selectedRomSha1 } from "stores/windowStores";
+    import { romMenuTrigger } from "./romMenuAction";
+    import { openRomMenu } from "stores/romMenuStore";
     import Icon from "./icons/Icon.svelte";
     import type { IconName } from "./icons/Icon.svelte";
 
@@ -44,7 +44,6 @@
     });
 
     let playRomPromise: Promise<void> | undefined = $state(undefined);
-    let savePromise: Promise<void> | undefined = $state(undefined);
     let isLoading: boolean = $state(false);
 
     let romDescription = $derived(getRomDescription(rom));
@@ -73,14 +72,22 @@
     );
     let isRemoteOnly = $derived(rom.source.kind === "uri");
 
-    function openDrawer(e: MouseEvent) {
+    // Tap = play (resume-aware: ResumeRom cold-loads then restores any auto-snap).
+    function play(e: MouseEvent) {
         if ((e.target as HTMLElement).closest('button, input, label, a')) return;
-        selectedRomSha1.set(rom.sha1);
+        playRomPromise = Emulator.ResumeRom(rom).then(() => {});
     }
     function onKey(e: KeyboardEvent) {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            selectedRomSha1.set(rom.sha1);
+            playRomPromise = Emulator.ResumeRom(rom).then(() => {});
+        }
+    }
+    function onMenuKey(e: KeyboardEvent) {
+        if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+            e.preventDefault();
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            openRomMenu(rom, r.left + 16, r.top + 16);
         }
     }
 
@@ -117,14 +124,6 @@
         return "";
     }
 
-    async function saveLocally() {
-        if (rom.source.kind !== "uri") return;
-        const res = await fetch(rom.source.uri);
-        if (!res.ok) return;
-        const bytes = await res.arrayBuffer();
-        await promoteUriToIdb(rom.sha1, bytes);
-    }
-
     function onThumbnailError(ev: any) {
         ev.target.src = defaultThumbnailUri;
         ev.target.alt = defaultAltText;
@@ -138,11 +137,12 @@
     class="rom-container"
     class:rom-loaded={isLoaded}
     class:rom-remote-only={isRemoteOnly}
-    onclick={openDrawer}
-    onkeydown={onKey}
+    onclick={play}
+    onkeydown={(e) => { onKey(e); onMenuKey(e); }}
+    use:romMenuTrigger={rom}
     role="button"
     tabindex="0"
-    aria-label="Open details for {rom.name}">
+    aria-label="Play {rom.name} (long-press or right-click for options)">
     <div class="image-wrapper">
         <img
             class="rom-thumbnail"
@@ -200,27 +200,6 @@
                     <Icon name="bookmark" /> {savesForRom}
                 </span>
             {/if}
-        </div>
-        <div class="rom-action-buttons">
-            {#if rom.source.kind === "uri"}
-                <button
-                    class="rom-action-button"
-                    onclick={() => {
-                        savePromise = saveLocally();
-                    }}
-                    disabled={isLoading || savePromise !== undefined}
-                >
-                    {#await savePromise}
-                        Saving...
-                    {:then}
-                        Save locally
-                    {/await}
-                </button>
-            {/if}
-            <button
-                class="rom-action-button"
-                onclick={() => selectedRomSha1.set(rom.sha1)}
-            >Details…</button>
         </div>
     </div>
 </div>
@@ -326,18 +305,6 @@
         width: auto;
         height: auto;
         max-height: 8em;
-    }
-
-    .rom-action-buttons {
-        display: flex;
-        width: 100%;
-        justify-content: space-around;
-        gap: 0.4em;
-    }
-
-    .rom-action-button {
-        padding: 0.2em 0.5em;
-        border-radius: 0;
     }
 
     .cart-badge {

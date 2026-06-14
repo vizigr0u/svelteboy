@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode, loadSaveState } from "./wasmBridge";
+import { loadCartridgeRom, loadSaveGame as backendLoadSave, setForcedRenderMode, loadSaveState, setMuteChannel } from "./wasmBridge";
 import { pauseEmulator, resetEmulator, runUntilBreak } from "./lifecycle";
 import { resetSaveTracking, postRun } from "./loop";
 import { snapNow, purgeAutoFor, resetAutoSnapTracking } from "./autoSnap";
@@ -8,7 +8,8 @@ import { loadAuto, isValidSaveStateBlob, deleteAuto } from "../saveStateDb";
 import { showToast } from "stores/toastStore";
 import { getBytesBySha1, markLibraryRomPlayed, promoteUriToIdb, reconcileSha1OnFirstPlay, ensureCgbFlag, ensureCartMeta, persistRomFields } from "stores/libraryStore";
 import { AutoSaveUriRoms, DefaultRenderMode } from "stores/optionsStore";
-import { loadedCartridge } from "stores/romStores";
+import { loadedCartridge, getPrefsFor } from "stores/romStores";
+import { PlayStartTime } from "stores/playStores";
 import { humanReadableSize } from "../utils";
 import { isZipUri, extractRomFromZip } from "../zipRom";
 import { CartType, cartTypeFromCgbFlag, resolveRenderMode, type ResolvedRenderMode } from "../cartType";
@@ -101,7 +102,10 @@ export async function playRom(rom: LibraryRom, opts: PlayRomOptions = {}): Promi
     }
     showRomsWindow.set(false);
     resetEmulator();
+    const muted = getPrefsFor(activeRom.sha1).mutedChannels ?? [];
+    for (let ch = 1; ch <= 4; ch++) setMuteChannel(ch, muted.includes(ch));
     loadedCartridge.set(activeRom);
+    PlayStartTime.set(Date.now());
     metaPersist
         .then(() => markLibraryRomPlayed(activeRom.sha1))
         .catch(err => console.error('markLibraryRomPlayed failed:', err));

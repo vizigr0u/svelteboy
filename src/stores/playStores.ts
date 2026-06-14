@@ -5,6 +5,7 @@ export const GameFrames = writable<number>(0);
 export const KeyPressMap = writable<Set<InputType>>(new Set<InputType>())
 export const EmulatorInitialized = writable<boolean>(false);
 export const EmulatorPaused = writable<boolean>(true);
+export const PlayStartTime = writable<number>(0);
 export const EmulatorBusy = writable<boolean>(false);
 export const FastForwardActive = writable<boolean>(false);
 export const AutoSave = writable<SaveGameData | undefined>(undefined);

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { showToast, type ToastKind } from "stores/toastStore";
 
     type Severity = "info" | "warn" | "error";
     type MotdEntry = {
@@ -9,9 +10,6 @@
         severity?: Severity;
     };
 
-    let entry = $state<MotdEntry | null>(null);
-    let dismissed = $state(false);
-
     function isActive(e: MotdEntry): boolean {
         if (!e.until) return true;
         const t = Date.parse(e.until);
@@ -20,6 +18,10 @@
 
     function storageKey(id: string): string {
         return `motd-dismissed-${id}`;
+    }
+
+    function toastKind(s?: Severity): ToastKind {
+        return s === "error" ? "error" : "info";
     }
 
     onMount(async () => {
@@ -33,66 +35,9 @@
             const pick = active[Math.floor(Math.random() * active.length)];
             try {
                 if (sessionStorage.getItem(storageKey(pick.id)) === "1") return;
+                sessionStorage.setItem(storageKey(pick.id), "1");
             } catch (_) {}
-            entry = pick;
+            showToast(pick.message, toastKind(pick.severity), 8000);
         } catch (_) {}
     });
-
-    function dismiss() {
-        if (!entry) return;
-        try {
-            sessionStorage.setItem(storageKey(entry.id), "1");
-        } catch (_) {}
-        dismissed = true;
-    }
 </script>
-
-{#if entry && !dismissed}
-    <div class="motd {entry.severity ?? 'info'}" role="status">
-        <span class="motd-text">{entry.message}</span>
-        <button type="button" class="motd-close" aria-label="Dismiss" onclick={dismiss}>×</button>
-    </div>
-{/if}
-
-<style>
-    .motd {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: var(--z-toast);
-        display: flex;
-        align-items: center;
-        gap: 0.6em;
-        padding: calc(0.5em + var(--safe-top)) calc(0.9em + var(--safe-right)) 0.5em calc(0.9em + var(--safe-left));
-        font-size: 0.9em;
-        box-shadow: var(--elev-1);
-    }
-    .motd.info {
-        background: var(--highlight-color);
-        color: var(--background-color);
-    }
-    .motd.warn {
-        background: #f9e2af;
-        color: var(--background-color);
-    }
-    .motd.error {
-        background: var(--danger-color);
-        color: var(--background-color);
-    }
-    .motd-text {
-        flex: 1;
-    }
-    .motd-close {
-        background: transparent;
-        border: none;
-        color: inherit;
-        font-size: 1.4em;
-        line-height: 1;
-        cursor: pointer;
-        padding: 0 0.3em;
-    }
-    .motd-close:hover {
-        opacity: 0.7;
-    }
-</style>

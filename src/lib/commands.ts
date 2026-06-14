@@ -4,14 +4,7 @@ import { pauseEmulator, unPauseEmulator } from "../emulator/lifecycle";
 import { goToHome, goToPlay, playViewActive } from "../stores/viewStore";
 import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 import { EmulatorPaused, FastForwardActive } from "../stores/playStores";
-import {
-    showSavesWindow,
-    showOptionsWindow,
-    showBindingsWindow,
-    showDebugWindow,
-    showAboutWindow,
-    showRomsWindow,
-} from "../stores/windowStores";
+import { openDrawer } from "../stores/playUiStore";
 import { showFrametimeHistogram } from "../stores/optionsStore";
 import { DebuggerAttached } from "../stores/debugStores";
 import { debugUnlocked } from "../stores/paletteStore";
@@ -49,10 +42,6 @@ function toggleWindow(store: Writable<boolean>): void {
     store.update(v => !v);
 }
 
-function openWindow(store: Writable<boolean>): void {
-    store.set(true);
-}
-
 function toggleFullscreen(): void {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
     else document.exitFullscreen?.();
@@ -81,15 +70,15 @@ const navCommands: Command[] = [
         group: "nav",
         keywords: ["games", "list"],
         available: () => true,
-        run: () => openWindow(showRomsWindow),
+        run: goToHome,
     },
     {
         id: "nav.options",
-        label: "Open Options",
+        label: "Open Settings",
         group: "nav",
-        keywords: ["settings", "preferences"],
+        keywords: ["settings", "preferences", "options"],
         available: () => true,
-        run: () => openWindow(showOptionsWindow),
+        run: () => openDrawer("general"),
     },
     {
         id: "nav.bindings",
@@ -97,21 +86,21 @@ const navCommands: Command[] = [
         group: "nav",
         keywords: ["keys", "keyboard", "shortcuts"],
         available: () => true,
-        run: () => openWindow(showBindingsWindow),
+        run: () => openDrawer("general"),
     },
     {
         id: "nav.saves",
         label: "Open Saves",
         group: "nav",
         available: () => hasCart(),
-        run: () => openWindow(showSavesWindow),
+        run: () => openDrawer("game"),
     },
     {
         id: "nav.about",
         label: "Open About",
         group: "nav",
         available: () => true,
-        run: () => openWindow(showAboutWindow),
+        run: () => openDrawer("general"),
     },
 ];
 
@@ -235,7 +224,7 @@ const debugCommands: Command[] = [
         label: "Open Debug window",
         group: "debug",
         available: () => get(debugUnlocked),
-        run: () => openWindow(showDebugWindow),
+        run: () => openDrawer("general"),
     },
     {
         id: "debug.attach",

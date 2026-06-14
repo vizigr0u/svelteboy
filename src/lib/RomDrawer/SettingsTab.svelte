@@ -1,9 +1,17 @@
 <script lang="ts">
+    import { get } from "svelte/store";
     import type { LibraryRom } from "../../types";
     import { setRenderModeForRom } from "stores/libraryStore";
-    import { prefsForRom, setPrefsFor } from "stores/romStores";
+    import { prefsForRom, setPrefsFor, loadedCartridge } from "stores/romStores";
+    import { EmulatorPaused, PlayStartTime } from "stores/playStores";
     import { showToast } from "stores/toastStore";
+    import { requestConfirm } from "stores/confirmStore";
+    import { playRom } from "../../emulator/rom";
+    import { Debug } from "../../emulator";
     import type { RenderModeOverride } from "../../cartType";
+
+    // Prompt if the user has been playing for a while, to avoid accidental loss of progress.
+    const RESTART_PROMPT_THRESHOLD_MS = 20_000;
 
     let { rom } = $props<{ rom: LibraryRom }>();
     let prefs = $derived(prefsForRom(rom.sha1));
@@ -63,6 +71,22 @@
         if (mode === currentMode) return;
         await setRenderModeForRom(rom.sha1, mode);
         showToast('Saved render mode.', 'info');
+
+        const cart = get(loadedCartridge);
+        const running = !!cart && cart.sha1 === rom.sha1 && !get(EmulatorPaused);
+        if (!running) return;
+
+        const playedMs = Date.now() - get(PlayStartTime);
+        if (playedMs >= RESTART_PROMPT_THRESHOLD_MS) {
+            const ok = await requestConfirm({
+                title: 'Apply render mode now?',
+                message: 'Changing render mode requires resetting the running game. Unsaved progress since the last autosave may be lost. Reset now?',
+                confirmLabel: 'Reset',
+                cancelLabel: 'Later',
+            });
+            if (!ok) return;
+        }
+        await playRom({ ...cart, renderMode: mode });
     }
 
     function toggleMute(ch: number) {
@@ -71,6 +95,9 @@
             : [...mutedChannels, ch];
         setPrefsFor(rom.sha1, { mutedChannels: next });
         showToast(`Saved CH${ch} mute.`, 'info');
+
+        const cart = get(loadedCartridge);
+        if (cart && cart.sha1 === rom.sha1) Debug.SetMuteChannel(ch, next.includes(ch));
     }
 
     function toggleSkipBoot(e: Event) {
