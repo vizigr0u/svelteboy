@@ -14,7 +14,7 @@ vi.mock('../stores/playStores', async () => {
     const { writable } = await import('svelte/store');
     return { EmulatorPaused: writable(false), FastForwardActive: writable(false) };
 });
-vi.mock('../stores/overlayStore', () => ({ openOverlay: () => {} }));
+vi.mock('../stores/playUiStore', () => ({ openDrawer: () => {} }));
 vi.mock('../stores/optionsStore', async () => {
     const { writable } = await import('svelte/store');
     return { showFrametimeHistogram: writable(false) };

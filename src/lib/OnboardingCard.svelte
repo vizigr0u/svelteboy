@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import { onboardingReady, onboardingDismissed, dismissOnboarding } from "stores/onboardingStore";
-    import { overlayOpen } from "stores/overlayStore";
 
     let isCoarse = $state(false);
 
@@ -10,17 +9,15 @@
         const upd = () => (isCoarse = mql.matches);
         upd();
         mql.addEventListener("change", upd);
-        // Dismiss the moment the user opens the overlay for the first time.
-        const unsub = overlayOpen.subscribe(open => { if (open) dismissOnboarding(); });
-        return () => { mql.removeEventListener("change", upd); unsub(); };
+        // First real interaction dismisses the card via markInteracted() ->
+        // onboardingDismissed; the "Got it" button is the explicit fallback.
+        return () => { mql.removeEventListener("change", upd); };
     });
-
-    onDestroy(() => {});
 
     let show = $derived($onboardingReady && !$onboardingDismissed);
     let text = $derived(isCoarse
-        ? "Tap the screen to open the menu."
-        : "Press Esc or hover the left edge to open the menu.");
+        ? "Tap the screen for the menu."
+        : "Press Esc or move the mouse for the menu.");
 </script>
 
 {#if show}

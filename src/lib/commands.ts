@@ -4,7 +4,7 @@ import { pauseEmulator, unPauseEmulator } from "../emulator/lifecycle";
 import { goToHome, goToPlay, playViewActive } from "../stores/viewStore";
 import { loadedCartridge, loadedBootRom } from "../stores/romStores";
 import { EmulatorPaused, FastForwardActive } from "../stores/playStores";
-import { openOverlay } from "../stores/overlayStore";
+import { openDrawer } from "../stores/playUiStore";
 import { showFrametimeHistogram } from "../stores/optionsStore";
 import { DebuggerAttached } from "../stores/debugStores";
 import { debugUnlocked } from "../stores/paletteStore";
@@ -70,15 +70,15 @@ const navCommands: Command[] = [
         group: "nav",
         keywords: ["games", "list"],
         available: () => true,
-        run: () => openOverlay("library"),
+        run: goToHome,
     },
     {
         id: "nav.options",
-        label: "Open Options",
+        label: "Open Settings",
         group: "nav",
-        keywords: ["settings", "preferences"],
+        keywords: ["settings", "preferences", "options"],
         available: () => true,
-        run: () => openOverlay("options"),
+        run: () => openDrawer("general"),
     },
     {
         id: "nav.bindings",
@@ -86,21 +86,21 @@ const navCommands: Command[] = [
         group: "nav",
         keywords: ["keys", "keyboard", "shortcuts"],
         available: () => true,
-        run: () => openOverlay("options"),
+        run: () => openDrawer("general"),
     },
     {
         id: "nav.saves",
         label: "Open Saves",
         group: "nav",
         available: () => hasCart(),
-        run: () => openOverlay("now"),
+        run: () => openDrawer("game"),
     },
     {
         id: "nav.about",
         label: "Open About",
         group: "nav",
         available: () => true,
-        run: () => openOverlay("options"),
+        run: () => openDrawer("general"),
     },
 ];
 
@@ -224,7 +224,7 @@ const debugCommands: Command[] = [
         label: "Open Debug window",
         group: "debug",
         available: () => get(debugUnlocked),
-        run: () => openOverlay("options"),
+        run: () => openDrawer("general"),
     },
     {
         id: "debug.attach",

@@ -5,11 +5,11 @@
     import { humanReadableSize } from "../utils";
     import { formatRelativeTime } from "../relativeTime";
     import { Emulator } from "../emulator";
-    import { selectedRomSha1 } from "stores/windowStores";
+    import { romMenuTrigger } from "./romMenuAction";
+    import { openRomMenu } from "stores/romMenuStore";
     import { loadedCartridge } from "stores/romStores";
     import { EmulatorInitialized } from "stores/playStores";
     import { goToPlay } from "stores/viewStore";
-    import { closeOverlay } from "stores/overlayStore";
     import { loadAuto, autoSnapVersion } from "../saveStateDb";
     import { resolveHeroAction } from "./heroAction";
     import { onMount, onDestroy } from "svelte";
@@ -70,7 +70,6 @@
     let primaryHint = $derived(isResume ? 'Continue session' : undefined);
 
     function primary() {
-        closeOverlay();
         if (action === 'resume') {
             if (isLiveSession) {
                 goToPlay();
@@ -83,16 +82,16 @@
     }
 
     function restart() {
-        closeOverlay();
         Emulator.PlayRom(rom, { purgeAutoOnLoad: true });
     }
 
-    function openDetails() {
-        selectedRomSha1.set(rom.sha1);
+    function openMenu(e: MouseEvent) {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        openRomMenu(rom, r.left, r.bottom + 4);
     }
 </script>
 
-<section class="hero" aria-label="Continue playing">
+<section class="hero" aria-label="Continue playing" use:romMenuTrigger={rom}>
     <div class="hero-art" style="background-image: url({thumbSrc});" aria-hidden="true"></div>
     <div class="hero-art-scrim" aria-hidden="true"></div>
     <div class="hero-content">
@@ -119,7 +118,7 @@
                 <button class="cta-primary" onclick={primary} title={primaryHint}>
                     <Icon name="circle-play" /> {primaryLabel}
                 </button>
-                <button class="cta-secondary" onclick={openDetails}>Details</button>
+                <button class="cta-secondary" onclick={openMenu}>Options</button>
                 {#if isResume}
                     <button class="cta-tertiary" onclick={restart} title="Cold boot (discards auto-saved session)">
                         Restart

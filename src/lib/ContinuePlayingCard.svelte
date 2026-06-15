@@ -2,8 +2,7 @@
     import type { LibraryRom } from "../types";
     import { resolveRomArt, onThumbErr, DEFAULT_THUMB_SRC, DEFAULT_THUMB_ALT } from "../cartArt";
     import { Emulator } from "../emulator";
-    import { selectedRomSha1 } from "stores/windowStores";
-    import { closeOverlay } from "stores/overlayStore";
+    import { romMenuTrigger } from "./romMenuAction";
     import { loadAuto, autoSnapVersion } from "../saveStateDb";
     import { formatRelativeTime } from "../relativeTime";
     import { onMount, onDestroy } from "svelte";
@@ -40,19 +39,15 @@
         return autoSavedAt ? formatRelativeTime(autoSavedAt) : undefined;
     });
 
-    function play(e: MouseEvent) {
-        e.stopPropagation();
-        closeOverlay();
+    function play(e?: Event) {
+        e?.stopPropagation();
         if (autoThumb) Emulator.ResumeRom(rom);
         else Emulator.PlayRom(rom);
-    }
-    function openDetails() {
-        selectedRomSha1.set(rom.sha1);
     }
     function onKey(e: KeyboardEvent) {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            selectedRomSha1.set(rom.sha1);
+            play();
         }
     }
 </script>
@@ -62,9 +57,10 @@
     class="cp-card"
     role="button"
     tabindex="0"
-    onclick={openDetails}
+    onclick={play}
     onkeydown={onKey}
-    aria-label="Open {rom.name}"
+    use:romMenuTrigger={rom}
+    aria-label="Play {rom.name} (long-press or right-click for options)"
 >
     <div class="cp-thumb-wrap">
         <img class="cp-thumb" src={thumbSrc} alt={thumbAlt} onerror={onThumbErr} loading="lazy" />

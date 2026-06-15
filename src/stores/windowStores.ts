@@ -1,9 +1,6 @@
-import { writable, type Writable } from "svelte/store";
 import { MakeIDBStore } from "./idbStore";
 
 export const showRomsWindow     = MakeIDBStore('showRoms', false);
-
-export const selectedRomSha1: Writable<string | undefined> = writable(undefined);
 
 export const debugPanels = {
     debugger:  MakeIDBStore('dbg_debugger', true),

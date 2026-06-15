@@ -5,6 +5,8 @@
     import { HapticsEnabled } from "stores/optionsStore";
     import { KeyPressMap } from "stores/playStores";
 
+    let { mode = 'bar', hideActions = false }: { mode?: 'bar' | 'sides'; hideActions?: boolean } = $props();
+
     let buttonContainer: HTMLElement;
 
     let buttons: NodeListOf<HTMLButtonElement>;
@@ -50,7 +52,7 @@
     });
 </script>
 
-<div class="input-viewer" bind:this={buttonContainer}>
+<div class="input-viewer" class:sides={mode === 'sides'} class:hide-actions={hideActions} bind:this={buttonContainer}>
     <div class="dir-viewer">
         <button data-input="Up" aria-label="Up"></button>
         <button data-input="Left" aria-label="Left"></button>
@@ -173,6 +175,42 @@
     }
     .action-key-viewer > button[data-input="A"] {
         margin-bottom: 4cqmin;
+    }
+
+    /* Landscape: clusters become absolute overlays in the slack beside the game.
+       Container-relative (T1): nests in any-size GameStage, not the viewport.
+       Click-through; only the control clusters capture input. */
+    .input-viewer.sides {
+        position: absolute;
+        inset: 0;
+        display: block;
+        padding: 0;
+        pointer-events: none;
+        --pad: 9cqmin;
+        --action: 11cqmin;
+        --special: 9cqmin;
+    }
+    .input-viewer.sides .dir-viewer {
+        position: absolute;
+        left: 3cqmin;
+        bottom: calc(4cqmin + env(safe-area-inset-bottom));
+        pointer-events: auto;
+    }
+    .input-viewer.sides .action-key-viewer {
+        position: absolute;
+        right: 3cqmin;
+        bottom: calc(4cqmin + env(safe-area-inset-bottom));
+        pointer-events: auto;
+    }
+    .input-viewer.sides .special-key-viewer {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(2cqmin + env(safe-area-inset-bottom));
+        pointer-events: auto;
+    }
+    .input-viewer.sides.hide-actions .action-key-viewer {
+        display: none;
     }
 
     :global(.input-viewer button.pressed) {

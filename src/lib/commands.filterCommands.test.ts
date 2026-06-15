@@ -18,7 +18,7 @@ vi.mock('../emulator/lifecycle', () => ({ pauseEmulator: () => {}, unPauseEmulat
 vi.mock('../stores/viewStore', () => ({ goToHome: () => {}, goToPlay: () => {}, playViewActive }));
 vi.mock('../stores/romStores', () => ({ loadedCartridge, loadedBootRom }));
 vi.mock('../stores/playStores', () => ({ EmulatorPaused, FastForwardActive }));
-vi.mock('../stores/overlayStore', () => ({ openOverlay: () => {} }));
+vi.mock('../stores/playUiStore', () => ({ openDrawer: () => {} }));
 vi.mock('../stores/optionsStore', () => ({ showFrametimeHistogram }));
 vi.mock('../stores/debugStores', () => ({ DebuggerAttached }));
 vi.mock('../stores/paletteStore', () => ({ debugUnlocked }));
