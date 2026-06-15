@@ -178,7 +178,9 @@
                     <input type="number" min="0" max="59" value={rtcMins} onchange={changeRtcMins} />
                     m
                 </label>
-                <button type="button" class="reset-btn" onclick={resetRtc}>Reset</button>
+                {#if rtcOffsetSec !== 0}
+                    <button type="button" class="reset-btn" onclick={resetRtc}>Reset</button>
+                {/if}
             </div>
             <p class="rtc-preview">
                 {rtcPreviewRelative}
