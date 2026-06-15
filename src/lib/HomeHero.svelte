@@ -6,7 +6,6 @@
     import { formatRelativeTime } from "../relativeTime";
     import { Emulator } from "../emulator";
     import { romMenuTrigger } from "./romMenuAction";
-    import { openRomMenu } from "stores/romMenuStore";
     import { loadedCartridge } from "stores/romStores";
     import { EmulatorInitialized } from "stores/playStores";
     import { goToPlay } from "stores/viewStore";
@@ -84,11 +83,6 @@
     function restart() {
         Emulator.PlayRom(rom, { purgeAutoOnLoad: true });
     }
-
-    function openMenu(e: MouseEvent) {
-        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        openRomMenu(rom, r.left, r.bottom + 4);
-    }
 </script>
 
 <section class="hero" aria-label="Continue playing" use:romMenuTrigger={rom}>
@@ -118,11 +112,8 @@
                 <button class="cta-primary" onclick={primary} title={primaryHint}>
                     <Icon name="circle-play" /> {primaryLabel}
                 </button>
-                <button class="cta-secondary" onclick={openMenu}>Options</button>
                 {#if isResume}
-                    <button class="cta-tertiary" onclick={restart} title="Cold boot (discards auto-saved session)">
-                        Restart
-                    </button>
+                    <button class="cta-secondary" role="menuitem" onclick={restart}><Icon name="rotate" /> Restart</button>
                 {/if}
             </div>
         </div>
