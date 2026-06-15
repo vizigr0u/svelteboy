@@ -31,15 +31,6 @@
     <button class="big-pause" aria-label={$EmulatorPaused ? "Play" : "Pause"} onclick={togglePause}>
         <Icon name={$EmulatorPaused ? "play" : "pause"} />
     </button>
-
-    {#if !minimal}
-        <div class="row bottom">
-            <span class="title">{title}</span>
-            <button class="btn game" title="Game settings" aria-label="Game settings" onclick={() => openDrawer('game')}>
-                <Icon name="gear" /><Icon name="chevron-down" />
-            </button>
-        </div>
-    {/if}
 </div>
 
 <style>
@@ -71,49 +62,43 @@
         gap: 0.5em;
     }
     .row.top { justify-content: space-between; }
-    .row.bottom { justify-content: space-between; }
-
-    .title {
-        color: #fff;
-        font-weight: 600;
-        font-size: 0.95em;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
-        min-width: 0;
-    }
 
     .btn {
         pointer-events: auto;
         background: rgba(0, 0, 0, 0.45);
         border: none;
         color: #fff;
-        width: 2em;
-        height: 2em;
-        border-radius: 0.4em;
-        font-size: 1.1em;
+        /* width: 4cqw;
+        min-width: 1.5em;
+        aspect-ratio: 1; */
+        border-radius: 50%;
+        font-size: max(1.3em, 5cqw);
+        padding: 1.5cqw;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex: 0 0 auto;
     }
-    .btn.game { width: auto; gap: 0.1em; padding: 0 0.5em; }
     .btn:hover { background: rgba(0, 0, 0, 0.7); }
     .chrome:not(.visible) .btn,
     .chrome:not(.visible) .big-pause { pointer-events: none; }
 
     .big-pause {
         pointer-events: auto;
-        align-self: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.5);
+        padding: 0;
         border: none;
         color: #fff;
-        width: 3em;
-        height: 3em;
+        width: 7cqw;
+        min-width: 2em;
+        aspect-ratio: 1;
         border-radius: 50%;
-        font-size: 1.6em;
+        font-size: max(2em, 6cqw);
         cursor: pointer;
         display: inline-flex;
         align-items: center;

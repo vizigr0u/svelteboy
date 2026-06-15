@@ -9,7 +9,7 @@ import { onboardingDismissed, dismissOnboarding } from "./onboardingStore";
 
 export type DrawerTab = "general" | "game";
 
-export const CHROME_AUTOHIDE_MS = 3000;
+export const CHROME_AUTOHIDE_MS = 1800;
 
 export const chromeVisible = writable<boolean>(false);
 export const drawerOpen = writable<boolean>(false);
