@@ -92,8 +92,8 @@
     .chip { padding: 0.05em 0.4em; border-radius: 0.2em; font-weight: 600; }
     .chip.cart { background: #4a5568; color: #e2e8f0; }
     .chip.mbc { background: #2c3e50; color: #ecf0f1; font-family: ui-monospace, monospace; }
-    .chip.feat { display: inline-flex; align-items: center; background: rgba(255,255,255,0.08); color: #cfd8dc; }
-    .np-last { font-size: 0.8em; color: #888; }
+    .chip.feat { display: inline-flex; align-items: center; background: var(--tint-2); color: #cfd8dc; }
+    .np-last { font-size: 0.8em; color: var(--muted-color); }
 
     .action-row { display: flex; gap: 0.5em; }
     .act {
@@ -101,21 +101,21 @@
         display: inline-flex; align-items: center; justify-content: center; gap: 0.4em;
         padding: 0.5em;
         background: rgba(255,255,255,0.06);
-        border: 1px solid #45475a;
+        border: 1px solid var(--border-color);
         border-radius: 0.4em;
         color: inherit; cursor: pointer; font-size: 0.9em;
     }
-    .act:hover { background: rgba(255,255,255,0.12); }
+    .act:hover { background: var(--tint-3); }
 
-    .sub-nav { display: flex; border-bottom: 1px solid #45475a; }
+    .sub-nav { display: flex; border-bottom: 1px solid var(--border-color); }
     .sub-btn {
-        flex: 1; background: none; border: none; color: #888;
+        flex: 1; background: none; border: none; color: var(--muted-color);
         padding: 0.55em; cursor: pointer; font-size: 0.9em;
         border-bottom: 2px solid transparent;
     }
-    .sub-btn.active { color: #cdd6f4; border-bottom-color: var(--highlight-color, #89b4fa); }
+    .sub-btn.active { color: var(--text-color); border-bottom-color: var(--highlight-color); }
     .sub-btn:hover:not(.active) { color: #b0b0b0; }
     .sub-body { padding-top: 0.3em; }
 
-    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 1em; padding: 3em 0; color: #888; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 1em; padding: 3em 0; color: var(--muted-color); }
 </style>

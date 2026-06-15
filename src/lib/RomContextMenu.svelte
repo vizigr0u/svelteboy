@@ -66,15 +66,15 @@
     .menu-backdrop {
         position: fixed;
         inset: 0;
-        z-index: 200;
+        z-index: var(--z-modal);
     }
     .menu {
         position: fixed;
         min-width: 12em;
         max-width: 80vw;
-        background: #1e1e2e;
-        color: #cdd6f4;
-        border: 1px solid #45475a;
+        background: var(--background-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 0.4em;
         box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
         padding: 0.3em;
@@ -84,12 +84,12 @@
     }
     .menu-title {
         font-size: 0.75em;
-        color: #888;
+        color: var(--muted-color);
         padding: 0.3em 0.5em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        border-bottom: 1px solid #313244;
+        border-bottom: 1px solid var(--panel-color);
         margin-bottom: 0.2em;
     }
     .menu button {
@@ -105,7 +105,7 @@
         cursor: pointer;
         font-size: 0.9em;
     }
-    .menu button:hover { background: rgba(255, 255, 255, 0.08); }
-    .menu button.danger { color: #f38ba8; }
+    .menu button:hover { background: var(--tint-2); }
+    .menu button.danger { color: var(--danger-color); }
     .menu button.danger:hover { background: rgba(243, 139, 168, 0.12); }
 </style>

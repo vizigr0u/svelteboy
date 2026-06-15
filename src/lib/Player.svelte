@@ -12,7 +12,7 @@
     import GameStage from "./GameStage.svelte";
     import { DragState } from "../types";
     import {
-        drawerOpen,
+        drawerOpen, chromeVisible,
         revealChrome, hideChrome, closeDrawer, registerFullscreenToggle,
     } from "stores/playUiStore";
 
@@ -58,13 +58,14 @@
         updateLandscape();
         landscapeMql.addEventListener("change", updateLandscape);
 
-        // Desktop: Esc reveals chrome (closes drawer first if open).
+        // Desktop: Esc toggles chrome (closes drawer first if open; hides chrome if showing).
         const onEsc = (e: KeyboardEvent) => {
             if (e.key !== "Escape" || isCoarsePointer) return;
             if (get(drawerOpen)) { e.preventDefault(); closeDrawer(); return; }
             if (!hasRom) return;
             e.preventDefault();
-            revealChrome();
+            if (get(chromeVisible)) hideChrome();
+            else revealChrome();
         };
         window.addEventListener("keydown", onEsc);
 

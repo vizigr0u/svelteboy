@@ -33,13 +33,13 @@
         left: 50%;
         bottom: 1.2em;
         transform: translateX(-50%);
-        z-index: 150;
+        z-index: var(--z-hud);
         display: flex;
         align-items: center;
         gap: 0.8em;
         background: rgba(30, 30, 46, 0.95);
-        color: #cdd6f4;
-        border: 1px solid #45475a;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 0.6em;
         padding: 0.6em 0.9em;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
@@ -48,8 +48,8 @@
     }
     .msg { font-size: 0.9em; }
     .dismiss {
-        background: var(--highlight-color, #89b4fa);
-        color: #1e1e2e;
+        background: var(--highlight-color);
+        color: var(--background-color);
         border: none;
         border-radius: 0.4em;
         padding: 0.35em 0.8em;

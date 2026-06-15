@@ -17,6 +17,12 @@ export const drawerTab = writable<DrawerTab>("general");
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Touch devices have no hover/cursor activity to re-reveal chrome, so auto-hide
+// would strand the user. Coarse pointer => chrome stays until an explicit tap.
+function isCoarsePointer(): boolean {
+    return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+}
+
 function clearHideTimer(): void {
     if (hideTimer) {
         clearTimeout(hideTimer);
@@ -28,6 +34,7 @@ function clearHideTimer(): void {
 // (sticky chrome stays until the user's first interaction; see markInteracted).
 export function hideChromeSoon(): void {
     clearHideTimer();
+    if (isCoarsePointer()) return;
     if (get(EmulatorPaused)) return;
     if (!get(onboardingDismissed)) return;
     hideTimer = setTimeout(() => {

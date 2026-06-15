@@ -225,27 +225,27 @@
     .section-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25em; }
     .section-list button {
         display: flex; align-items: center; gap: 0.7em; width: 100%;
-        background: rgba(255,255,255,0.04); border: 1px solid #313244;
+        background: rgba(255,255,255,0.04); border: 1px solid var(--panel-color);
         color: inherit; padding: 0.85em 0.9em; border-radius: 0.5em;
         cursor: pointer; font-size: 1em; text-align: left;
     }
-    .section-list button:hover { background: rgba(255,255,255,0.08); }
+    .section-list button:hover { background: var(--tint-2); }
     .lbl { flex: 1; }
     .chev { opacity: 0.5; font-size: 1.2em; }
 
     .subpage { display: flex; flex-direction: column; gap: 0.5em; }
     .back {
         align-self: flex-start;
-        background: none; border: none; color: var(--highlight-color, #89b4fa);
+        background: none; border: none; color: var(--highlight-color);
         cursor: pointer; font-size: 0.95em; padding: 0.2em 0;
     }
-    h4 { margin: 0.6em 0 0.2em; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em; color: #888; }
+    h4 { margin: 0.6em 0 0.2em; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-color); }
     .grid { display: grid; grid-template-columns: 13em minmax(0, 1fr); align-items: center; gap: 0.3em 0.5em; }
     .grid input[type="checkbox"] { margin-right: auto; }
     .lab { display: flex; align-items: center; }
     .chip-row { display: flex; flex-wrap: wrap; gap: 0.4em 0.8em; }
     .toggle { display: inline-flex; align-items: center; gap: 0.3em; font-size: 0.9em; }
-    .danger { color: #f38ba8; align-self: flex-start; background: none; border: 1px solid #45475a; padding: 0.4em 0.8em; border-radius: 0.3em; cursor: pointer; }
+    .danger { color: var(--danger-color); align-self: flex-start; background: none; border: 1px solid var(--border-color); padding: 0.4em 0.8em; border-radius: 0.3em; cursor: pointer; }
     .danger:hover { background: rgba(243,139,168,0.12); }
-    .loading { color: #888; font-style: italic; }
+    .loading { color: var(--muted-color); font-style: italic; }
 </style>

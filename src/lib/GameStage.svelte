@@ -192,7 +192,7 @@
     .pad-layer.sides {
         position: absolute;
         inset: 0;
-        z-index: 8;
+        z-index: var(--z-content);
         pointer-events: none;
     }
 </style>

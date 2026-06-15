@@ -61,7 +61,7 @@
     .chrome {
         position: absolute;
         inset: 0;
-        z-index: 20;
+        z-index: var(--z-hud);
         display: flex;
         flex-direction: column;
         justify-content: space-between;

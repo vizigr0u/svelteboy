@@ -99,7 +99,7 @@
     .drawer-root {
         position: fixed;
         inset: 0;
-        z-index: 160;
+        z-index: var(--z-overlay);
         pointer-events: none;
         display: flex;
         align-items: flex-end;
@@ -113,12 +113,12 @@
        Body scrolls if overflow. */
     .drawer-panel {
         pointer-events: auto;
-        background: #1e1e2e;
-        color: #cdd6f4;
+        background: var(--background-color);
+        color: var(--text-color);
         width: 100vw;
         height: 66dvh;
         border-radius: 1em 1em 0 0;
-        border-top: 1px solid #45475a;
+        border-top: 1px solid var(--border-color);
         box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
         display: flex;
         flex-direction: column;
@@ -131,7 +131,7 @@
         height: 100dvh;
         border-radius: 0 1em 1em 0;
         border-top: none;
-        border-right: 1px solid #45475a;
+        border-right: 1px solid var(--border-color);
         box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
         animation: slideLeft 0.24s cubic-bezier(0.2, 0.8, 0.3, 1);
     }
@@ -152,27 +152,27 @@
     .tab-strip {
         display: flex;
         align-items: center;
-        border-bottom: 1px solid #45475a;
-        background: #181825;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--section-bg-color);
         padding-right: 0.4em;
     }
     .tab-btn {
         flex: 1;
         background: none;
         border: none;
-        color: #888;
+        color: var(--muted-color);
         padding: 0.85em 0.5em;
         cursor: pointer;
         font-size: 0.95em;
         border-bottom: 2px solid transparent;
     }
-    .tab-btn.active { color: #cdd6f4; border-bottom-color: var(--highlight-color, #89b4fa); }
+    .tab-btn.active { color: var(--text-color); border-bottom-color: var(--highlight-color); }
     .tab-btn:hover:not(.active) { color: #b0b0b0; }
     .close-btn {
-        background: none; border: none; color: #cdd6f4;
+        background: none; border: none; color: var(--text-color);
         cursor: pointer; font-size: 1.1em; padding: 0.3em 0.5em; flex: 0 0 auto;
     }
-    .close-btn:hover { color: #f38ba8; }
+    .close-btn:hover { color: var(--danger-color); }
     .drawer-body { flex: 1; min-height: 0; overflow-y: auto; padding: 1em; }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes slideLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
