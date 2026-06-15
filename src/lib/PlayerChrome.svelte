@@ -36,9 +36,11 @@
         <div class="row top">
             <button class="btn" title="Library" aria-label="Back to library" onclick={exit}>
                 <Icon name="library" />
+                <span class="label" aria-hidden="true">Library</span>
             </button>
             <button class="btn" title="Settings" aria-label="Open settings" onclick={() => openDrawer('general')}>
                 <Icon name="gear" />
+                <span class="label" aria-hidden="true">Settings</span>
             </button>
         </div>
     {/if}
@@ -90,19 +92,38 @@
         background: rgba(0, 0, 0, 0.45);
         border: none;
         color: #fff;
-        /* width: 4cqw;
-        min-width: 1.5em;
-        aspect-ratio: 1; */
-        border-radius: 50%;
-        font-size: max(1.3em, 5cqmax);
-        padding: 1.5cqw;
+        border-radius: 999px;
+        font-size: max(1em, 3.4cqmax);
+        padding: 0.4em 0.75em;
+        gap: 0.4em;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex: 0 0 auto;
     }
+    /* Mirror the right button so icon sits toward the screen edge, text inward. */
+    .row.top .btn:last-child { flex-direction: row-reverse; }
+    .btn :global(.icon) { font-size: 1.3em; }
+    .label {
+        font-weight: 600;
+        font-size: max(.7em, 2cqmax);
+        line-height: 1;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    }
     .btn:hover { background: rgba(0, 0, 0, 0.7); }
+
+    /* Portrait: corners are width-tight (game letterboxed) — stack icon over caption. */
+    @container (orientation: portrait) {
+        .row.top .btn,
+        .row.top .btn:last-child {
+            flex-direction: column;
+            gap: 0.1em;
+            border-radius: 0.8em;
+            padding: 0.45em 0.6em;
+        }
+        .label { font-size: 0.7em; }
+    }
     .chrome:not(.visible) .btn,
     .chrome:not(.visible) .big-pause { pointer-events: none; }
 
