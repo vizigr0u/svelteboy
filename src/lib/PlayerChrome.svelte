@@ -35,7 +35,7 @@
     {#if !minimal}
         <div class="row top">
             <button class="btn" title="Library" aria-label="Back to library" onclick={exit}>
-                <Icon name="hard-drive" />
+                <Icon name="library" />
             </button>
             <button class="btn" title="Settings" aria-label="Open settings" onclick={() => openDrawer('general')}>
                 <Icon name="gear" />
@@ -138,8 +138,7 @@
         background: rgba(0, 0, 0, 0.55);
     }
     .banner-art {
-        height: 12cqmax;
-        max-height: 3em;
+        height: max(15cqmin, 1.3em);
         width: auto;
         object-fit: contain;
         flex: 0 0 auto;
