@@ -14,8 +14,9 @@ export const PALETTE_PRESETS: readonly GBPalette[] = [
 ] as const;
 
 export const PALETTE_NAMES = ['Green', 'Black&White', 'Pocket', 'DMG-01'] as const;
+export const DEFAULT_PALETTE_INDEX = 2;
 
-export const SelectedPaletteIndex = MakeLocalStore<number>('option-palette-index', 0);
+export const SelectedPaletteIndex = MakeLocalStore<number>('option-palette-index', DEFAULT_PALETTE_INDEX);
 
 export const useBoot = writable<boolean>(false);
 export const showFrametimeHistogram = MakeLocalStore<boolean>('option-show-frametime-histogram', false);
@@ -47,9 +48,9 @@ export const KeyBindingsStore = MakeLocalStore<KeyBindings>('option-keybindings'
 export const DefaultRenderMode = MakeLocalStore<RenderModeOverride>('option-default-render-mode', 'auto');
 
 export type CgbColorMode = 'none' | 'lut' | 'subpixel';
-export const CgbColor = MakeLocalStore<CgbColorMode>('option-cgb-color-mode', 'none');
+export const CgbColor = MakeLocalStore<CgbColorMode>('option-cgb-color-mode', 'lut');
 export const GhostingStrength = MakeLocalStore<number>('option-ghosting-strength', 0);
-export const PixelPerfect = MakeLocalStore<boolean>('option-pixel-perfect', true);
+export const PixelPerfect = MakeLocalStore<boolean>('option-pixel-perfect', false);
 export type ScreenshotSizeMode = 'gb' | 'canvas';
 export const ScreenshotSize = MakeLocalStore<ScreenshotSizeMode>('option-screenshot-size', 'canvas');
 export const HapticsEnabled = MakeLocalStore<boolean>('option-haptics-enabled', true);
