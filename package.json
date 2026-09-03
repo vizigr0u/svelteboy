@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@csstools/convert-colors": "^2.0.1",
-    "fflate": "^0.8.2",
+    "fflate": "^0.8.3",
     "gzip": "^0.1.0",
     "pngjs": "^7.0.0"
   },
